@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+2.0 added more clubs2.0 added clubs<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accessible Golf - Physics Engine v1.9</title>
+    <title>Accessible Golf - Physics Engine v2.0</title>
     <style>
         body { font-family: sans-serif; padding: 2rem; background-color: #121212; color: #ffffff; max-width: 800px; margin: auto; line-height: 1.6; display: flex; flex-direction: column; align-items: center; }
         h1 { color: #4CAF50; margin-bottom: 0.5rem; }
@@ -18,7 +18,7 @@
 <body>
 
     <h1>Accessible Golf Engine</h1>
-    <div class="version">Smash Factor & Balanced Physics v1.9</div>
+    <div class="version">Club Selection & Bag Array v2.0</div>
     
     <button id="initBtn" autofocus onclick="initGame()">Press Enter to Begin</button>
 
@@ -38,8 +38,23 @@
         let hingeTimeBack = 0, hingeTimeDown = 0;
         let finalPower = 0, dropDurationMs = 0;
 
-        // Balanced Club Data
-        const club = { name: "Driver", baseDistance: 255, maxDispersion: 45 };
+        // --- NEW: The Golf Bag ---
+        const clubs = [
+            { name: "Driver", baseDistance: 255, maxDispersion: 45 },
+            { name: "3 Wood", baseDistance: 230, maxDispersion: 35 },
+            { name: "5 Wood", baseDistance: 215, maxDispersion: 30 },
+            { name: "4 Iron", baseDistance: 195, maxDispersion: 25 },
+            { name: "5 Iron", baseDistance: 180, maxDispersion: 22 },
+            { name: "6 Iron", baseDistance: 165, maxDispersion: 20 },
+            { name: "7 Iron", baseDistance: 155, maxDispersion: 18 },
+            { name: "8 Iron", baseDistance: 145, maxDispersion: 15 },
+            { name: "9 Iron", baseDistance: 135, maxDispersion: 12 },
+            { name: "Pitching Wedge", baseDistance: 120, maxDispersion: 10 },
+            { name: "Sand Wedge", baseDistance: 100, maxDispersion: 8 }
+        ];
+        let currentClubIndex = 0; // Starts at Driver
+        let club = clubs[currentClubIndex];
+
         const fairwayWidth = 35; 
 
         window.announce = function(msg) {
@@ -57,7 +72,8 @@
             document.getElementById('initBtn').style.display = 'none';
             document.getElementById('game-container').style.display = 'flex';
             document.getElementById('game-container').focus();           
-            window.announce("Ready. Hold Down Arrow to start.");
+            window.announce(`Ready. ${club.name} selected. ${club.baseDistance} yards.`);
+            document.getElementById('visual-output').innerText = `Current Club: ${club.name}\nBase Distance: ${club.baseDistance} yards\nUse Page Up/Down to switch.`;
         };
 
         function playTone(freq, type, dur, vol) {
@@ -82,7 +98,7 @@
             window.initAudio();
             swingState = 1; hingeTimeBack = 0; hingeTimeDown = 0;
             backswingStartTime = performance.now();
-            document.getElementById('visual-output').innerText = "Backswing: Hinge Phase";
+            document.getElementById('visual-output').innerText = `Swinging ${club.name}...\nBackswing: Hinge Phase`;
             for (let i = 1; i <= 4; i++) { stateTimeouts.push(setTimeout(() => playTone(600, 'triangle', 0.15, 0.25), i * 500)); }
             stateTimeouts.push(setTimeout(startPowerPhase, 2000));
         }
@@ -116,7 +132,7 @@
             finalPower = Math.round(finalPower);
             if (powerOscillator) { powerOscillator.stop(); }
             downswingStartTime = performance.now();
-            document.getElementById('visual-output').innerText = "Downswing: Match Hinge";
+            document.getElementById('visual-output').innerText = `Swinging ${club.name}...\nDownswing: Match Hinge`;
             for (let i = 1; i <= 4; i++) { stateTimeouts.push(setTimeout(() => playTone(600, 'triangle', 0.15, 0.25), i * 500)); }
             stateTimeouts.push(setTimeout(startImpactPhase, 2000));
         }
@@ -153,28 +169,21 @@
 
             const impactDiff = Math.round((performance.now() - impactStartTime) - dropDurationMs);
             const hingeDiff = Math.round(hingeTimeDown - hingeTimeBack);
-
-            // Pressure (Overswing factor)
             let pressure = finalPower > 105 ? (finalPower - 105) / 15 : 0;
 
-            // --- 1. POWER & DISTANCE ---
             let hingeIntensity = 1 + (hingeTimeBack / 2000 * 0.15); 
             let potentialDist = club.baseDistance * (finalPower / 100) * hingeIntensity;
 
-            // --- 2. THE SMASH FACTOR ---
             const impactAcc = Math.round(calculateZoneAccuracy(impactDiff, pressure));
             const hingeAcc = Math.round(calculateZoneAccuracy(hingeDiff, pressure));
             let smashFactor = impactAcc / 100;
 
-            // Hinge/Contact Penalty
             const hingeThreshold = 400 / (1 + (pressure * 0.8)); 
             let contactMultiplier = 1 - Math.pow(Math.abs(hingeDiff) / hingeThreshold, 2);
             contactMultiplier = Math.max(0.2, contactMultiplier);
 
-            // Final Total (Includes Smash Factor penalty for poor accuracy)
             let totalDistance = Math.round(potentialDist * smashFactor * contactMultiplier);
 
-            // --- 3. DIRECTION & DISPERSION ---
             let currentDispersion = club.maxDispersion * (1 + (pressure * 1.5));
             let lateralX = Math.round((impactDiff / 400) * currentDispersion * 10) / 10;
             
@@ -184,29 +193,58 @@
             let contactLabel = hingeDiff < 0 ? "Thin" : "Fat";
             if (Math.abs(hingeDiff) < (60 / (1 + pressure))) contactLabel = "Pure";
 
-            const readout = `Distance: ${totalDistance} yards. (${lie})
+            const readout = `Result: ${totalDistance} yards with ${club.name}. (${lie})
             Direction: ${Math.abs(lateralX)} yards ${lateralX < 0 ? 'left' : 'right'}.
             
             Contact: ${contactLabel} (${hingeDiff}ms).
-            Power: ${finalPower}% (Smash Factor: ${impactAcc}%).
-            Accuracy Score: ${impactAcc}%.`;
+            Power: ${finalPower}% (Smash Factor: ${impactAcc}%).`;
             
             document.getElementById('visual-output').innerText = readout;
             window.announce(readout);
         }
 
+        // --- NEW: Club Selection Logic added to Keyboard Listener ---
         window.addEventListener('keydown', (e) => {
             if (e.repeat) return;
+            
             if (e.code === 'ArrowDown') {
                 e.preventDefault();
                 if (swingState === 0) startBackswing();
                 else if (swingState === 4) executeImpact(false);
             }
+            
             if (e.code === 'Space') {
                 e.preventDefault();
                 playTone(880, 'sine', 0.1, 0.25);
                 if (swingState === 1) hingeTimeBack = performance.now() - backswingStartTime;
                 if (swingState === 3) hingeTimeDown = performance.now() - downswingStartTime;
+            }
+
+            // Club Selection (Only when idle)
+            if (swingState === 0) {
+                if (e.code === 'PageUp') { // Longer club
+                    e.preventDefault();
+                    if (currentClubIndex > 0) {
+                        currentClubIndex--;
+                        club = clubs[currentClubIndex];
+                        window.announce(`${club.name}. ${club.baseDistance} yards.`);
+                        document.getElementById('visual-output').innerText = `Club: ${club.name}\nBase: ${club.baseDistance} yards`;
+                    } else {
+                        window.announce("Driver is your longest club.");
+                    }
+                }
+                
+                if (e.code === 'PageDown') { // Shorter club
+                    e.preventDefault();
+                    if (currentClubIndex < clubs.length - 1) {
+                        currentClubIndex++;
+                        club = clubs[currentClubIndex];
+                        window.announce(`${club.name}. ${club.baseDistance} yards.`);
+                        document.getElementById('visual-output').innerText = `Club: ${club.name}\nBase: ${club.baseDistance} yards`;
+                    } else {
+                        window.announce("Sand Wedge is your shortest club.");
+                    }
+                }
             }
         });
 
