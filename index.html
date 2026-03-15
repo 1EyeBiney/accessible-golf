@@ -1,9 +1,9 @@
-2.0 added more clubs2.0 added clubs<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accessible Golf - Physics Engine v2.0</title>
+    <title>Accessible Golf - Physics Engine v2.1</title>
     <style>
         body { font-family: sans-serif; padding: 2rem; background-color: #121212; color: #ffffff; max-width: 800px; margin: auto; line-height: 1.6; display: flex; flex-direction: column; align-items: center; }
         h1 { color: #4CAF50; margin-bottom: 0.5rem; }
@@ -18,7 +18,7 @@
 <body>
 
     <h1>Accessible Golf Engine</h1>
-    <div class="version">Club Selection & Bag Array v2.0</div>
+    <div class="version">Flight Tracking & Roll Physics v2.1</div>
     
     <button id="initBtn" autofocus onclick="initGame()">Press Enter to Begin</button>
 
@@ -31,30 +31,30 @@
     <script>
         let audioCtx = null;
         let powerOscillator, powerGain;
-        let swingState = 0; 
+        let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
         let stateTimeouts = [];
         
         let backswingStartTime = 0, downswingStartTime = 0, impactStartTime = 0;
         let hingeTimeBack = 0, hingeTimeDown = 0;
         let finalPower = 0, dropDurationMs = 0;
 
-        // --- NEW: The Golf Bag ---
+        // --- UPDATED BAG: Added Loft and Roll Percentages ---
+        // rollPct: Normal expected roll as a % of total distance
         const clubs = [
-            { name: "Driver", baseDistance: 255, maxDispersion: 45 },
-            { name: "3 Wood", baseDistance: 230, maxDispersion: 35 },
-            { name: "5 Wood", baseDistance: 215, maxDispersion: 30 },
-            { name: "4 Iron", baseDistance: 195, maxDispersion: 25 },
-            { name: "5 Iron", baseDistance: 180, maxDispersion: 22 },
-            { name: "6 Iron", baseDistance: 165, maxDispersion: 20 },
-            { name: "7 Iron", baseDistance: 155, maxDispersion: 18 },
-            { name: "8 Iron", baseDistance: 145, maxDispersion: 15 },
-            { name: "9 Iron", baseDistance: 135, maxDispersion: 12 },
-            { name: "Pitching Wedge", baseDistance: 120, maxDispersion: 10 },
-            { name: "Sand Wedge", baseDistance: 100, maxDispersion: 8 }
+            { name: "Driver", baseDistance: 255, maxDispersion: 45, loft: 10, rollPct: 0.12 },
+            { name: "3 Wood", baseDistance: 230, maxDispersion: 35, loft: 15, rollPct: 0.08 },
+            { name: "5 Wood", baseDistance: 215, maxDispersion: 30, loft: 18, rollPct: 0.06 },
+            { name: "4 Iron", baseDistance: 195, maxDispersion: 25, loft: 22, rollPct: 0.05 },
+            { name: "5 Iron", baseDistance: 180, maxDispersion: 22, loft: 26, rollPct: 0.04 },
+            { name: "6 Iron", baseDistance: 165, maxDispersion: 20, loft: 30, rollPct: 0.03 },
+            { name: "7 Iron", baseDistance: 155, maxDispersion: 18, loft: 34, rollPct: 0.02 },
+            { name: "8 Iron", baseDistance: 145, maxDispersion: 15, loft: 38, rollPct: 0.01 },
+            { name: "9 Iron", baseDistance: 135, maxDispersion: 12, loft: 42, rollPct: 0.00 },
+            { name: "Pitching Wedge", baseDistance: 120, maxDispersion: 10, loft: 46, rollPct: -0.01 }, // Slight spin back
+            { name: "Sand Wedge", baseDistance: 100, maxDispersion: 8, loft: 56, rollPct: -0.03 } // Heavy spin back
         ];
-        let currentClubIndex = 0; // Starts at Driver
+        let currentClubIndex = 0;
         let club = clubs[currentClubIndex];
-
         const fairwayWidth = 35; 
 
         window.announce = function(msg) {
@@ -72,10 +72,11 @@
             document.getElementById('initBtn').style.display = 'none';
             document.getElementById('game-container').style.display = 'flex';
             document.getElementById('game-container').focus();           
-            window.announce(`Ready. ${club.name} selected. ${club.baseDistance} yards.`);
-            document.getElementById('visual-output').innerText = `Current Club: ${club.name}\nBase Distance: ${club.baseDistance} yards\nUse Page Up/Down to switch.`;
+            window.announce(`Ready. ${club.name}. Use Page Up or Down to change clubs.`);
+            document.getElementById('visual-output').innerText = `Current Club: ${club.name}\nBase: ${club.baseDistance} yds`;
         };
 
+        // --- AUDIO HELPERS ---
         function playTone(freq, type, dur, vol) {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
@@ -86,6 +87,30 @@
             osc.start(); osc.stop(audioCtx.currentTime + dur);
         }
 
+        // Noise generator for wind/flight sounds
+        function playNoise(dur, vol, isRoll = false) {
+            const bufferSize = audioCtx.sampleRate * dur;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                // Brown noise for roll, White noise for flight
+                data[i] = (Math.random() * 2 - 1) * (isRoll ? 0.5 : 1.0); 
+            }
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = isRoll ? 'lowpass' : 'bandpass';
+            filter.frequency.value = isRoll ? 400 : 1000;
+
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+            
+            noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+            noise.start();
+        }
+
         function triggerMilestone(percent) {
             if (percent === 25) playTone(220, 'square', 0.3, 0.2); 
             if (percent === 50) playTone(440, 'triangle', 0.2, 0.4); 
@@ -94,11 +119,13 @@
             if (percent === 120) playTone(150, 'sawtooth', 0.4, 0.7); 
         }
 
+        // --- SWING PHASES ---
         function startBackswing() {
+            if (swingState !== 0) return;
             window.initAudio();
             swingState = 1; hingeTimeBack = 0; hingeTimeDown = 0;
             backswingStartTime = performance.now();
-            document.getElementById('visual-output').innerText = `Swinging ${club.name}...\nBackswing: Hinge Phase`;
+            document.getElementById('visual-output').innerText = `Backswing...`;
             for (let i = 1; i <= 4; i++) { stateTimeouts.push(setTimeout(() => playTone(600, 'triangle', 0.15, 0.25), i * 500)); }
             stateTimeouts.push(setTimeout(startPowerPhase, 2000));
         }
@@ -118,21 +145,17 @@
             stateTimeouts.push(setTimeout(() => triggerMilestone(50), 666));
             stateTimeouts.push(setTimeout(() => triggerMilestone(75), 1333));
             stateTimeouts.push(setTimeout(() => triggerMilestone(100), 2000));
-            stateTimeouts.push(setTimeout(() => {
-                if (swingState === 2) { triggerMilestone(120); startDownswing(); }
-            }, 2533)); 
+            stateTimeouts.push(setTimeout(() => { if (swingState === 2) { triggerMilestone(120); startDownswing(); } }, 2533)); 
         }
 
         function startDownswing() {
             if (swingState !== 2) { swingState = 0; return; }
             swingState = 3; stateTimeouts.forEach(clearTimeout);
             let elapsed = performance.now() - powerStartTime;
-            finalPower = 25 + ((elapsed / 2000) * 75);
-            if (finalPower > 120) finalPower = 120;
-            finalPower = Math.round(finalPower);
+            finalPower = Math.min(120, Math.round(25 + ((elapsed / 2000) * 75)));
             if (powerOscillator) { powerOscillator.stop(); }
             downswingStartTime = performance.now();
-            document.getElementById('visual-output').innerText = `Swinging ${club.name}...\nDownswing: Match Hinge`;
+            document.getElementById('visual-output').innerText = `Downswing...`;
             for (let i = 1; i <= 4; i++) { stateTimeouts.push(setTimeout(() => playTone(600, 'triangle', 0.15, 0.25), i * 500)); }
             stateTimeouts.push(setTimeout(startImpactPhase, 2000));
         }
@@ -141,6 +164,7 @@
             swingState = 4; impactStartTime = performance.now();
             dropDurationMs = finalPower * 15; 
             if (finalPower >= 100) triggerMilestone(100);
+            
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = 'sine';
@@ -150,8 +174,9 @@
             gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + (dropDurationMs / 1000));
             osc.connect(gain); gain.connect(audioCtx.destination);
             osc.start(); osc.stop(audioCtx.currentTime + (dropDurationMs / 1000) + 0.1);
+            
             [75, 50, 25].forEach(m => { if (finalPower > m) stateTimeouts.push(setTimeout(() => triggerMilestone(m), (finalPower - m) * 15)); });
-            stateTimeouts.push(setTimeout(() => { if (swingState === 4) executeImpact(true); }, dropDurationMs + 400));
+            stateTimeouts.push(setTimeout(() => { if (swingState === 4) calculateShot(true); }, dropDurationMs + 400));
         }
 
         function calculateZoneAccuracy(offsetMs, pressure) {
@@ -163,54 +188,107 @@
             return 10;
         }
 
-        function executeImpact(autoMiss = false) {
-            swingState = 0; stateTimeouts.forEach(clearTimeout);
-            if (autoMiss) { window.announce("Whiffed!"); return; }
+        // --- NEW: Physics & Flight Sequencer ---
+        function calculateShot(autoMiss = false) {
+            swingState = 5; // Flight Phase - locks controls
+            stateTimeouts.forEach(clearTimeout);
+            if (autoMiss) { 
+                playTone(150, 'sine', 0.5, 0.5); 
+                window.announce("Whiffed!"); 
+                setTimeout(() => { swingState = 0; }, 1000);
+                return; 
+            }
 
             const impactDiff = Math.round((performance.now() - impactStartTime) - dropDurationMs);
             const hingeDiff = Math.round(hingeTimeDown - hingeTimeBack);
             let pressure = finalPower > 105 ? (finalPower - 105) / 15 : 0;
 
-            let hingeIntensity = 1 + (hingeTimeBack / 2000 * 0.15); 
-            let potentialDist = club.baseDistance * (finalPower / 100) * hingeIntensity;
-
+            // Base Math
             const impactAcc = Math.round(calculateZoneAccuracy(impactDiff, pressure));
-            const hingeAcc = Math.round(calculateZoneAccuracy(hingeDiff, pressure));
             let smashFactor = impactAcc / 100;
-
+            let hingeIntensity = 1 + (hingeTimeBack / 2000 * 0.15); 
+            
             const hingeThreshold = 400 / (1 + (pressure * 0.8)); 
             let contactMultiplier = 1 - Math.pow(Math.abs(hingeDiff) / hingeThreshold, 2);
             contactMultiplier = Math.max(0.2, contactMultiplier);
 
+            let potentialDist = club.baseDistance * (finalPower / 100) * hingeIntensity;
             let totalDistance = Math.round(potentialDist * smashFactor * contactMultiplier);
 
+            // --- TRAJECTORY, CARRY, AND ROLL MATH ---
+            let dynamicLoft = club.loft;
+            let rollMultiplier = 1.0;
+
+            if (hingeDiff < -60) { // Thin Shot (Low trajectory, hot roll)
+                dynamicLoft -= 10; 
+                rollMultiplier = 2.5; 
+            } else if (hingeDiff > 60) { // Fat Shot (Pop up, dead roll)
+                dynamicLoft += 10;
+                rollMultiplier = 0.2;
+            }
+
+            // Hang time: Higher loft & higher distance = longer hang time (cap at ~6 secs)
+            let hangTimeSecs = Math.max(0.5, (totalDistance / 60) + (dynamicLoft / 15));
+            if (hangTimeSecs > 6) hangTimeSecs = 6;
+
+            // Carry vs Roll Split
+            let actualRollPct = club.rollPct * rollMultiplier;
+            let rollDistance = Math.round(totalDistance * actualRollPct);
+            let carryDistance = totalDistance - rollDistance;
+
+            // Lie & Dispersion
             let currentDispersion = club.maxDispersion * (1 + (pressure * 1.5));
             let lateralX = Math.round((impactDiff / 400) * currentDispersion * 10) / 10;
-            
             let lie = Math.abs(lateralX) > (fairwayWidth / 2) ? "Rough" : "Fairway";
-            if (Math.abs(lateralX) > 70) lie = "Out of Bounds";
-
-            let contactLabel = hingeDiff < 0 ? "Thin" : "Fat";
-            if (Math.abs(hingeDiff) < (60 / (1 + pressure))) contactLabel = "Pure";
-
-            const readout = `Result: ${totalDistance} yards with ${club.name}. (${lie})
-            Direction: ${Math.abs(lateralX)} yards ${lateralX < 0 ? 'left' : 'right'}.
             
-            Contact: ${contactLabel} (${hingeDiff}ms).
-            Power: ${finalPower}% (Smash Factor: ${impactAcc}%).`;
+            // --- AUDIO FLIGHT SEQUENCER ---
+            document.getElementById('visual-output').innerText = "Ball is in the air...";
             
-            document.getElementById('visual-output').innerText = readout;
-            window.announce(readout);
+            // 1. Strike Sound
+            playTone(800, 'triangle', 0.1, 0.6); 
+            
+            // 2. Flight Wind
+            playNoise(hangTimeSecs, 0.3, false);
+
+            // 3. The Landing & Roll
+            setTimeout(() => {
+                // Landing Thud
+                playTone(100, 'sine', 0.2, 0.8);
+                
+                // Roll Sound (duration based on roll distance, e.g., 20 yds = 2 seconds)
+                let rollTimeSecs = Math.max(0, Math.abs(rollDistance) / 10);
+                if (rollTimeSecs > 0) {
+                    document.getElementById('visual-output').innerText = "Ball is bouncing and rolling...";
+                    playNoise(rollTimeSecs, 0.4, true); // Low frequency rumble
+                }
+
+                // 4. The Reveal
+                setTimeout(() => {
+                    let dirStr = lateralX === 0 ? "dead straight" : `${Math.abs(lateralX)} yards ${lateralX < 0 ? 'left' : 'right'}`;
+                    let rollStr = rollDistance < 0 ? `Spins back ${Math.abs(rollDistance)} yards.` : `Rolls ${rollDistance} yards.`;
+                    
+                    const readout = `${club.name}. Carries ${carryDistance}. ${rollStr} Total ${totalDistance}. 
+                    Settles in the ${lie}, ${dirStr}.`;
+                    
+                    document.getElementById('visual-output').innerText = readout;
+                    window.announce(readout);
+                    
+                    swingState = 0; // Reset for next shot
+                }, rollTimeSecs * 1000 + 500);
+
+            }, hangTimeSecs * 1000);
         }
 
-        // --- NEW: Club Selection Logic added to Keyboard Listener ---
         window.addEventListener('keydown', (e) => {
             if (e.repeat) return;
             
+            // Prevent input if ball is in the air (State 5)
+            if (swingState === 5) return; 
+
             if (e.code === 'ArrowDown') {
                 e.preventDefault();
                 if (swingState === 0) startBackswing();
-                else if (swingState === 4) executeImpact(false);
+                else if (swingState === 4) calculateShot(false);
             }
             
             if (e.code === 'Space') {
@@ -220,29 +298,21 @@
                 if (swingState === 3) hingeTimeDown = performance.now() - downswingStartTime;
             }
 
-            // Club Selection (Only when idle)
             if (swingState === 0) {
-                if (e.code === 'PageUp') { // Longer club
+                if (e.code === 'PageUp') {
                     e.preventDefault();
                     if (currentClubIndex > 0) {
-                        currentClubIndex--;
-                        club = clubs[currentClubIndex];
+                        currentClubIndex--; club = clubs[currentClubIndex];
                         window.announce(`${club.name}. ${club.baseDistance} yards.`);
                         document.getElementById('visual-output').innerText = `Club: ${club.name}\nBase: ${club.baseDistance} yards`;
-                    } else {
-                        window.announce("Driver is your longest club.");
                     }
                 }
-                
-                if (e.code === 'PageDown') { // Shorter club
+                if (e.code === 'PageDown') {
                     e.preventDefault();
                     if (currentClubIndex < clubs.length - 1) {
-                        currentClubIndex++;
-                        club = clubs[currentClubIndex];
+                        currentClubIndex++; club = clubs[currentClubIndex];
                         window.announce(`${club.name}. ${club.baseDistance} yards.`);
                         document.getElementById('visual-output').innerText = `Club: ${club.name}\nBase: ${club.baseDistance} yards`;
-                    } else {
-                        window.announce("Sand Wedge is your shortest club.");
                     }
                 }
             }
