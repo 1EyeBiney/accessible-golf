@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accessible Golf - Physics Engine v2.4</title>
+    <title>Accessible Golf - Physics Engine v2.7</title>
     <style>
         body { font-family: sans-serif; padding: 2rem; background-color: #121212; color: #ffffff; max-width: 800px; margin: auto; line-height: 1.6; display: flex; flex-direction: column; align-items: center; }
         h1 { color: #4CAF50; margin-bottom: 0.5rem; }
@@ -18,7 +18,7 @@
 <body>
 
     <h1>Accessible Golf Engine</h1>
-    <div class="version">Flight Tracking & Roll Physics v2.4</div>
+    <div class="version">Flight Tracking & Roll Physics v2.7</div>
 
     <button id="initBtn" autofocus onclick="initGame()">Press Enter to Begin</button>
 
@@ -29,7 +29,7 @@
     <div id="aria-announce" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
 
     <script>
-        console.log("Accessible Golf Engine v2.4 loaded");
+        console.log("Accessible Golf Engine v2.7 loaded");
 
         let audioCtx = null;
         let powerOscillator, powerGain;
@@ -227,30 +227,36 @@
             let potentialDist = club.baseDistance * (finalPower / 100) * hingeIntensity;
             let totalDistance = Math.round(potentialDist * smashFactor * contactMultiplier);
 
-            // --- TRAJECTORY, CARRY, AND ROLL MATH ---
+            // --- TRAJECTORY, SPIN, CARRY, AND ROLL MATH ---
             let dynamicLoft = club.loft;
-            let rollMultiplier = 1.0;
+            let backspinRPM = Math.round((club.loft * 150) + (finalPower * 10) + (impactAcc * 7));
 
             if (hingeDiff < -60) { // Thin Shot (Low trajectory, hot roll)
                 dynamicLoft -= 10;
-                rollMultiplier = 2.5;
+                backspinRPM -= Math.abs(hingeDiff) * 22;
             } else if (hingeDiff > 60) { // Fat Shot (Pop up, dead roll)
                 dynamicLoft += 10;
-                rollMultiplier = 0.2;
+                backspinRPM += Math.abs(hingeDiff) * 12;
             }
+
+            backspinRPM += hingeDiff * 18;
+            backspinRPM = Math.max(400, Math.round(backspinRPM * contactMultiplier));
+
+            const sideSpinRPM = Math.round((impactDiff / 400) * 3200 * (1 + pressure));
 
             // Hang time: Higher loft & higher distance = longer hang time (cap at ~6 secs)
             let hangTimeSecs = Math.max(0.5, (totalDistance / 60) + (dynamicLoft / 15));
             if (hangTimeSecs > 6) hangTimeSecs = 6;
 
             // Carry vs Roll Split
-            let actualRollPct = club.rollPct * rollMultiplier;
-            let rollDistance = Math.round(totalDistance * actualRollPct);
+            const baseRollDistance = totalDistance * club.rollPct;
+            const spinRollAdjustment = (backspinRPM - 5200) / 550;
+            let rollDistance = Math.round(baseRollDistance - spinRollAdjustment);
             let carryDistance = totalDistance - rollDistance;
 
             // Lie & Dispersion
             let currentDispersion = club.maxDispersion * (1 + (pressure * 1.5));
-            let lateralX = Math.round((impactDiff / 400) * currentDispersion * 10) / 10;
+            let lateralX = Math.round((sideSpinRPM / 3200) * currentDispersion * 10) / 10;
             let lie = Math.abs(lateralX) > (fairwayWidth / 2) ? "Rough" : "Fairway";
 
             // --- AUDIO FLIGHT SEQUENCER ---
@@ -260,7 +266,7 @@
             playTone(800, 'triangle', 0.1, 0.6);
 
             // 2. Flight Wind
-            playNoise(hangTimeSecs, 0.3, false);
+            playNoise(hangTimeSecs + 0.3, 0.3, false);
 
             // 3. The Landing & Roll
             setTimeout(() => {
@@ -269,23 +275,23 @@
                 const bounceCount = Math.max(1, baseBounceCount - loftPenalty);
                 const bounceDurationMs = 0.12 * 1000;
                 const bounceOffsets = [];
-                let bounceGapMs = dynamicLoft <= 18 ? 300 : 400;
+                let bounceGapMs = Math.min(800, 350 + (rollDistance * 3));
                 let bounceElapsedMs = 0;
+                let bounceSequenceMs = 0;
 
                 for (let bounceIndex = 0; bounceIndex < bounceCount; bounceIndex++) {
                     bounceOffsets.push(bounceElapsedMs);
+                    bounceSequenceMs = bounceElapsedMs + bounceDurationMs;
                     bounceElapsedMs += bounceGapMs;
-                    bounceGapMs = Math.max(90, Math.round(bounceGapMs * 0.62));
+                    bounceGapMs = Math.max(90, Math.round(bounceGapMs * 0.85));
                 }
 
                 bounceOffsets.forEach((bounceOffsetMs, bounceIndex) => {
                     setTimeout(() => {
-                        const bounceVolume = Math.max(0.12, 1.0 * Math.pow(0.6, bounceIndex));
-                        playTone(150, 'sine', 0.12, bounceVolume);
+                        const bounceVolume = Math.max(0.12, 1.0 * Math.pow(0.8, bounceIndex));
+                        playTone(180, 'sine', 0.12, bounceVolume);
                     }, bounceOffsetMs);
                 });
-
-                const bounceSequenceMs = (bounceOffsets[bounceOffsets.length - 1] || 0) + bounceDurationMs;
 
                 // Roll Sound (duration based on roll distance, e.g., 20 yds = 2 seconds)
                 let rollTimeSecs = Math.max(0, Math.abs(rollDistance) / 10);
@@ -302,7 +308,8 @@
                     let rollStr = rollDistance < 0 ? `Spins back ${Math.abs(rollDistance)} yards.` : `Rolls ${rollDistance} yards.`;
 
                     const narrative = `${club.name}. Carries ${carryDistance}. ${rollStr} Total ${totalDistance}.\nSettles in the ${lie}, ${dirStr}.`;
-                    const metrics = `Power ${finalPower}%. Hinge Diff ${hingeDiff}ms. Impact Offset ${impactDiff}ms. Accuracy Score ${accuracyScore}%.`;
+                    const sideSpinShape = sideSpinRPM === 0 ? "Straight" : sideSpinRPM > 0 ? "Slice" : "Hook";
+                    const metrics = `Power ${finalPower}%. Hinge Diff ${hingeDiff}ms. Impact Offset ${impactDiff}ms. Accuracy Score ${accuracyScore}%. Backspin: ${backspinRPM} RPM. Side Spin: ${sideSpinRPM} RPM (${sideSpinShape}).`;
                     const readout = `${narrative}\n\n${metrics}`;
 
                     lastShotReport = readout;

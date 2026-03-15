@@ -51,3 +51,12 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
     - Late downswing hinge = Fat (High pop-up loft, dead roll).
 - **Pressure:** Swinging over 105% power shrinks the 60ms accuracy buffer and multiplies lateral dispersion.
 - **Dynamic Bouncing:** Landing audio scales with `rollDistance`. High-loft clubs produce a single thud; low-loft clubs produce multiple cascading, skipping bounces.
+### 6. Engine Addendums (v2.4 - v2.7)
+- **Trajectory-Aware Bounces (v2.4):** Landing audio differentiates between low-trajectory skips and high-trajectory thuds using a `loftPenalty`.
+- **Dynamic Bounce Gaps (v2.5):** `bounceGapMs` scales with `rollDistance` to prevent clustering. Eased timing decay (0.85) and volume decay (0.8) create a realistic settling rhythm.
+- **Polyphonic Audio Overlap (v2.6):** Flight wind (`playNoise`) extends 0.3s beyond hang time with an exponential fade, overlapping smoothly with the first bounces to prevent audio cut-offs.
+- **Explicit Spin Mechanics (v2.7):** - `backspinRPM` is calculated from base loft, final power, impact accuracy, and `hingeDiff`.
+  - `sideSpinRPM` is driven by `impactDiff` (Impact Offset).
+  - **Spin-to-Roll Linkage:** Roll distance is dynamically adjusted by `(backspinRPM - 5200) / 550`. High backspin creates negative roll.
+  - **Dispersion:** Lateral movement (`lateralX`) is driven by `sideSpinRPM`.
+  - **Caddy Report:** Includes Backspin RPM, Side Spin RPM, and shot shape.
