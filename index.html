@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accessible Golf - Physics Engine v1.9</title>
+    <style>
+        body { font-family: sans-serif; padding: 2rem; background-color: #121212; color: #ffffff; max-width: 800px; margin: auto; line-height: 1.6; display: flex; flex-direction: column; align-items: center; }
+        h1 { color: #4CAF50; margin-bottom: 0.5rem; }
+        .version { color: #888; font-size: 0.9rem; margin-bottom: 2rem; }
+        button { font-size: 1.5rem; padding: 15px 30px; margin-top: 50px; cursor: pointer; background-color: #4CAF50; color: black; border: none; border-radius: 8px; font-weight: bold; }
+        #game-container { width: 100%; display: none; flex-direction: column; align-items: center; }
+        #game-container:focus { outline: 4px solid #4CAF50; border-radius: 8px; padding: 1rem; background-color: #1a1a1a; }
+        #visual-output { font-size: 1.2rem; font-weight: bold; min-height: 12rem; padding: 1.5rem; background: #2a2a2a; border-radius: 8px; width: 100%; text-align: center; border: 1px solid #444; white-space: pre-line; }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    </style>
+</head>
+<body>
+
+    <h1>Accessible Golf Engine</h1>
+    <div class="version">Smash Factor & Balanced Physics v1.9</div>
+    
+    <button id="initBtn" autofocus onclick="initGame()">Press Enter to Begin</button>
+
+    <div id="game-container" tabindex="0" role="application" aria-label="Golf Swing Engine">
+        <div id="visual-output" aria-hidden="true">Ready. Hold Down Arrow to start backswing.</div>
+    </div>
+
+    <div id="aria-announce" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+
+    <script>
+        let audioCtx = null;
+        let powerOscillator, powerGain;
+        let swingState = 0; 
+        let stateTimeouts = [];
+        
+        let backswingStartTime = 0, downswingStartTime = 0, impactStartTime = 0;
+        let hingeTimeBack = 0, hingeTimeDown = 0;
+        let finalPower = 0, dropDurationMs = 0;
+
+        // Balanced Club Data
+        const club = { name: "Driver", baseDistance: 255, maxDispersion: 45 };
+        const fairwayWidth = 35; 
+
+        window.announce = function(msg) {
+            const el = document.getElementById('aria-announce');
+            if (el) { el.textContent = ''; setTimeout(() => { el.textContent = msg; }, 50); }
+        };
+
+        window.initAudio = function() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        };
+
+        window.initGame = function() {
+            window.initAudio();
+            document.getElementById('initBtn').style.display = 'none';
+            document.getElementById('game-container').style.display = 'flex';
+            document.getElementById('game-container').focus();           
+            window.announce("Ready. Hold Down Arrow to start.");
+        };
+
+        function playTone(freq, type, dur, vol) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type; osc.frequency.value = freq;
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + dur);
+        }
+
+        function triggerMilestone(percent) {
+            if (percent === 25) playTone(220, 'square', 0.3, 0.2); 
+            if (percent === 50) playTone(440, 'triangle', 0.2, 0.4); 
+            if (percent === 75) { playTone(660, 'triangle', 0.1, 0.4); setTimeout(()=>playTone(660, 'triangle', 0.1, 0.4), 120); }
+            if (percent === 100) playTone(1200, 'sine', 0.8, 0.6); 
+            if (percent === 120) playTone(150, 'sawtooth', 0.4, 0.7); 
+        }
+
+        function startBackswing() {
+            window.initAudio();
+            swingState = 1; hingeTimeBack = 0; hingeTimeDown = 0;
+            backswingStartTime = performance.now();
+            document.getElementById('visual-output').innerText = "Backswing: Hinge Phase";
+            for (let i = 1; i <= 4; i++) { stateTimeouts.push(setTimeout(() => playTone(600, 'triangle', 0.15, 0.25), i * 500)); }
+            stateTimeouts.push(setTimeout(startPowerPhase, 2000));
+        }
+
+        function startPowerPhase() {
+            swingState = 2; powerStartTime = performance.now();
+            triggerMilestone(25);
+            powerOscillator = audioCtx.createOscillator();
+            powerGain = audioCtx.createGain();
+            powerOscillator.type = 'sine';
+            powerOscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
+            powerOscillator.frequency.linearRampToValueAtTime(1050, audioCtx.currentTime + 2.5);
+            powerGain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            powerOscillator.connect(powerGain); powerGain.connect(audioCtx.destination);
+            powerOscillator.start();
+
+            stateTimeouts.push(setTimeout(() => triggerMilestone(50), 666));
+            stateTimeouts.push(setTimeout(() => triggerMilestone(75), 1333));
+            stateTimeouts.push(setTimeout(() => triggerMilestone(100), 2000));
+            stateTimeouts.push(setTimeout(() => {
+                if (swingState === 2) { triggerMilestone(120); startDownswing(); }
+            }, 2533)); 
+        }
+
+        function startDownswing() {
+            if (swingState !== 2) { swingState = 0; return; }
+            swingState = 3; stateTimeouts.forEach(clearTimeout);
+            let elapsed = performance.now() - powerStartTime;
+            finalPower = 25 + ((elapsed / 2000) * 75);
+            if (finalPower > 120) finalPower = 120;
+            finalPower = Math.round(finalPower);
+            if (powerOscillator) { powerOscillator.stop(); }
+            downswingStartTime = performance.now();
+            document.getElementById('visual-output').innerText = "Downswing: Match Hinge";
+            for (let i = 1; i <= 4; i++) { stateTimeouts.push(setTimeout(() => playTone(600, 'triangle', 0.15, 0.25), i * 500)); }
+            stateTimeouts.push(setTimeout(startImpactPhase, 2000));
+        }
+
+        function startImpactPhase() {
+            swingState = 4; impactStartTime = performance.now();
+            dropDurationMs = finalPower * 15; 
+            if (finalPower >= 100) triggerMilestone(100);
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(100 + (finalPower * 8), audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + (dropDurationMs / 1000));
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + (dropDurationMs / 1000));
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + (dropDurationMs / 1000) + 0.1);
+            [75, 50, 25].forEach(m => { if (finalPower > m) stateTimeouts.push(setTimeout(() => triggerMilestone(m), (finalPower - m) * 15)); });
+            stateTimeouts.push(setTimeout(() => { if (swingState === 4) executeImpact(true); }, dropDurationMs + 400));
+        }
+
+        function calculateZoneAccuracy(offsetMs, pressure) {
+            const absOffset = Math.abs(offsetMs);
+            const buffer = 60 / (1 + (pressure * 0.5)); 
+            if (absOffset <= buffer) return 100;
+            if (absOffset <= 150) return 95 - ((absOffset - buffer) / 100 * 15);
+            if (absOffset <= 400) return 80 - ((absOffset - 150) / 250 * 60);
+            return 10;
+        }
+
+        function executeImpact(autoMiss = false) {
+            swingState = 0; stateTimeouts.forEach(clearTimeout);
+            if (autoMiss) { window.announce("Whiffed!"); return; }
+
+            const impactDiff = Math.round((performance.now() - impactStartTime) - dropDurationMs);
+            const hingeDiff = Math.round(hingeTimeDown - hingeTimeBack);
+
+            // Pressure (Overswing factor)
+            let pressure = finalPower > 105 ? (finalPower - 105) / 15 : 0;
+
+            // --- 1. POWER & DISTANCE ---
+            let hingeIntensity = 1 + (hingeTimeBack / 2000 * 0.15); 
+            let potentialDist = club.baseDistance * (finalPower / 100) * hingeIntensity;
+
+            // --- 2. THE SMASH FACTOR ---
+            const impactAcc = Math.round(calculateZoneAccuracy(impactDiff, pressure));
+            const hingeAcc = Math.round(calculateZoneAccuracy(hingeDiff, pressure));
+            let smashFactor = impactAcc / 100;
+
+            // Hinge/Contact Penalty
+            const hingeThreshold = 400 / (1 + (pressure * 0.8)); 
+            let contactMultiplier = 1 - Math.pow(Math.abs(hingeDiff) / hingeThreshold, 2);
+            contactMultiplier = Math.max(0.2, contactMultiplier);
+
+            // Final Total (Includes Smash Factor penalty for poor accuracy)
+            let totalDistance = Math.round(potentialDist * smashFactor * contactMultiplier);
+
+            // --- 3. DIRECTION & DISPERSION ---
+            let currentDispersion = club.maxDispersion * (1 + (pressure * 1.5));
+            let lateralX = Math.round((impactDiff / 400) * currentDispersion * 10) / 10;
+            
+            let lie = Math.abs(lateralX) > (fairwayWidth / 2) ? "Rough" : "Fairway";
+            if (Math.abs(lateralX) > 70) lie = "Out of Bounds";
+
+            let contactLabel = hingeDiff < 0 ? "Thin" : "Fat";
+            if (Math.abs(hingeDiff) < (60 / (1 + pressure))) contactLabel = "Pure";
+
+            const readout = `Distance: ${totalDistance} yards. (${lie})
+            Direction: ${Math.abs(lateralX)} yards ${lateralX < 0 ? 'left' : 'right'}.
+            
+            Contact: ${contactLabel} (${hingeDiff}ms).
+            Power: ${finalPower}% (Smash Factor: ${impactAcc}%).
+            Accuracy Score: ${impactAcc}%.`;
+            
+            document.getElementById('visual-output').innerText = readout;
+            window.announce(readout);
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+            if (e.code === 'ArrowDown') {
+                e.preventDefault();
+                if (swingState === 0) startBackswing();
+                else if (swingState === 4) executeImpact(false);
+            }
+            if (e.code === 'Space') {
+                e.preventDefault();
+                playTone(880, 'sine', 0.1, 0.25);
+                if (swingState === 1) hingeTimeBack = performance.now() - backswingStartTime;
+                if (swingState === 3) hingeTimeDown = performance.now() - downswingStartTime;
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowDown' && (swingState === 1 || swingState === 2)) {
+                e.preventDefault(); startDownswing();
+            }
+        });
+    </script>
+</body>
+</html>
