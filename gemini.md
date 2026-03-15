@@ -60,3 +60,9 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
   - **Spin-to-Roll Linkage:** Roll distance is dynamically adjusted by `(backspinRPM - 5200) / 550`. High backspin creates negative roll.
   - **Dispersion:** Lateral movement (`lateralX`) is driven by `sideSpinRPM`.
   - **Caddy Report:** Includes Backspin RPM, Side Spin RPM, and shot shape.
+### 10. v2.8 Engine Addendum (Wind Dynamics)
+- **Wind Generation:** `windX` (crosswind) and `windY` (head/tailwind) are randomized between -15 and 15 mph after every shot via `generateWind()`.
+- **Wind Physics:** Wind effect is heavily multiplied by `hangTimeSecs`. 
+    - `carryDistance` is adjusted by `(windY * (hangTimeSecs / 1.5))`.
+    - `lateralX` (dispersion) is adjusted by `(windX * (hangTimeSecs / 1.2))`.
+- **KeyW (Weather Report):** Triggers `window.announce` to read the current wind conditions (Only allowed in `swingState === 0`).

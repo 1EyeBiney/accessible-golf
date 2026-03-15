@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accessible Golf - Physics Engine v2.7</title>
+    <title>Accessible Golf - Physics Engine v2.9</title>
     <style>
         body { font-family: sans-serif; padding: 2rem; background-color: #121212; color: #ffffff; max-width: 800px; margin: auto; line-height: 1.6; display: flex; flex-direction: column; align-items: center; }
         h1 { color: #4CAF50; margin-bottom: 0.5rem; }
@@ -18,7 +18,7 @@
 <body>
 
     <h1>Accessible Golf Engine</h1>
-    <div class="version">Flight Tracking & Roll Physics v2.7</div>
+    <div class="version">Flight Tracking & Roll Physics v2.9</div>
 
     <button id="initBtn" autofocus onclick="initGame()">Press Enter to Begin</button>
 
@@ -29,7 +29,7 @@
     <div id="aria-announce" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
 
     <script>
-        console.log("Accessible Golf Engine v2.7 loaded");
+        console.log("Accessible Golf Engine v2.9 loaded");
 
         let audioCtx = null;
         let powerOscillator, powerGain;
@@ -39,6 +39,9 @@
         let backswingStartTime = 0, downswingStartTime = 0, impactStartTime = 0;
         let hingeTimeBack = 0, hingeTimeDown = 0;
         let finalPower = 0, dropDurationMs = 0;
+        let windX = 0;
+        let windY = 0;
+        let aimAngle = 0;
 
         const AUDIO_GAIN_BOOST = 1.45;
         const CONTINUOUS_GAIN_BOOST = 1.4;
@@ -74,8 +77,30 @@
             if (audioCtx.state === 'suspended') audioCtx.resume();
         };
 
+        function generateWind() {
+            windX = Math.floor(Math.random() * 31) - 15;
+            windY = Math.floor(Math.random() * 31) - 15;
+        }
+
+        function getWindReport() {
+            if (windX === 0 && windY === 0) {
+                return 'Wind is calm.';
+            }
+            const verticalWind = windY === 0 ? 'Calm' : `${Math.abs(windY)} mph ${windY > 0 ? 'Tailwind' : 'Headwind'}`;
+            const horizontalWind = windX === 0 ? '0 mph Center' : `${Math.abs(windX)} mph ${windX > 0 ? 'Right' : 'Left'}`;
+            return `Wind is ${verticalWind}, pushing ${horizontalWind}.`;
+        }
+
+        function getAimReport() {
+            if (aimAngle === 0) {
+                return 'Aiming straight down the fairway.';
+            }
+            return `Aiming ${Math.abs(aimAngle)} degrees ${aimAngle < 0 ? 'Left' : 'Right'}.`;
+        }
+
         window.initGame = function() {
             window.initAudio();
+            generateWind();
             document.getElementById('initBtn').style.display = 'none';
             document.getElementById('game-container').style.display = 'flex';
             document.getElementById('game-container').focus();
@@ -248,15 +273,21 @@
             let hangTimeSecs = Math.max(0.5, (totalDistance / 60) + (dynamicLoft / 15));
             if (hangTimeSecs > 6) hangTimeSecs = 6;
 
-            // Carry vs Roll Split
-            const baseRollDistance = totalDistance * club.rollPct;
             const spinRollAdjustment = (backspinRPM - 5200) / 550;
+            let projectedRollDistance = Math.round((totalDistance * club.rollPct) - spinRollAdjustment);
+            let carryDistance = Math.max(0, totalDistance - projectedRollDistance);
+            carryDistance = Math.max(0, Math.round(carryDistance + (windY * (hangTimeSecs / 1.5))));
+
+            const baseRollDistance = carryDistance * club.rollPct;
             let rollDistance = Math.round(baseRollDistance - spinRollAdjustment);
-            let carryDistance = totalDistance - rollDistance;
+            totalDistance = carryDistance + rollDistance;
 
             // Lie & Dispersion
             let currentDispersion = club.maxDispersion * (1 + (pressure * 1.5));
-            let lateralX = Math.round((sideSpinRPM / 3200) * currentDispersion * 10) / 10;
+            let lateralX = ((sideSpinRPM / 3200) * currentDispersion) + (windX * (hangTimeSecs / 1.2));
+            lateralX = Math.round(lateralX * 10) / 10;
+            let aimOffset = Math.tan(aimAngle * (Math.PI / 180)) * totalDistance;
+            lateralX = Math.round((lateralX + aimOffset) * 10) / 10;
             let lie = Math.abs(lateralX) > (fairwayWidth / 2) ? "Rough" : "Fairway";
 
             // --- AUDIO FLIGHT SEQUENCER ---
@@ -316,6 +347,8 @@
                     document.getElementById('visual-output').innerText = readout;
                     window.announce(readout);
 
+                    generateWind();
+                    aimAngle = 0;
                     swingState = 0; // Reset for next shot
                 }, bounceSequenceMs + (rollTimeSecs * 1000) + 500);
 
@@ -342,6 +375,21 @@
             }
 
             if (swingState === 0) {
+                if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+                    e.preventDefault();
+                    const aimStep = e.shiftKey ? 5 : 1;
+                    aimAngle += e.code === 'ArrowLeft' ? -aimStep : aimStep;
+                    aimAngle = Math.max(-90, Math.min(90, aimAngle));
+                    const aimReport = getAimReport();
+                    document.getElementById('visual-output').innerText = aimReport;
+                    window.announce(aimReport);
+                }
+                if (e.code === 'KeyW') {
+                    e.preventDefault();
+                    const windReport = getWindReport();
+                    document.getElementById('visual-output').innerText = windReport;
+                    window.announce(windReport);
+                }
                 if (e.code === 'KeyC') {
                     e.preventDefault();
                     document.getElementById('visual-output').innerText = lastShotReport;
