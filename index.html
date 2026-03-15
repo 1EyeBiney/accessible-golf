@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accessible Golf - Physics Engine v2.1</title>
+    <title>Accessible Golf - Physics Engine v2.4</title>
     <style>
         body { font-family: sans-serif; padding: 2rem; background-color: #121212; color: #ffffff; max-width: 800px; margin: auto; line-height: 1.6; display: flex; flex-direction: column; align-items: center; }
         h1 { color: #4CAF50; margin-bottom: 0.5rem; }
@@ -18,8 +18,8 @@
 <body>
 
     <h1>Accessible Golf Engine</h1>
-    <div class="version">Flight Tracking & Roll Physics v2.1</div>
-    
+    <div class="version">Flight Tracking & Roll Physics v2.4</div>
+
     <button id="initBtn" autofocus onclick="initGame()">Press Enter to Begin</button>
 
     <div id="game-container" tabindex="0" role="application" aria-label="Golf Swing Engine">
@@ -29,14 +29,19 @@
     <div id="aria-announce" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
 
     <script>
+        console.log("Accessible Golf Engine v2.4 loaded");
+
         let audioCtx = null;
         let powerOscillator, powerGain;
         let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
         let stateTimeouts = [];
-        
+
         let backswingStartTime = 0, downswingStartTime = 0, impactStartTime = 0;
         let hingeTimeBack = 0, hingeTimeDown = 0;
         let finalPower = 0, dropDurationMs = 0;
+
+        const AUDIO_GAIN_BOOST = 1.45;
+        const CONTINUOUS_GAIN_BOOST = 1.4;
 
         // --- UPDATED BAG: Added Loft and Roll Percentages ---
         // rollPct: Normal expected roll as a % of total distance
@@ -55,7 +60,9 @@
         ];
         let currentClubIndex = 0;
         let club = clubs[currentClubIndex];
-        const fairwayWidth = 35; 
+        const fairwayWidth = 35;
+
+        let lastShotReport = "No caddy report available yet.";
 
         window.announce = function(msg) {
             const el = document.getElementById('aria-announce');
@@ -71,7 +78,7 @@
             window.initAudio();
             document.getElementById('initBtn').style.display = 'none';
             document.getElementById('game-container').style.display = 'flex';
-            document.getElementById('game-container').focus();           
+            document.getElementById('game-container').focus();
             window.announce(`Ready. ${club.name}. Use Page Up or Down to change clubs.`);
             document.getElementById('visual-output').innerText = `Current Club: ${club.name}\nBase: ${club.baseDistance} yds`;
         };
@@ -80,8 +87,9 @@
         function playTone(freq, type, dur, vol) {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
+            const boostedVol = Math.min(1, vol * AUDIO_GAIN_BOOST);
             osc.type = type; osc.frequency.value = freq;
-            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.setValueAtTime(boostedVol, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
             osc.connect(gain); gain.connect(audioCtx.destination);
             osc.start(); osc.stop(audioCtx.currentTime + dur);
@@ -94,29 +102,30 @@
             const data = buffer.getChannelData(0);
             for (let i = 0; i < bufferSize; i++) {
                 // Brown noise for roll, White noise for flight
-                data[i] = (Math.random() * 2 - 1) * (isRoll ? 0.5 : 1.0); 
+                data[i] = (Math.random() * 2 - 1) * (isRoll ? 0.5 : 1.0);
             }
             const noise = audioCtx.createBufferSource();
             noise.buffer = buffer;
-            
+
             const filter = audioCtx.createBiquadFilter();
             filter.type = isRoll ? 'lowpass' : 'bandpass';
             filter.frequency.value = isRoll ? 400 : 1000;
 
             const gain = audioCtx.createGain();
-            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            const boostedVol = Math.min(1, vol * AUDIO_GAIN_BOOST);
+            gain.gain.setValueAtTime(boostedVol, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
-            
+
             noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
             noise.start();
         }
 
         function triggerMilestone(percent) {
-            if (percent === 25) playTone(220, 'square', 0.3, 0.2); 
-            if (percent === 50) playTone(440, 'triangle', 0.2, 0.4); 
-            if (percent === 75) { playTone(660, 'triangle', 0.1, 0.4); setTimeout(()=>playTone(660, 'triangle', 0.1, 0.4), 120); }
-            if (percent === 100) playTone(1200, 'sine', 0.8, 0.6); 
-            if (percent === 120) playTone(150, 'sawtooth', 0.4, 0.7); 
+            if (percent === 25) playTone(220, 'square', 0.3, 0.2);
+            if (percent === 50) playTone(440, 'triangle', 0.2, 0.4);
+            if (percent === 75) { playTone(660, 'triangle', 0.1, 0.4); setTimeout(() => playTone(660, 'triangle', 0.1, 0.4), 120); }
+            if (percent === 100) playTone(1200, 'sine', 0.8, 0.6);
+            if (percent === 120) playTone(150, 'sawtooth', 0.4, 0.7);
         }
 
         // --- SWING PHASES ---
@@ -138,14 +147,14 @@
             powerOscillator.type = 'sine';
             powerOscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
             powerOscillator.frequency.linearRampToValueAtTime(1050, audioCtx.currentTime + 2.5);
-            powerGain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            powerGain.gain.setValueAtTime(Math.min(1, 0.4 * CONTINUOUS_GAIN_BOOST), audioCtx.currentTime);
             powerOscillator.connect(powerGain); powerGain.connect(audioCtx.destination);
             powerOscillator.start();
 
             stateTimeouts.push(setTimeout(() => triggerMilestone(50), 666));
             stateTimeouts.push(setTimeout(() => triggerMilestone(75), 1333));
             stateTimeouts.push(setTimeout(() => triggerMilestone(100), 2000));
-            stateTimeouts.push(setTimeout(() => { if (swingState === 2) { triggerMilestone(120); startDownswing(); } }, 2533)); 
+            stateTimeouts.push(setTimeout(() => { if (swingState === 2) { triggerMilestone(120); startDownswing(); } }, 2533));
         }
 
         function startDownswing() {
@@ -162,26 +171,26 @@
 
         function startImpactPhase() {
             swingState = 4; impactStartTime = performance.now();
-            dropDurationMs = finalPower * 15; 
+            dropDurationMs = finalPower * 15;
             if (finalPower >= 100) triggerMilestone(100);
-            
+
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = 'sine';
             osc.frequency.setValueAtTime(100 + (finalPower * 8), audioCtx.currentTime);
             osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + (dropDurationMs / 1000));
-            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.setValueAtTime(Math.min(1, 0.4 * CONTINUOUS_GAIN_BOOST), audioCtx.currentTime);
             gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + (dropDurationMs / 1000));
             osc.connect(gain); gain.connect(audioCtx.destination);
             osc.start(); osc.stop(audioCtx.currentTime + (dropDurationMs / 1000) + 0.1);
-            
+
             [75, 50, 25].forEach(m => { if (finalPower > m) stateTimeouts.push(setTimeout(() => triggerMilestone(m), (finalPower - m) * 15)); });
             stateTimeouts.push(setTimeout(() => { if (swingState === 4) calculateShot(true); }, dropDurationMs + 400));
         }
 
         function calculateZoneAccuracy(offsetMs, pressure) {
             const absOffset = Math.abs(offsetMs);
-            const buffer = 60 / (1 + (pressure * 0.5)); 
+            const buffer = 60 / (1 + (pressure * 0.5));
             if (absOffset <= buffer) return 100;
             if (absOffset <= 150) return 95 - ((absOffset - buffer) / 100 * 15);
             if (absOffset <= 400) return 80 - ((absOffset - 150) / 250 * 60);
@@ -192,11 +201,12 @@
         function calculateShot(autoMiss = false) {
             swingState = 5; // Flight Phase - locks controls
             stateTimeouts.forEach(clearTimeout);
-            if (autoMiss) { 
-                playTone(150, 'sine', 0.5, 0.5); 
-                window.announce("Whiffed!"); 
+            if (autoMiss) {
+                playTone(150, 'sine', 0.5, 0.5);
+                lastShotReport = "Whiffed. No completed caddy report available.";
+                window.announce("Whiffed!");
                 setTimeout(() => { swingState = 0; }, 1000);
-                return; 
+                return;
             }
 
             const impactDiff = Math.round((performance.now() - impactStartTime) - dropDurationMs);
@@ -205,10 +215,12 @@
 
             // Base Math
             const impactAcc = Math.round(calculateZoneAccuracy(impactDiff, pressure));
+            const hingeAcc = Math.round(calculateZoneAccuracy(hingeDiff, pressure));
+            const accuracyScore = Math.round((impactAcc + hingeAcc) / 2);
             let smashFactor = impactAcc / 100;
-            let hingeIntensity = 1 + (hingeTimeBack / 2000 * 0.15); 
-            
-            const hingeThreshold = 400 / (1 + (pressure * 0.8)); 
+            let hingeIntensity = 1 + (hingeTimeBack / 2000 * 0.15);
+
+            const hingeThreshold = 400 / (1 + (pressure * 0.8));
             let contactMultiplier = 1 - Math.pow(Math.abs(hingeDiff) / hingeThreshold, 2);
             contactMultiplier = Math.max(0.2, contactMultiplier);
 
@@ -220,8 +232,8 @@
             let rollMultiplier = 1.0;
 
             if (hingeDiff < -60) { // Thin Shot (Low trajectory, hot roll)
-                dynamicLoft -= 10; 
-                rollMultiplier = 2.5; 
+                dynamicLoft -= 10;
+                rollMultiplier = 2.5;
             } else if (hingeDiff > 60) { // Fat Shot (Pop up, dead roll)
                 dynamicLoft += 10;
                 rollMultiplier = 0.2;
@@ -240,57 +252,81 @@
             let currentDispersion = club.maxDispersion * (1 + (pressure * 1.5));
             let lateralX = Math.round((impactDiff / 400) * currentDispersion * 10) / 10;
             let lie = Math.abs(lateralX) > (fairwayWidth / 2) ? "Rough" : "Fairway";
-            
+
             // --- AUDIO FLIGHT SEQUENCER ---
             document.getElementById('visual-output').innerText = "Ball is in the air...";
-            
+
             // 1. Strike Sound
-            playTone(800, 'triangle', 0.1, 0.6); 
-            
+            playTone(800, 'triangle', 0.1, 0.6);
+
             // 2. Flight Wind
             playNoise(hangTimeSecs, 0.3, false);
 
             // 3. The Landing & Roll
             setTimeout(() => {
-                // Landing Thud
-                playTone(100, 'sine', 0.2, 0.8);
-                
+                const loftPenalty = dynamicLoft >= 50 ? 2 : dynamicLoft >= 38 ? 1 : 0;
+                const baseBounceCount = rollDistance <= 0 ? 1 : Math.min(6, 1 + Math.floor(rollDistance / 7));
+                const bounceCount = Math.max(1, baseBounceCount - loftPenalty);
+                const bounceDurationMs = 0.12 * 1000;
+                const bounceOffsets = [];
+                let bounceGapMs = dynamicLoft <= 18 ? 300 : 400;
+                let bounceElapsedMs = 0;
+
+                for (let bounceIndex = 0; bounceIndex < bounceCount; bounceIndex++) {
+                    bounceOffsets.push(bounceElapsedMs);
+                    bounceElapsedMs += bounceGapMs;
+                    bounceGapMs = Math.max(90, Math.round(bounceGapMs * 0.62));
+                }
+
+                bounceOffsets.forEach((bounceOffsetMs, bounceIndex) => {
+                    setTimeout(() => {
+                        const bounceVolume = Math.max(0.12, 1.0 * Math.pow(0.6, bounceIndex));
+                        playTone(150, 'sine', 0.12, bounceVolume);
+                    }, bounceOffsetMs);
+                });
+
+                const bounceSequenceMs = (bounceOffsets[bounceOffsets.length - 1] || 0) + bounceDurationMs;
+
                 // Roll Sound (duration based on roll distance, e.g., 20 yds = 2 seconds)
                 let rollTimeSecs = Math.max(0, Math.abs(rollDistance) / 10);
                 if (rollTimeSecs > 0) {
-                    document.getElementById('visual-output').innerText = "Ball is bouncing and rolling...";
-                    playNoise(rollTimeSecs, 0.4, true); // Low frequency rumble
+                    setTimeout(() => {
+                        document.getElementById('visual-output').innerText = "Ball is bouncing and rolling...";
+                        playNoise(rollTimeSecs, 0.4, true); // Low frequency rumble
+                    }, bounceSequenceMs);
                 }
 
                 // 4. The Reveal
                 setTimeout(() => {
                     let dirStr = lateralX === 0 ? "dead straight" : `${Math.abs(lateralX)} yards ${lateralX < 0 ? 'left' : 'right'}`;
                     let rollStr = rollDistance < 0 ? `Spins back ${Math.abs(rollDistance)} yards.` : `Rolls ${rollDistance} yards.`;
-                    
-                    const readout = `${club.name}. Carries ${carryDistance}. ${rollStr} Total ${totalDistance}. 
-                    Settles in the ${lie}, ${dirStr}.`;
-                    
+
+                    const narrative = `${club.name}. Carries ${carryDistance}. ${rollStr} Total ${totalDistance}.\nSettles in the ${lie}, ${dirStr}.`;
+                    const metrics = `Power ${finalPower}%. Hinge Diff ${hingeDiff}ms. Impact Offset ${impactDiff}ms. Accuracy Score ${accuracyScore}%.`;
+                    const readout = `${narrative}\n\n${metrics}`;
+
+                    lastShotReport = readout;
                     document.getElementById('visual-output').innerText = readout;
                     window.announce(readout);
-                    
+
                     swingState = 0; // Reset for next shot
-                }, rollTimeSecs * 1000 + 500);
+                }, bounceSequenceMs + (rollTimeSecs * 1000) + 500);
 
             }, hangTimeSecs * 1000);
         }
 
         window.addEventListener('keydown', (e) => {
             if (e.repeat) return;
-            
+
             // Prevent input if ball is in the air (State 5)
-            if (swingState === 5) return; 
+            if (swingState === 5) return;
 
             if (e.code === 'ArrowDown') {
                 e.preventDefault();
                 if (swingState === 0) startBackswing();
                 else if (swingState === 4) calculateShot(false);
             }
-            
+
             if (e.code === 'Space') {
                 e.preventDefault();
                 playTone(880, 'sine', 0.1, 0.25);
@@ -299,6 +335,11 @@
             }
 
             if (swingState === 0) {
+                if (e.code === 'KeyC') {
+                    e.preventDefault();
+                    document.getElementById('visual-output').innerText = lastShotReport;
+                    window.announce(lastShotReport);
+                }
                 if (e.code === 'PageUp') {
                     e.preventDefault();
                     if (currentClubIndex > 0) {
