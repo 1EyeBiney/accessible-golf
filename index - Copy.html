@@ -29,6 +29,7 @@
     <div id="aria-announce" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
 
     <script>
+        console.log("Accessible Golf Engine v2.26.4 loaded");
         console.log("Accessible Golf Engine v2.27.0 loaded");
 
         let audioCtx = null;
@@ -369,6 +370,8 @@
 
             // --- v2.27.0 Gyroscopic Wind Physics ---
             let hangTimeSecs = Math.min(6, Math.max(0.5, (totalDistance / 60) + (dynamicLoft / 15)));
+            let windYEffect = Math.round(windY * (hangTimeSecs / 1.5) * currentStyle.windMod);
+            let windXEffect = Math.round(windX * (hangTimeSecs / 1.2) * currentStyle.windMod);
 
             // 1. Base Wind (Nerfed divisors from 1.2/1.5 to 2.5 to prevent ballooning)
             let baseWindY = windY * (hangTimeSecs / 2.5) * currentStyle.windMod;
