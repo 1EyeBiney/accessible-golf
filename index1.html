@@ -65,8 +65,6 @@
         const AUDIO_GAIN_BOOST = 1.45;
         const CONTINUOUS_GAIN_BOOST = 1.4;
 
-        // --- UPDATED BAG: Added Loft and Roll Percentages ---
-        // rollPct: Normal expected roll as a % of total distance
         const clubs = [
             { name: "Driver", baseDistance: 255, maxDispersion: 45, loft: 10, rollPct: 0.12 },
             { name: "3 Wood", baseDistance: 230, maxDispersion: 35, loft: 15, rollPct: 0.08 },
@@ -77,8 +75,8 @@
             { name: "7 Iron", baseDistance: 155, maxDispersion: 18, loft: 34, rollPct: 0.02 },
             { name: "8 Iron", baseDistance: 145, maxDispersion: 15, loft: 38, rollPct: 0.01 },
             { name: "9 Iron", baseDistance: 135, maxDispersion: 12, loft: 42, rollPct: 0.00 },
-            { name: "Pitching Wedge", baseDistance: 120, maxDispersion: 10, loft: 46, rollPct: -0.01 }, // Slight spin back
-            { name: "Sand Wedge", baseDistance: 100, maxDispersion: 8, loft: 56, rollPct: -0.03 } // Heavy spin back
+            { name: "Pitching Wedge", baseDistance: 120, maxDispersion: 10, loft: 46, rollPct: -0.01 },
+            { name: "Sand Wedge", baseDistance: 100, maxDispersion: 8, loft: 56, rollPct: -0.03 }
         ];
         const stanceNames = ["Far Forward", "Forward", "Neutral", "Back", "Far Back"];
         const alignmentNames = ["Severe Closed", "Closed", "Neutral", "Open", "Severe Open"];
@@ -141,7 +139,6 @@
             document.getElementById('visual-output').innerText = `Hole ${hole}. Par ${par}. ${distanceToPin} yards. Ready. ${setupReport} Use Page Up or Down to change clubs.`;
         };
 
-        // --- AUDIO HELPERS ---
         function playTone(freq, type, dur, vol) {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
@@ -153,13 +150,11 @@
             osc.start(); osc.stop(audioCtx.currentTime + dur);
         }
 
-        // Noise generator for wind/flight sounds
         function playNoise(dur, vol, isRoll = false) {
             const bufferSize = audioCtx.sampleRate * dur;
             const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
             const data = buffer.getChannelData(0);
             for (let i = 0; i < bufferSize; i++) {
-                // Brown noise for roll, White noise for flight
                 data[i] = (Math.random() * 2 - 1) * (isRoll ? 0.5 : 1.0);
             }
             const noise = audioCtx.createBufferSource();
@@ -186,7 +181,6 @@
             if (percent === 120) playTone(150, 'sawtooth', 0.4, 0.7);
         }
 
-        // --- SWING PHASES ---
         function startBackswing() {
             if (swingState !== 0) return;
             window.initAudio();
@@ -246,18 +240,9 @@
             stateTimeouts.push(setTimeout(() => { if (swingState === 4) calculateShot(true); }, dropDurationMs + 400));
         }
 
-        function calculateZoneAccuracy(offsetMs, pressure) {
-            const absOffset = Math.abs(offsetMs);
-            const buffer = 60 / (1 + (pressure * 0.5));
-            if (absOffset <= buffer) return 100;
-            if (absOffset <= 150) return 95 - ((absOffset - buffer) / 100 * 15);
-            if (absOffset <= 400) return 80 - ((absOffset - 150) / 250 * 60);
-            return 10;
-        }
-
-        // --- NEW: Physics & Flight Sequencer ---
+        // --- V2.17.1 NEW: Physics & Flight Sequencer ---
         function calculateShot(autoMiss = false) {
-            swingState = 5; // Flight Phase - locks controls
+            swingState = 5; 
             stateTimeouts.forEach(clearTimeout);
             strokes++;
             if (autoMiss) {
@@ -272,9 +257,23 @@
             const hingeDiff = Math.round(hingeTimeDown - hingeTimeBack);
             let pressure = finalPower > 105 ? (finalPower - 105) / 15 : 0;
 
-            // Base Math
-            const impactAcc = Math.round(calculateZoneAccuracy(impactDiff, pressure));
-            const hingeAcc = Math.round(calculateZoneAccuracy(hingeDiff, pressure));
+            // --- V2.17.1 DYNAMIC IMPACT ZONES ---
+            const hingeAcc = Math.max(10, 100 - (Math.abs(hingeDiff) / 4));
+            
+            let forgiveness = finalPower <= 100 ? 1 + ((100 - finalPower) * 0.01) : Math.max(0.4, 1 - ((finalPower - 100) * 0.02));
+            let perfectWindow = 40 * forgiveness;
+            let goodWindow = 90 * forgiveness;
+            let poorWindow = 160 * forgiveness;
+
+            let absImpact = Math.abs(impactDiff);
+            let impactAcc = 100;
+            let spinPenalty = 1;
+
+            if (absImpact <= perfectWindow) { impactAcc = 100; spinPenalty = 0.5; }
+            else if (absImpact <= goodWindow) { impactAcc = 85; spinPenalty = 2; }
+            else if (absImpact <= poorWindow) { impactAcc = 60; spinPenalty = 6; }
+            else { impactAcc = 30; spinPenalty = 12; }
+
             const accuracyScore = Math.round((impactAcc + hingeAcc) / 2);
             let smashFactor = impactAcc / 100;
             let hingeIntensity = 1 + (hingeTimeBack / 2000 * 0.15);
@@ -301,17 +300,18 @@
 
             // --- TRAJECTORY, SPIN, CARRY, AND ROLL MATH ---
             let dynamicLoft = club.loft;
-            let backspinRPM = Math.round((club.loft * 150) + (finalPower * 10) + (impactAcc * 7));
+            // FIXED: Scaled backspin by distMod to prevent yo-yo chips
+            let backspinRPM = Math.round(((club.loft * 150) + (finalPower * 10) + (impactAcc * 7)) * distMod);
             let stanceLoftMod = (2 - stanceIndex) * 5;
             let stanceSpinMod = (stanceIndex - 2) * 500;
 
             dynamicLoft = Math.max(0, dynamicLoft + stanceLoftMod + loftMod);
             backspinRPM += stanceSpinMod + spinMod;
 
-            if (hingeDiff < -60) { // Thin Shot (Low trajectory, hot roll)
+            if (hingeDiff < -60) {
                 dynamicLoft -= 10;
                 backspinRPM -= Math.abs(hingeDiff) * 22;
-            } else if (hingeDiff > 60) { // Fat Shot (Pop up, dead roll)
+            } else if (hingeDiff > 60) {
                 dynamicLoft += 10;
                 backspinRPM += Math.abs(hingeDiff) * 12;
             }
@@ -320,11 +320,12 @@
             backspinRPM += hingeDiff * 18;
             backspinRPM = Math.max(400, Math.round(backspinRPM * contactMultiplier));
 
-            let sideSpinRPM = Math.round((impactDiff / 400) * 3200 * (1 + pressure));
+            // FIXED: Implemented spinPenalty for drastic slice/hook on overswings
+            let rawSideSpin = (impactDiff / 20) * 100 * spinPenalty;
+            let sideSpinRPM = Math.round(rawSideSpin);
             let alignmentSpinMod = stanceAlignment * 800;
             sideSpinRPM += alignmentSpinMod;
 
-            // Hang time: Higher loft & higher distance = longer hang time (cap at ~6 secs)
             let hangTimeSecs = Math.max(0.5, (totalDistance / 60) + (dynamicLoft / 15));
             if (hangTimeSecs > 6) hangTimeSecs = 6;
 
@@ -353,14 +354,9 @@
 
             // --- AUDIO FLIGHT SEQUENCER ---
             document.getElementById('visual-output').innerText = "Ball is in the air...";
-
-            // 1. Strike Sound
             playTone(800, 'triangle', 0.1, 0.6);
-
-            // 2. Flight Wind
             playNoise(hangTimeSecs + 0.3, 0.3, false);
 
-            // 3. The Landing & Roll
             setTimeout(() => {
                 const loftPenalty = dynamicLoft >= 50 ? 2 : dynamicLoft >= 38 ? 1 : 0;
                 const baseBounceCount = rollDistance <= 0 ? 1 : Math.min(6, 1 + Math.floor(rollDistance / 7));
@@ -385,12 +381,11 @@
                     }, bounceOffsetMs);
                 });
 
-                // Roll Sound (duration based on roll distance, e.g., 20 yds = 2 seconds)
                 let rollTimeSecs = Math.max(0, Math.abs(rollDistance) / 10);
                 if (rollTimeSecs > 0) {
                     setTimeout(() => {
                         document.getElementById('visual-output').innerText = "Ball is bouncing and rolling...";
-                        playNoise(rollTimeSecs, 0.4, true); // Low frequency rumble
+                        playNoise(rollTimeSecs, 0.4, true); 
                     }, bounceSequenceMs);
                 }
 
@@ -401,7 +396,6 @@
                 const shotDesc = `${contactLabel}. A ${trajectoryLabel} ${shapeLabel}.`;
                 const windDesc = `Wind pushed it ${Math.abs(windYEffect)} yds ${windYEffect > 0 ? 'long' : windYEffect < 0 ? 'short' : 'nowhere'}, and ${Math.abs(windXEffect)} yds ${windXEffect > 0 ? 'right' : windXEffect < 0 ? 'left' : 'nowhere'}.`;
 
-                // 4. The Reveal
                 setTimeout(() => {
                     let dirStr = lateralX === 0 ? "dead straight" : `${Math.abs(lateralX)} yards ${lateralX < 0 ? 'left' : 'right'}`;
                     const sideSpinShape = sideSpinRPM === 0 ? "Straight" : sideSpinRPM > 0 ? "Slice" : "Hook";
@@ -506,7 +500,6 @@
             if (isHoleComplete) return;
             if (e.repeat) return;
 
-            // Prevent input if ball is in the air (State 5)
             if (swingState === 5) return;
 
             if (e.code === 'ArrowDown') {
