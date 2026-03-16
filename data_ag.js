@@ -33,3 +33,16 @@ const clubs = [
 const stanceNames = ["Far Forward", "Forward", "Neutral", "Back", "Far Back"];
 const alignmentNames = ["Severe Closed", "Closed", "Neutral", "Open", "Severe Open"];
 const fairwayWidth = 35;
+
+// --- v2.29.0 Course Data ---
+const courses = [
+    {
+        name: "The Holodeck Links",
+        holes: [
+            { number: 1, par: 4, distance: 420, pinX: 0, pinY: 420, fairwayWidth: 35, greenRadius: 15 },
+            { number: 2, par: 3, distance: 165, pinX: -15, pinY: 164, fairwayWidth: 25, greenRadius: 12 },
+            { number: 3, par: 5, distance: 540, pinX: 60, pinY: 537, fairwayWidth: 40, greenRadius: 18 }
+        ]
+    }
+];
+let currentCourseIndex = 0;

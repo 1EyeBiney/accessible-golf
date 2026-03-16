@@ -18,10 +18,31 @@ let currentClubIndex = 0;
 let club = clubs[currentClubIndex]; // Pulls from data_ag.js
 let lastShotReport = "No caddy report available yet.";
 
+function loadHole(holeNumber) {
+    const course = courses[currentCourseIndex];
+    if (holeNumber > course.holes.length) holeNumber = 1; 
+    const holeData = course.holes[holeNumber - 1];
+    
+    hole = holeData.number;
+    par = holeData.par;
+    pinX = holeData.pinX;
+    pinY = holeData.pinY;
+    
+    ballX = 0; ballY = 0; strokes = 0; isHoleComplete = false;
+    aimAngle = 0; stanceIndex = 2; stanceAlignment = 0;
+    swingState = 0; // FIX: Added state reset
+    
+    let defaultClub = holeData.par === 3 ? "7 Iron" : "Driver";
+    currentClubIndex = clubs.findIndex(c => c.name === defaultClub);
+    if (currentClubIndex === -1) currentClubIndex = 0;
+    club = clubs[currentClubIndex];
+    shotStyleIndex = 0;
+}
+
 window.initGame = function() {
     window.initAudio();
     generateWind();
-    ballX = 0; ballY = 0; pinX = 0; pinY = 420;
+    loadHole(1);
     document.getElementById('initBtn').style.display = 'none';
     document.getElementById('game-container').style.display = 'flex';
     document.getElementById('game-container').focus();

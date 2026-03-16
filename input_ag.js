@@ -64,16 +64,16 @@ window.addEventListener('keydown', (e) => {
             let targetHole = parseInt(e.code.replace('Digit', ''));
             if (e.shiftKey) targetHole += 9;
 
-            gameMode = 'course'; hole = targetHole; par = 4; strokes = 0; isHoleComplete = false; swingState = 0;
-            ballX = 0; ballY = 0; pinX = 0; pinY = 420;
-            aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; confirmingRange = false;
-            currentClubIndex = clubs.findIndex(c => c.name === "Driver");
-            if (currentClubIndex === -1) currentClubIndex = 0;
-            club = clubs[currentClubIndex]; shotStyleIndex = 0;
+            gameMode = 'course'; 
+            confirmingRange = false;
             if (typeof isPutting !== 'undefined') isPutting = false;
+
+            loadHole(targetHole);
+
             let targetDist = calculateDistanceToPin();
             let msg = `Warping to Hole ${hole}. Par ${par}. ${targetDist} yards.`;
-            window.announce(msg); document.getElementById('visual-output').innerText = msg;
+            window.announce(msg); 
+            document.getElementById('visual-output').innerText = msg;
             return;
         }
     }

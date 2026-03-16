@@ -41,7 +41,8 @@ function getStanceReport() {
 
 function getSetupReport() {
     const style = shotStyles[shotStyleIndex];
-    const isRough = Math.abs(ballX) > (fairwayWidth / 2);
+    const activeFairwayWidth = gameMode === 'course' ? courses[currentCourseIndex].holes[hole - 1].fairwayWidth : fairwayWidth;
+    const isRough = Math.abs(ballX) > (activeFairwayWidth / 2);
     const baseCarry = club.baseDistance * style.distMod;
     const baseTotal = baseCarry + (baseCarry * (club.rollPct * style.rollMod));
     
@@ -83,7 +84,10 @@ function calculateShot(autoMiss = false) {
 
     let pressure = finalPower > 105 ? (finalPower - 105) / 15 : 0;
     const hingeAcc = Math.max(10, 100 - (Math.abs(hingeDiff) / 4));
-    const isStartingInRough = gameMode === 'range' ? (rangeLie === 'Rough') : (typeof isPutt !== 'undefined' && !isPutt && Math.abs(ballX) > 17.5);
+    
+    const activeFairwayWidth = gameMode === 'course' ? courses[currentCourseIndex].holes[hole - 1].fairwayWidth : fairwayWidth;
+    const isStartingInRough = gameMode === 'range' ? (rangeLie === 'Rough') : (typeof isPutt !== 'undefined' && !isPutt && Math.abs(ballX) > (activeFairwayWidth / 2));
+    
     let lieMod = 1.0, lieDispersionMod = 1.0, lieForgivenessMod = 1.0;
 
     if (isStartingInRough) {
@@ -143,7 +147,8 @@ function calculateShot(autoMiss = false) {
     let carryDistance = Math.max(0, totalDistance - rollDistance);
     let lateralX = Math.round((physicsX + windXEffect + lateralKick) * 10) / 10;
     let distanceToPin = calculateDistanceToPin();
-    let lie = Math.abs(ballX) > (fairwayWidth / 2) ? "Rough" : "Fairway";
+    
+    let lie = Math.abs(ballX) > (activeFairwayWidth / 2) ? "Rough" : "Fairway";
 
     document.getElementById('visual-output').innerText = "Ball is in the air...";
     playTone(800, 'triangle', 0.1, 0.6);
