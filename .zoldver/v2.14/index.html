@@ -1,9 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+if (confirmingRange) {
+    if (e.code === 'KeyY' || e.code === 'Enter') {
+        e.preventDefault();
+        gameMode = 'range'; confirmingRange = false; strokes = 0; distanceToPin = Infinity; isHoleComplete = false; swingState = 0;
+        window.announce("Welcome to the Driving Range. Unlimited practice.");
+        document.getElementById('visual-output').innerText = "Driving Range. Ready.";
+    } else {
+        confirmingRange = false; window.announce("Range travel cancelled.");
+    }
+    return;
+}
+// Navigation Keys (Allowed during Idle or Hole Complete)
+if (swingState === 0 || isHoleComplete) {
+    if (e.code === 'KeyR') {
+        e.preventDefault();
+        confirmingRange = true; 
+        window.announce("Go to Driving Range? Press Y or Enter to confirm.");
+        return;
+    }
+    if (e.code.startsWith('Digit') && e.code !== 'Digit0') {
+        e.preventDefault();
+        let targetHole = parseInt(e.code.replace('Digit', ''));
+        if (e.shiftKey) targetHole += 9;
+        gameMode = 'course'; hole = targetHole; par = 4; distanceToPin = 420; strokes = 0; isHoleComplete = false; swingState = 0;
+        let msg = `Warping to Hole ${hole}. Par ${par}. ${distanceToPin} yards.`;
+        window.announce(msg);
+        document.getElementById('visual-output').innerText = msg;
+        return;
+    }
+}", 6 results. Files: c:\nbs\ag\.changelog.md, c:\nbs\ag\.gitignore, c:\nbs\ag\.temp.MD, c:\nbs\ag\gemini.md, c:\nbs\ag\GPT idea.md, c:\nbs\ag\index.html
+I’m rechecking the brief and the current input flow, then I’ll refactor the keydown routing so navigation works even after a hole is completed and the range/course transitions don’t softlock the game state.
+Read index.html, lines 1 to 470
+Read gemini.md
+Thinking: **Updating game logic**
+I'm considering game logic details. If the course mode is set, it should operate differently. I should add a `currentMode` message in `initGame` if the game mode isn't relevant for the range, and default to course mode. I’ll also update the version title label to v2.14 based on what the user mentioned. There may be an issue with parsing input for hole numbers with shift+Digit9 adding 9 for holes 10-18, so I need to handle that carefully. I should adjust prompts for better clarity and user experience.
+Thinking: **Refining game navigation**
+I need to check if the user is currently in the range and hits certain digit keys; if so, I should warp to the course. Upon completion of a hole, I'm considering the keydown top behavior; if `isHoleComplete`, returning might block navigation. I recognize there could be a soft lock because there’s only a keyup listener for ArrowDown in certain states. It seems that `isHoleComplete` isn’t relevant if I’m not in those specific states. I’ll need to adjust this.
+I’m making one broader fix than the raw snippet: range mode now stays out of the hole-completion math so switching to the range doesn’t leave you with Infinity pin calls in the shot report.
+Generating patch (82 lines) in index.html<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accessible Golf - Physics Engine v2.14.1</title>
+    if (confirmingRange) {
+        if (e.code === 'KeyY' || e.code === 'Enter') {
+            e.preventDefault();
+            gameMode = 'range'; confirmingRange = false; strokes = 0; distanceToPin = Infinity; isHoleComplete = false; swingState = 0;
+            window.announce("Welcome to the Driving Range. Unlimited practice.");
+            document.getElementById('visual-output').innerText = "Driving Range. Ready.";
+        } else {
+            confirmingRange = false; window.announce("Range travel cancelled.");
+        }
+        return;
+    }
+    // Navigation Keys (Allowed during Idle or Hole Complete)
+    if (swingState === 0 || isHoleComplete) {
+        if (e.code === 'KeyR') {
+            e.preventDefault();
+            confirmingRange = true; 
+            window.announce("Go to Driving Range? Press Y or Enter to confirm.");
+            return;
+        }
+        if (e.code.startsWith('Digit') && e.code !== 'Digit0') {
+            e.preventDefault();
+            let targetHole = parseInt(e.code.replace('Digit', ''));
+            if (e.shiftKey) targetHole += 9;
+            gameMode = 'course'; hole = targetHole; par = 4; distanceToPin = 420; strokes = 0; isHoleComplete = false; swingState = 0;
+            let msg = `Warping to Hole ${hole}. Par ${par}. ${distanceToPin} yards.`;
+            window.announce(msg);
+            document.getElementById('visual-output').innerText = msg;
+            return;
+        }
+    }", 6 results. Files: c:\nbs\ag\.changelog.md, c:\nbs\ag\.gitignore, c:\nbs\ag\.temp.MD, c:\nbs\ag\gemini.md, c:\nbs\ag\GPT idea.md, c:\nbs\ag\index.html
+    I’m rechecking the brief and the current input flow, then I’ll refactor the keydown routing so navigation works even after a hole is completed and the range/course transitions don’t softlock the game state.
+    Read index.html, lines 1 to 470
+    Read gemini.md
+    Thinking: **Updating game logic**
+    I'm considering game logic details. If the course mode is set, it should operate differently. I should add a `currentMode` message in `initGame` if the game mode isn't relevant for the range, and default to course mode. I’ll also update the version title label to v2.14 based on what the user mentioned. There may be an issue with parsing input for hole numbers with shift+Digit9 adding 9 for holes 10-18, so I need to handle that carefully. I should adjust prompts for better clarity and user experience.
+    Thinking: **Refining game navigation**
+    I need to check if the user is currently in the range and hits certain digit keys; if so, I should warp to the course. Upon completion of a hole, I'm considering the keydown top behavior; if `isHoleComplete`, returning might block navigation. I recognize there could be a soft lock because there’s only a keyup listener for ArrowDown in certain states. It seems that `isHoleComplete` isn’t relevant if I’m not in those specific states. I’ll need to adjust this.
+    I’m making one broader fix than the raw snippet: range mode now stays out of the hole-completion math so switching to the range doesn’t leave you with Infinity pin calls in the shot report.
+    Generating patch (82 lines) in index.html    <title>Accessible Golf - Physics Engine v2.14</title>
     <style>
         body { font-family: sans-serif; padding: 2rem; background-color: #121212; color: #ffffff; max-width: 800px; margin: auto; line-height: 1.6; display: flex; flex-direction: column; align-items: center; }
         h1 { color: #4CAF50; margin-bottom: 0.5rem; }
@@ -18,9 +94,10 @@
 <body>
 
     <h1>Accessible Golf Engine</h1>
-    <div class="version">Flight Tracking & Roll Physics v2.14.1</div>
+    <div class="version">Flight Tracking & Roll Physics v2.14</div>
 
     <button id="initBtn" autofocus onclick="initGame()">Press Enter to Begin</button>
+
     <div id="game-container" tabindex="0" role="application" aria-label="Golf Swing Engine">
         <div id="visual-output" aria-hidden="true">Ready. Hold Down Arrow to start backswing.</div>
     </div>

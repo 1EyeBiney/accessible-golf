@@ -72,4 +72,8 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Trajectory Physics:** - `dynamicLoft` is modified by `(2 - stanceIndex) * 5` (+10 loft for Far Forward, -10 for Far Back).
     - `backspinRPM` is modified by `(stanceIndex - 2) * 500` (-1000 RPM for Far Forward, +1000 RPM for Far Back).
 - **Caddy Report:** Announces stance adjustments pre-shot and includes the stance used in the final shot narrative.
-  
+  ### 15. v2.13 Engine Addendum (Course Progression & Game Loop)
+- **Game State Variables:** Tracks `hole`, `par`, `distanceToPin`, `strokes`, and `isHoleComplete`.
+- **Progression Logic:** `distanceToPin` is updated using absolute math (`Math.abs(distanceToPin - totalDistance)`) after every shot. `strokes` increments per swing.
+- **Victory Condition:** If `distanceToPin <= 20`, `isHoleComplete` becomes true. A victory arpeggio plays, the Caddy announces the total strokes, and keyboard inputs are locked to prevent further swinging.
+- **Narrative Updates:** Caddy broadcasts now continuously report the current stroke and remaining distance to the pin.
