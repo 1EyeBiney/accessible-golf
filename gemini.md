@@ -66,3 +66,10 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
     - `carryDistance` is adjusted by `(windY * (hangTimeSecs / 1.5))`.
     - `lateralX` (dispersion) is adjusted by `(windX * (hangTimeSecs / 1.2))`.
 - **KeyW (Weather Report):** Triggers `window.announce` to read the current wind conditions (Only allowed in `swingState === 0`).
+### 12. v2.10 Engine Addendum (Stance Mechanics)
+- **Stance State:** `stanceIndex` tracks ball placement (0: Far Forward, 1: Forward, 2: Neutral, 3: Back, 4: Far Back). Resets to 2 (Neutral) after every shot.
+- **Keybindings (State 0 Only):** `Home` moves ball forward (decreases index), `End` moves ball back (increases index).
+- **Trajectory Physics:** - `dynamicLoft` is modified by `(2 - stanceIndex) * 5` (+10 loft for Far Forward, -10 for Far Back).
+    - `backspinRPM` is modified by `(stanceIndex - 2) * 500` (-1000 RPM for Far Forward, +1000 RPM for Far Back).
+- **Caddy Report:** Announces stance adjustments pre-shot and includes the stance used in the final shot narrative.
+  

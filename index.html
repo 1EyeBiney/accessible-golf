@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accessible Golf - Physics Engine v2.9</title>
+    <title>Accessible Golf - Physics Engine v2.11</title>
     <style>
         body { font-family: sans-serif; padding: 2rem; background-color: #121212; color: #ffffff; max-width: 800px; margin: auto; line-height: 1.6; display: flex; flex-direction: column; align-items: center; }
         h1 { color: #4CAF50; margin-bottom: 0.5rem; }
@@ -18,7 +18,7 @@
 <body>
 
     <h1>Accessible Golf Engine</h1>
-    <div class="version">Flight Tracking & Roll Physics v2.9</div>
+    <div class="version">Flight Tracking & Roll Physics v2.11</div>
 
     <button id="initBtn" autofocus onclick="initGame()">Press Enter to Begin</button>
 
@@ -29,7 +29,7 @@
     <div id="aria-announce" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
 
     <script>
-        console.log("Accessible Golf Engine v2.9 loaded");
+        console.log("Accessible Golf Engine v2.11 loaded");
 
         let audioCtx = null;
         let powerOscillator, powerGain;
@@ -42,6 +42,7 @@
         let windX = 0;
         let windY = 0;
         let aimAngle = 0;
+        let stanceIndex = 2;
 
         const AUDIO_GAIN_BOOST = 1.45;
         const CONTINUOUS_GAIN_BOOST = 1.4;
@@ -61,6 +62,7 @@
             { name: "Pitching Wedge", baseDistance: 120, maxDispersion: 10, loft: 46, rollPct: -0.01 }, // Slight spin back
             { name: "Sand Wedge", baseDistance: 100, maxDispersion: 8, loft: 56, rollPct: -0.03 } // Heavy spin back
         ];
+        const stanceNames = ["Far Forward", "Forward", "Neutral", "Back", "Far Back"];
         let currentClubIndex = 0;
         let club = clubs[currentClubIndex];
         const fairwayWidth = 35;
@@ -96,6 +98,10 @@
                 return 'Aiming straight down the fairway.';
             }
             return `Aiming ${Math.abs(aimAngle)} degrees ${aimAngle < 0 ? 'Left' : 'Right'}.`;
+        }
+
+        function getStanceReport() {
+            return `Stance: ${stanceNames[stanceIndex]}.`;
         }
 
         window.initGame = function() {
@@ -255,6 +261,11 @@
             // --- TRAJECTORY, SPIN, CARRY, AND ROLL MATH ---
             let dynamicLoft = club.loft;
             let backspinRPM = Math.round((club.loft * 150) + (finalPower * 10) + (impactAcc * 7));
+            let stanceLoftMod = (2 - stanceIndex) * 5;
+            let stanceSpinMod = (stanceIndex - 2) * 500;
+
+            dynamicLoft = Math.max(0, dynamicLoft + stanceLoftMod);
+            backspinRPM += stanceSpinMod;
 
             if (hingeDiff < -60) { // Thin Shot (Low trajectory, hot roll)
                 dynamicLoft -= 10;
@@ -264,6 +275,7 @@
                 backspinRPM += Math.abs(hingeDiff) * 12;
             }
 
+            dynamicLoft = Math.max(0, dynamicLoft);
             backspinRPM += hingeDiff * 18;
             backspinRPM = Math.max(400, Math.round(backspinRPM * contactMultiplier));
 
@@ -273,10 +285,13 @@
             let hangTimeSecs = Math.max(0.5, (totalDistance / 60) + (dynamicLoft / 15));
             if (hangTimeSecs > 6) hangTimeSecs = 6;
 
+            let windYEffect = Math.round(windY * (hangTimeSecs / 1.5));
+            let windXEffect = Math.round(windX * (hangTimeSecs / 1.2));
+
             const spinRollAdjustment = (backspinRPM - 5200) / 550;
             let projectedRollDistance = Math.round((totalDistance * club.rollPct) - spinRollAdjustment);
             let carryDistance = Math.max(0, totalDistance - projectedRollDistance);
-            carryDistance = Math.max(0, Math.round(carryDistance + (windY * (hangTimeSecs / 1.5))));
+            carryDistance = Math.max(0, Math.round(carryDistance + windYEffect));
 
             const baseRollDistance = carryDistance * club.rollPct;
             let rollDistance = Math.round(baseRollDistance - spinRollAdjustment);
@@ -284,7 +299,7 @@
 
             // Lie & Dispersion
             let currentDispersion = club.maxDispersion * (1 + (pressure * 1.5));
-            let lateralX = ((sideSpinRPM / 3200) * currentDispersion) + (windX * (hangTimeSecs / 1.2));
+            let lateralX = ((sideSpinRPM / 3200) * currentDispersion) + windXEffect;
             lateralX = Math.round(lateralX * 10) / 10;
             let aimOffset = Math.tan(aimAngle * (Math.PI / 180)) * totalDistance;
             lateralX = Math.round((lateralX + aimOffset) * 10) / 10;
@@ -333,22 +348,27 @@
                     }, bounceSequenceMs);
                 }
 
+                const contactLabel = hingeDiff < -60 ? "Thin" : hingeDiff > 60 ? "Fat" : "Flushed";
+                const loftDiff = dynamicLoft - club.loft;
+                const trajectoryLabel = loftDiff < -8 ? "piercing" : loftDiff < -3 ? "low" : loftDiff > 8 ? "towering" : loftDiff > 3 ? "high" : "standard";
+                const shapeLabel = sideSpinRPM < -2500 ? "snap hook" : sideSpinRPM < -1000 ? "hook" : sideSpinRPM < -250 ? "draw" : sideSpinRPM > 2500 ? "banana slice" : sideSpinRPM > 1000 ? "slice" : sideSpinRPM > 250 ? "fade" : "straight shot";
+                const shotDesc = `${contactLabel}. A ${trajectoryLabel} ${shapeLabel}.`;
+                const windDesc = `Wind pushed it ${Math.abs(windYEffect)} yds ${windYEffect > 0 ? 'long' : windYEffect < 0 ? 'short' : 'nowhere'}, and ${Math.abs(windXEffect)} yds ${windXEffect > 0 ? 'right' : windXEffect < 0 ? 'left' : 'nowhere'}.`;
+
                 // 4. The Reveal
                 setTimeout(() => {
                     let dirStr = lateralX === 0 ? "dead straight" : `${Math.abs(lateralX)} yards ${lateralX < 0 ? 'left' : 'right'}`;
-                    let rollStr = rollDistance < 0 ? `Spins back ${Math.abs(rollDistance)} yards.` : `Rolls ${rollDistance} yards.`;
-
-                    const narrative = `${club.name}. Carries ${carryDistance}. ${rollStr} Total ${totalDistance}.\nSettles in the ${lie}, ${dirStr}.`;
                     const sideSpinShape = sideSpinRPM === 0 ? "Straight" : sideSpinRPM > 0 ? "Slice" : "Hook";
                     const metrics = `Power ${finalPower}%. Hinge Diff ${hingeDiff}ms. Impact Offset ${impactDiff}ms. Accuracy Score ${accuracyScore}%. Backspin: ${backspinRPM} RPM. Side Spin: ${sideSpinRPM} RPM (${sideSpinShape}).`;
-                    const readout = `${narrative}\n\n${metrics}`;
+                    const broadcast = `${club.name}. ${shotDesc} ${windDesc} Carries ${carryDistance}, rolls ${rollDistance} for a total of ${totalDistance}. Settles in the ${lie}, ${dirStr}.`;
 
-                    lastShotReport = readout;
-                    document.getElementById('visual-output').innerText = readout;
-                    window.announce(readout);
+                    window.announce(broadcast);
+                    lastShotReport = broadcast + "\n\nTelemetry:\n" + metrics;
+                    document.getElementById('visual-output').innerText = lastShotReport;
 
                     generateWind();
                     aimAngle = 0;
+                    stanceIndex = 2;
                     swingState = 0; // Reset for next shot
                 }, bounceSequenceMs + (rollTimeSecs * 1000) + 500);
 
@@ -375,6 +395,18 @@
             }
 
             if (swingState === 0) {
+                if (e.code === 'Home' || e.code === 'End') {
+                    e.preventDefault();
+                    if (e.code === 'Home') {
+                        stanceIndex = Math.max(0, stanceIndex - 1);
+                    }
+                    if (e.code === 'End') {
+                        stanceIndex = Math.min(4, stanceIndex + 1);
+                    }
+                    const stanceReport = getStanceReport();
+                    document.getElementById('visual-output').innerText = stanceReport;
+                    window.announce(stanceReport);
+                }
                 if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
                     e.preventDefault();
                     const aimStep = e.shiftKey ? 5 : 1;
