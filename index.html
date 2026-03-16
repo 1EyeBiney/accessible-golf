@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Accessible Golf - Physics Engine v2.19</title>
+    <title>Accessible Golf - Physics Engine v2.21.1</title>
     <style>
         body { font-family: sans-serif; padding: 2rem; background-color: #121212; color: #ffffff; max-width: 800px; margin: auto; line-height: 1.6; display: flex; flex-direction: column; align-items: center; }
         h1 { color: #4CAF50; margin-bottom: 0.5rem; }
@@ -29,7 +29,7 @@
     <div id="aria-announce" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
 
     <script>
-        console.log("Accessible Golf Engine v2.19 loaded");
+        console.log("Accessible Golf Engine v2.21.1 loaded");
 
         let audioCtx = null;
         let powerOscillator, powerGain;
@@ -41,6 +41,13 @@
         let finalPower = 0, dropDurationMs = 0;
         let windX = 0;
         let windY = 0;
+        const windLevels = [
+            { name: "Calm", min: 0, max: 4, variance: 1 },
+            { name: "Light Breeze", min: 2, max: 7, variance: 3 },
+            { name: "Gusts", min: 4, max: 10, variance: 6 },
+            { name: "Windy", min: 5, max: 15, variance: 10 }
+        ];
+        let windLevelIndex = 3; // Default to Windy to match previous behavior
         let aimAngle = 0;
         let stanceIndex = 2;
         let stanceAlignment = 0;
@@ -107,8 +114,23 @@
         };
 
         function generateWind() {
-            windX = Math.floor(Math.random() * 31) - 15;
-            windY = Math.floor(Math.random() * 31) - 15;
+            const level = windLevels[windLevelIndex];
+            let magX = Math.floor(Math.random() * (level.max - level.min + 1)) + level.min;
+            let magY = Math.floor(Math.random() * (level.max - level.min + 1)) + level.min;
+            windX = Math.random() < 0.5 ? magX : -magX;
+            windY = Math.random() < 0.5 ? magY : -magY;
+        }
+
+        function driftWind() {
+            const level = windLevels[windLevelIndex];
+            let driftX = Math.floor(Math.random() * (level.variance * 2 + 1)) - level.variance;
+            let driftY = Math.floor(Math.random() * (level.variance * 2 + 1)) - level.variance;
+            windX += driftX;
+            windY += driftY;
+            if (windX > level.max) windX = level.max;
+            if (windX < -level.max) windX = -level.max;
+            if (windY > level.max) windY = level.max;
+            if (windY < -level.max) windY = -level.max;
         }
 
         function getWindReport() {
@@ -400,13 +422,13 @@
                         window.announce(chippingMsg);
                         lastShotReport = chippingMsg + "\n\nTelemetry:\n" + metrics;
                         document.getElementById('visual-output').innerText = lastShotReport;
-                        generateWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0;
+                        driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0;
                     } else {
                         if (gameMode === 'course' && distanceToPin <= 20) isHoleComplete = true;
                         
                         if (isHoleComplete) {
                             playTone(440, 'sine', 0.2, 0.4); setTimeout(() => playTone(554, 'sine', 0.2, 0.4), 200); setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 400);
-                            const completionMessage = `Hole complete! You reached the green in ${strokes} strokes.`;
+                            const completionMessage = `Hole complete! You reached the green in ${strokes} strokes, finishing ${distanceToPin} yards from the pin.`;
                             window.announce(completionMessage);
                             lastShotReport = completionMessage + "\n\n" + shotBroadcast + "\n\nTelemetry:\n" + metrics;
                             document.getElementById('visual-output').innerText = lastShotReport;
@@ -416,7 +438,7 @@
                             window.announce(broadcast);
                             lastShotReport = broadcast + "\n\nTelemetry:\n" + metrics;
                             document.getElementById('visual-output').innerText = lastShotReport;
-                            generateWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0;
+                            driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0;
                         }
                     }
                 }, bounceSequenceMs + (rollTimeSecs * 1000) + 500);
@@ -543,9 +565,18 @@
                 }
                 if (e.code === 'KeyW') {
                     e.preventDefault();
-                    const windReport = getWindReport();
-                    document.getElementById('visual-output').innerText = windReport;
-                    window.announce(windReport);
+                    if (e.shiftKey) {
+                        windLevelIndex = (windLevelIndex + 1) % windLevels.length;
+                        generateWind();
+                        const level = windLevels[windLevelIndex];
+                        const windMsg = `Wind level set to ${level.name}. ${getWindReport()}`;
+                        document.getElementById('visual-output').innerText = windMsg;
+                        window.announce(windMsg);
+                    } else {
+                        const windReport = getWindReport();
+                        document.getElementById('visual-output').innerText = windReport;
+                        window.announce(windReport);
+                    }
                 }
                 if (e.code === 'KeyC') {
                     e.preventDefault();
