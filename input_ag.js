@@ -78,6 +78,46 @@ window.addEventListener('keydown', (e) => {
         }
     }
 
+    // --- v2.30.0 Hazard List Menu ---
+    if (swingState === 0) {
+        if (e.code === 'KeyH') {
+            e.preventDefault();
+            const holeData = courses[currentCourseIndex].holes[hole - 1];
+            if (!holeData.hazards || holeData.hazards.length === 0) {
+                window.announce("No hazards on this hole.");
+                return;
+            }
+            viewingHazards = !viewingHazards;
+            if (viewingHazards) {
+                hazardIndex = 0;
+                window.announceHazard(holeData.hazards[hazardIndex]);
+            } else {
+                window.announce("Exited Hazard List.");
+                document.getElementById('visual-output').innerText = getSetupReport();
+            }
+            return;
+        }
+
+        if (viewingHazards) {
+            e.preventDefault();
+            const holeData = courses[currentCourseIndex].holes[hole - 1];
+            if (e.code === 'ArrowDown') {
+                if (hazardIndex < holeData.hazards.length - 1) hazardIndex++;
+                window.announceHazard(holeData.hazards[hazardIndex]);
+            }
+            if (e.code === 'ArrowUp') {
+                if (hazardIndex > 0) hazardIndex--;
+                window.announceHazard(holeData.hazards[hazardIndex]);
+            }
+            if (e.code === 'Escape') {
+                viewingHazards = false; 
+                window.announce("Exited Hazard List.");
+                document.getElementById('visual-output').innerText = getSetupReport();
+            }
+            return; // Block swing/aim inputs while viewing hazards
+        }
+    }
+
     if (isHoleComplete || e.repeat || swingState === 5) return;
 
     if (e.code === 'ArrowDown') {

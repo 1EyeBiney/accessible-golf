@@ -147,8 +147,37 @@ function calculateShot(autoMiss = false) {
     let carryDistance = Math.max(0, totalDistance - rollDistance);
     let lateralX = Math.round((physicsX + windXEffect + lateralKick) * 10) / 10;
     let distanceToPin = calculateDistanceToPin();
+    const holeData = courses[currentCourseIndex].holes[hole - 1];
     
-    let lie = Math.abs(ballX) > (activeFairwayWidth / 2) ? "Rough" : "Fairway";
+    // v2.30.0 Dynamic Approach & Apron
+    let currentFW = activeFairwayWidth;
+    if (holeData.approachWidth && distanceToPin <= 50 && distanceToPin > (holeData.apronRadius || 0)) {
+        currentFW = holeData.approachWidth;
+    } else if (holeData.apronRadius && distanceToPin <= holeData.apronRadius) {
+        currentFW = 30; // Apron width
+    }
+
+    let lie = Math.abs(ballX) > (currentFW / 2) ? "Rough" : "Fairway";
+    let inWater = false;
+
+    // v2.30.0 Hazard Detection
+    if (holeData.hazards && gameMode === 'course') {
+        holeData.hazards.forEach(h => {
+            if (ballY >= h.distance && ballY <= h.distance + h.depth) {
+                if (ballX >= h.offset - (h.width / 2) && ballX <= h.offset + (h.width / 2)) {
+                    if (h.type === "Bunker") lie = "Bunker";
+                    if (h.type === "Water") inWater = true;
+                }
+            }
+        });
+    }
+
+    if (inWater) {
+        lie = "Water Penalty";
+        strokes++;
+        ballY = Math.max(0, ballY - 20); // Drop 20 yards back
+        ballX = 0; // Drop in center fairway
+    }
 
     document.getElementById('visual-output').innerText = "Ball is in the air...";
     playTone(800, 'triangle', 0.1, 0.6);
@@ -193,7 +222,8 @@ function calculateShot(autoMiss = false) {
         const windDesc = `Wind pushed it ${Math.abs(windYEffect)} yds ${windYEffect > 0 ? 'long' : windYEffect < 0 ? 'short' : 'nowhere'}, and ${Math.abs(windXEffect)} yds ${windXEffect > 0 ? 'right' : windXEffect < 0 ? 'left' : 'nowhere'}.`;
 
         setTimeout(() => {
-            let dirStr = lateralX === 0 ? "dead straight" : `${Math.abs(lateralX)} yards ${lateralX < 0 ? 'left' : 'right'}`;
+            let displayX = Math.round(ballX * 10) / 10;
+            let dirStr = displayX === 0 ? "dead center" : `${Math.abs(displayX)} yards ${displayX < 0 ? 'left' : 'right'} of center`;
             const sideSpinShape = sideSpinRPM === 0 ? "Straight" : sideSpinRPM > 0 ? "Slice" : "Hook";
             const metrics = `Power ${finalPower}%. Hinge Diff ${hingeDiff}ms. Impact Offset ${impactDiff}ms. Accuracy Score ${accuracyScore}%. Backspin: ${backspinRPM} RPM. Side Spin: ${sideSpinRPM} RPM (${sideSpinShape}).`;
             const roughDesc = isStartingInRough ? "Hacked it out of the rough. " : "";

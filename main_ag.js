@@ -12,6 +12,7 @@ let aimAngle = 0, stanceIndex = 2, stanceAlignment = 0;
 let hole = 1, par = 4, strokes = 0;
 let ballX = 0, ballY = 0, pinX = 0, pinY = 420;
 let isHoleComplete = false, gameMode = 'course';
+let viewingHazards = false, hazardIndex = 0;
 let rangeLie = 'Fairway', confirmingRange = false;
 let shotStyleIndex = 0, chippingRange = 'short', confirmingGreen = false;
 let currentClubIndex = 0;
@@ -31,6 +32,7 @@ function loadHole(holeNumber) {
     ballX = 0; ballY = 0; strokes = 0; isHoleComplete = false;
     aimAngle = 0; stanceIndex = 2; stanceAlignment = 0;
     swingState = 0; // FIX: Added state reset
+    viewingHazards = false;
     
     let defaultClub = holeData.par === 3 ? "7 Iron" : "Driver";
     currentClubIndex = clubs.findIndex(c => c.name === defaultClub);
@@ -110,3 +112,10 @@ function startImpactPhase() {
     [75, 50, 25].forEach(m => { if (finalPower > m) stateTimeouts.push(setTimeout(() => triggerMilestone(m), (finalPower - m) * 15)); });
     stateTimeouts.push(setTimeout(() => { if (swingState === 4) calculateShot(true); }, dropDurationMs + 400));
 }
+
+window.announceHazard = function(h) {
+    if (!h) return;
+    const msg = `${h.type}. Starts at ${h.distance} yards. Located on the ${h.side}. ${h.width} yards wide and ${h.depth} yards deep.`;
+    window.announce(msg);
+    document.getElementById('visual-output').innerText = msg;
+};
