@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation
+// physics_ag.js - Math, Wind, and Shot Calculation (v2.30.3)
 
 function calculateDistanceToPin() {
     return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
@@ -149,7 +149,7 @@ function calculateShot(autoMiss = false) {
     let distanceToPin = calculateDistanceToPin();
     const holeData = courses[currentCourseIndex].holes[hole - 1];
     
-    // v2.30.0 Dynamic Approach & Apron
+    // Dynamic Approach & Apron
     let currentFW = activeFairwayWidth;
     if (holeData.approachWidth && distanceToPin <= 50 && distanceToPin > (holeData.apronRadius || 0)) {
         currentFW = holeData.approachWidth;
@@ -160,7 +160,7 @@ function calculateShot(autoMiss = false) {
     let lie = Math.abs(ballX) > (currentFW / 2) ? "Rough" : "Fairway";
     let inWater = false;
 
-    // v2.30.0 Hazard Detection
+    // Hazard Detection
     if (holeData.hazards && gameMode === 'course') {
         holeData.hazards.forEach(h => {
             if (ballY >= h.distance && ballY <= h.distance + h.depth) {
@@ -174,7 +174,7 @@ function calculateShot(autoMiss = false) {
 
     if (inWater) {
         lie = "Water Penalty";
-        strokes++;
+        strokes++; // Add the penalty stroke here
         ballY = Math.max(0, ballY - 20); // Drop 20 yards back
         ballX = 0; // Drop in center fairway
     }
@@ -199,19 +199,29 @@ function calculateShot(autoMiss = false) {
             bounceGapMs = Math.max(90, Math.round(bounceGapMs * 0.85));
         }
 
-        bounceOffsets.forEach((bounceOffsetMs, bounceIndex) => {
-            setTimeout(() => {
-                const bounceVolume = Math.max(0.12, 1.0 * Math.pow(0.8, bounceIndex));
-                playTone(180, 'sine', 0.12, bounceVolume);
-            }, bounceOffsetMs);
-        });
-
+        // FIX: Moved rollTimeSecs outside the block so the Caddy timer can read it later
+        let isWater = lie.toLowerCase().includes("water");
         let rollTimeSecs = Math.max(0, Math.abs(rollDistance) / 10);
-        if (rollTimeSecs > 0) {
-            setTimeout(() => {
-                document.getElementById('visual-output').innerText = "Ball is bouncing and rolling...";
-                playNoise(rollTimeSecs, 0.4, true); 
-            }, bounceSequenceMs);
+
+        if (isWater) {
+            rollTimeSecs = 0; // Kills the roll timer for water shots
+            bounceSequenceMs = 400; // Gives the splash exactly 400ms to play before Caddy talks
+            if (typeof window.playSplash === 'function') window.playSplash(0.5);
+        } else {
+            // Only bounce and roll if NOT in water
+            bounceOffsets.forEach((bounceOffsetMs, bounceIndex) => {
+                setTimeout(() => {
+                    const bounceVolume = Math.max(0.12, 1.0 * Math.pow(0.8, bounceIndex));
+                    playTone(180, 'sine', 0.12, bounceVolume);
+                }, bounceOffsetMs);
+            });
+
+            if (rollTimeSecs > 0) {
+                setTimeout(() => {
+                    document.getElementById('visual-output').innerText = "Ball is bouncing and rolling...";
+                    playNoise(rollTimeSecs, 0.4, true); 
+                }, bounceSequenceMs);
+            }
         }
 
         const contactLabel = hingeDiff < -60 ? "Thin" : hingeDiff > 60 ? "Fat" : "Flushed";
@@ -241,8 +251,8 @@ function calculateShot(autoMiss = false) {
                 document.getElementById('visual-output').innerText = lastShotReport;
                 driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
             } else {
-                if (gameMode === 'course' && distanceToPin <= 20) isHoleComplete = true;
-                
+                if (gameMode === 'course' && distanceToPin <= 20 && !lie.toLowerCase().includes("water")) isHoleComplete = true;
+
                 if (isHoleComplete) {
                     playTone(440, 'sine', 0.2, 0.4); setTimeout(() => playTone(554, 'sine', 0.2, 0.4), 200); setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 400);
                     const completionMessage = `Hole complete! You reached the green in ${strokes} strokes, finishing ${distanceToPin} yards from the pin.`;
@@ -266,12 +276,18 @@ function calculateShot(autoMiss = false) {
 
                         driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0;
                     } else {
-                        const broadcast = `Stroke ${strokes + 1}. ${distanceToPin} yards to the pin. ${shotBroadcast}`;
+                        let penaltyStr = ".";
+                        if (lie.toLowerCase().includes("water") && gameMode === 'course') {
+                            penaltyStr = " (includes 1 stroke water penalty).";
+                        }
+                        const broadcast = `Stroke ${strokes + 1}${penaltyStr} ${distanceToPin} yards to the pin. ${shotBroadcast}`;
+                        
                         setTimeout(() => {
                             window.announce(broadcast);
                             lastShotReport = broadcast + "\n\nTelemetry:\n" + metrics;
                             document.getElementById('visual-output').innerText = lastShotReport;
                         }, typeof isPutting !== 'undefined' && isPutting && club.name === "Putter" && strokes > 1 ? 1500 : 0);
+                        
                         driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
                     }
                 }

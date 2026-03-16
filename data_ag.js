@@ -1,4 +1,4 @@
-// data_ag.js - Static Arrays and Configurations
+// data_ag.js - Static Arrays and Configurations (v2.31.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -41,19 +41,22 @@ const courses = [
         holes: [
             { 
                 number: 1, par: 4, distance: 420, pinX: 0, pinY: 420, fairwayWidth: 35, greenRadius: 15,
+                pinLocation: "Middle-Center",
                 hazards: [
                     { type: "Water", distance: 100, depth: 250, side: "Left", offset: -45, width: 40 }
                 ]
             },
             { 
                 number: 2, par: 3, distance: 165, pinX: -15, pinY: 164, fairwayWidth: 25, greenRadius: 12,
+                pinLocation: "Front-Left",
                 hazards: [
-                    { type: "Bunker", distance: 152, depth: 15, side: "Right", offset: -5, width: 10 }
+                    { type: "Bunker", distance: 152, depth: 15, offset: 15, width: 10 }
                 ]
             },
             { 
                 number: 3, par: 5, distance: 540, pinX: 60, pinY: 537, fairwayWidth: 40, greenRadius: 18,
                 approachWidth: 10, apronRadius: 20,
+                pinLocation: "Back-Right",
                 hazards: [
                     { type: "Bunker", distance: 270, depth: 20, side: "Center", offset: 0, width: 40 }
                 ]

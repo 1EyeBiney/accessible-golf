@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners
+// input_ag.js - Keyboard Controls and Event Listeners (v2.31.0)
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
@@ -210,8 +210,18 @@ window.addEventListener('keydown', (e) => {
             document.getElementById('visual-output').innerText = typeMsg; window.announce(typeMsg);
         }
         if (e.code === 'KeyT') {
-            e.preventDefault(); const distMsg = `${calculateDistanceToPin()} yards to the pin.`;
-            document.getElementById('visual-output').innerText = distMsg; window.announce(distMsg);
+            e.preventDefault(); 
+            let distMsg = `${calculateDistanceToPin()} yards to the pin.`;
+            
+            if (gameMode === 'course') {
+                const holeData = courses[currentCourseIndex].holes[hole - 1];
+                if (holeData.pinLocation) {
+                    distMsg += ` Pin placement is ${holeData.pinLocation}.`;
+                }
+            }
+            
+            document.getElementById('visual-output').innerText = distMsg; 
+            window.announce(distMsg);
         }
     }
 });
