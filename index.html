@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accessible Golf - Physics Engine v2.17.1</title>
+
+    <title>Accessible Golf - Physics Engine v2.19</title>
     <style>
         body { font-family: sans-serif; padding: 2rem; background-color: #121212; color: #ffffff; max-width: 800px; margin: auto; line-height: 1.6; display: flex; flex-direction: column; align-items: center; }
         h1 { color: #4CAF50; margin-bottom: 0.5rem; }
@@ -18,7 +19,7 @@
 <body>
 
     <h1>Accessible Golf Engine</h1>
-    <div class="version">Flight Tracking & Roll Physics v2.17.1</div>
+    <div class="version">Flight Tracking & Roll Physics v2.19</div>
 
     <button id="initBtn" autofocus onclick="initGame()">Press Enter to Begin</button>
     <div id="game-container" tabindex="0" role="application" aria-label="Golf Swing Engine">
@@ -28,7 +29,7 @@
     <div id="aria-announce" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
 
     <script>
-        console.log("Accessible Golf Engine v2.17.1 loaded");
+        console.log("Accessible Golf Engine v2.19 loaded");
 
         let audioCtx = null;
         let powerOscillator, powerGain;
@@ -45,7 +46,10 @@
         let stanceAlignment = 0;
         let hole = 1;
         let par = 4;
-        let distanceToPin = 420;
+        let ballX = 0;
+        let ballY = 0;
+        let pinX = 0;
+        let pinY = 420;
         let strokes = 0;
         let isHoleComplete = false;
         let gameMode = 'course';
@@ -87,6 +91,10 @@
         const fairwayWidth = 35;
 
         let lastShotReport = "No caddy report available yet.";
+
+        function calculateDistanceToPin() {
+            return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
+        }
 
         window.announce = function(msg) {
             const el = document.getElementById('aria-announce');
@@ -133,12 +141,14 @@
         window.initGame = function() {
             window.initAudio();
             generateWind();
+            ballX = 0; ballY = 0; pinX = 0; pinY = 420;
             document.getElementById('initBtn').style.display = 'none';
             document.getElementById('game-container').style.display = 'flex';
             document.getElementById('game-container').focus();
             const setupReport = getSetupReport();
-            window.announce(`Hole ${hole}. Par ${par}. ${distanceToPin} yards. Ready. ${setupReport} Use Page Up or Down to change clubs.`);
-            document.getElementById('visual-output').innerText = `Hole ${hole}. Par ${par}. ${distanceToPin} yards. Ready. ${setupReport} Use Page Up or Down to change clubs.`;
+            let targetDist = calculateDistanceToPin();
+            window.announce(`Hole ${hole}. Par ${par}. ${targetDist} yards. Ready. ${setupReport} Use Page Up or Down to change clubs.`);
+            document.getElementById('visual-output').innerText = `Hole ${hole}. Par ${par}. ${targetDist} yards. Ready. ${setupReport} Use Page Up or Down to change clubs.`;
         };
 
         // --- AUDIO HELPERS ---
@@ -262,7 +272,8 @@
             strokes++;
             if (autoMiss) {
                 playTone(150, 'sine', 0.5, 0.5);
-                lastShotReport = `Whiffed. Stroke ${strokes}. ${distanceToPin} yards to the pin.`;
+                let missDist = calculateDistanceToPin();
+                lastShotReport = `Whiffed. Stroke ${strokes}. ${missDist} yards to the pin.`;
                 window.announce("Whiffed!");
                 setTimeout(() => { swingState = 0; }, 1000);
                 return;
@@ -272,84 +283,55 @@
             const hingeDiff = Math.round(hingeTimeDown - hingeTimeBack);
             let pressure = finalPower > 105 ? (finalPower - 105) / 15 : 0;
 
-            // Base Math
-            const impactAcc = Math.round(calculateZoneAccuracy(impactDiff, pressure));
-            const hingeAcc = Math.round(calculateZoneAccuracy(hingeDiff, pressure));
-            const accuracyScore = Math.round((impactAcc + hingeAcc) / 2);
-            let smashFactor = impactAcc / 100;
-            let hingeIntensity = 1 + (hingeTimeBack / 2000 * 0.15);
+            // --- v2.19 PHYSICS ---
+            const hingeAcc = Math.max(10, 100 - (Math.abs(hingeDiff) / 4));
+            let forgiveness = finalPower <= 100 ? 1 + ((100 - finalPower) * 0.01) : Math.max(0.4, 1 - ((finalPower - 100) * 0.02));
+            let absImpact = Math.abs(impactDiff), impactAcc = 100, spinPenalty = 1;
+            if (absImpact <= 40 * forgiveness) { impactAcc = 100; spinPenalty = 0.5; }
+            else if (absImpact <= 90 * forgiveness) { impactAcc = 85; spinPenalty = 2; }
+            else if (absImpact <= 160 * forgiveness) { impactAcc = 60; spinPenalty = 6; }
+            else { impactAcc = 30; spinPenalty = 12; }
 
-            const hingeThreshold = 400 / (1 + (pressure * 0.8));
-            let contactMultiplier = 1 - Math.pow(Math.abs(hingeDiff) / hingeThreshold, 2);
-            contactMultiplier = Math.max(0.2, contactMultiplier);
-
-            let potentialDist = club.baseDistance * (finalPower / 100) * hingeIntensity;
             const currentStyle = shotStyles[shotStyleIndex];
-            let distMod = currentStyle.distMod;
-            let loftMod = currentStyle.loftMod;
-            let spinMod = currentStyle.spinMod;
-            let rollMod = currentStyle.rollMod;
-            let windMod = currentStyle.windMod;
-            if (currentStyle.name === "Flop" && hingeDiff < -50) {
-                distMod = 0.8;
-                loftMod = -club.loft + 5;
-                rollMod = 3.0;
-                spinMod = -1000;
-            }
-            potentialDist *= distMod;
-            let totalDistance = Math.round(potentialDist * smashFactor * contactMultiplier);
+            const accuracyScore = Math.round((impactAcc + hingeAcc) / 2);
+            let dynamicLoft = Math.max(0, club.loft + currentStyle.loftMod + ((2 - stanceIndex) * 5));
+            let backspinRPM = Math.max(400, Math.round((club.loft * 150) + (finalPower * 10) + (impactAcc * 7) + ((stanceIndex - 2) * 500) + currentStyle.spinMod));
+            let sideSpinRPM = Math.round((impactDiff / 20) * spinPenalty * (1 + pressure)) + (stanceAlignment * 800);
 
-            // --- TRAJECTORY, SPIN, CARRY, AND ROLL MATH ---
-            let dynamicLoft = club.loft;
-            let backspinRPM = Math.round((club.loft * 150) + (finalPower * 10) + (impactAcc * 7));
-            let stanceLoftMod = (2 - stanceIndex) * 5;
-            let stanceSpinMod = (stanceIndex - 2) * 500;
+            // A. Identify if starting in Rough
+            const isStartingInRough = Math.abs(ballX) > 17.5;
+            let lieMod = 1.0;
+            let lieDispersionMod = 1.0;
 
-            dynamicLoft = Math.max(0, dynamicLoft + stanceLoftMod + loftMod);
-            backspinRPM += stanceSpinMod + spinMod;
-
-            if (hingeDiff < -60) { // Thin Shot (Low trajectory, hot roll)
-                dynamicLoft -= 10;
-                backspinRPM -= Math.abs(hingeDiff) * 22;
-            } else if (hingeDiff > 60) { // Fat Shot (Pop up, dead roll)
-                dynamicLoft += 10;
-                backspinRPM += Math.abs(hingeDiff) * 12;
+            if (isStartingInRough) {
+                lieMod = 0.6 + (Math.random() * 0.3);
+                lieDispersionMod = 2.0;
             }
 
-            dynamicLoft = Math.max(0, dynamicLoft);
-            backspinRPM += hingeDiff * 18;
-            backspinRPM = Math.max(400, Math.round(backspinRPM * contactMultiplier));
+            // B. Calculate total yardage with Lie Penalty
+            let potentialDist = club.baseDistance * (finalPower / 100) * (1 + (hingeTimeBack / 2000 * 0.15)) * currentStyle.distMod * lieMod;
+            let totalDistance = Math.round(potentialDist * (impactAcc / 100) * Math.max(0.2, 1 - Math.pow(Math.abs(hingeDiff) / 400, 2)));
 
-            let sideSpinRPM = Math.round((impactDiff / 400) * 3200 * (1 + pressure));
-            let alignmentSpinMod = stanceAlignment * 800;
-            sideSpinRPM += alignmentSpinMod;
+            let hangTimeSecs = Math.min(6, Math.max(0.5, (totalDistance / 60) + (dynamicLoft / 15)));
+            let windYEffect = Math.round(windY * (hangTimeSecs / 1.5) * currentStyle.windMod);
+            let windXEffect = Math.round(windX * (hangTimeSecs / 1.2) * currentStyle.windMod);
 
-            // Hang time: Higher loft & higher distance = longer hang time (cap at ~6 secs)
-            let hangTimeSecs = Math.max(0.5, (totalDistance / 60) + (dynamicLoft / 15));
-            if (hangTimeSecs > 6) hangTimeSecs = 6;
+            // C. Calculate 2D Movement (Fixed)
+            const rad = (aimAngle) * (Math.PI / 180);
+            const forwardY = Math.cos(rad) * totalDistance;
+            const aimX = Math.sin(rad) * totalDistance;
+            const physicsX = ((impactDiff / 20) * spinPenalty / 3200) * (club.maxDispersion * lieDispersionMod);
 
-            let windYEffect = Math.round(windY * (hangTimeSecs / 1.5) * windMod);
-            let windXEffect = Math.round(windX * (hangTimeSecs / 1.2) * windMod);
+            ballY += forwardY;
+            ballX += (aimX + physicsX + windXEffect);
 
-            const spinRollAdjustment = (backspinRPM - 5200) / 550;
-            let projectedRollDistance = Math.round((totalDistance * (club.rollPct * rollMod)) - spinRollAdjustment);
-            let carryDistance = Math.max(0, totalDistance - projectedRollDistance);
-            carryDistance = Math.max(0, Math.round(carryDistance + windYEffect));
+            let rollDistance = Math.round(totalDistance * club.rollPct * currentStyle.rollMod);
+            let carryDistance = Math.max(0, totalDistance - rollDistance);
+            let lateralX = Math.round((physicsX + windXEffect) * 10) / 10;
 
-            const baseRollDistance = carryDistance * (club.rollPct * rollMod);
-            let rollDistance = Math.round(baseRollDistance - spinRollAdjustment);
-            totalDistance = carryDistance + rollDistance;
-            if (gameMode === 'course') {
-                distanceToPin = Math.abs(distanceToPin - Math.round(totalDistance));
-            }
+            let distanceToPin = calculateDistanceToPin();
 
-            // Lie & Dispersion
-            let currentDispersion = club.maxDispersion * (1 + (pressure * 1.5));
-            let lateralX = ((sideSpinRPM / 3200) * currentDispersion) + windXEffect;
-            lateralX = Math.round(lateralX * 10) / 10;
-            let aimOffset = Math.tan(aimAngle * (Math.PI / 180)) * totalDistance;
-            lateralX = Math.round((lateralX + aimOffset) * 10) / 10;
-            let lie = Math.abs(lateralX) > (fairwayWidth / 2) ? "Rough" : "Fairway";
+            let lie = Math.abs(ballX) > (fairwayWidth / 2) ? "Rough" : "Fairway";
 
             // --- AUDIO FLIGHT SEQUENCER ---
             document.getElementById('visual-output').innerText = "Ball is in the air...";
@@ -406,12 +388,15 @@
                     let dirStr = lateralX === 0 ? "dead straight" : `${Math.abs(lateralX)} yards ${lateralX < 0 ? 'left' : 'right'}`;
                     const sideSpinShape = sideSpinRPM === 0 ? "Straight" : sideSpinRPM > 0 ? "Slice" : "Hook";
                     const metrics = `Power ${finalPower}%. Hinge Diff ${hingeDiff}ms. Impact Offset ${impactDiff}ms. Accuracy Score ${accuracyScore}%. Backspin: ${backspinRPM} RPM. Side Spin: ${sideSpinRPM} RPM (${sideSpinShape}).`;
-                    const shotBroadcast = `${club.name}. ${shotDesc} ${windDesc} Carries ${carryDistance}, rolls ${rollDistance} for a total of ${totalDistance}. Settles in the ${lie}, ${dirStr}.`;
+                    const roughDesc = isStartingInRough ? "Hacked it out of the rough. " : "";
+                    const shotBroadcast = `${club.name}. ${roughDesc}${shotDesc} ${windDesc} Carries ${carryDistance}, rolls ${rollDistance} for a total of ${totalDistance}. Settles in the ${lie}, ${dirStr}.`;
 
                     if (gameMode === 'chipping') {
-                        let finalProximity = Math.abs(distanceToPin - Math.round(totalDistance));
-                        distanceToPin = chippingRange === 'short' ? Math.floor(Math.random() * 16) + 5 : Math.floor(Math.random() * 61) + 20;
-                        const chippingMsg = `Chipping Green. ${shotBroadcast} Shot finished ${finalProximity} yards from the pin. New target: ${distanceToPin} yards.`;
+                        let finalProximity = distanceToPin;
+                        ballX = 0; ballY = 0; pinX = 0;
+                        pinY = chippingRange === 'short' ? Math.floor(Math.random() * 16) + 5 : Math.floor(Math.random() * 61) + 20;
+                        let newTarget = calculateDistanceToPin();
+                        const chippingMsg = `Chipping Green. ${shotBroadcast} Shot finished ${finalProximity} yards from the pin. New target: ${newTarget} yards.`;
                         window.announce(chippingMsg);
                         lastShotReport = chippingMsg + "\n\nTelemetry:\n" + metrics;
                         document.getElementById('visual-output').innerText = lastShotReport;
@@ -443,7 +428,7 @@
             if (confirmingRange) {
                 if (e.code === 'KeyY' || e.code === 'Enter') {
                     e.preventDefault();
-                    gameMode = 'range'; confirmingRange = false; strokes = 0; distanceToPin = Infinity; isHoleComplete = false; swingState = 0;
+                    gameMode = 'range'; confirmingRange = false; strokes = 0; ballX = 0; ballY = 0; pinX = 0; pinY = Infinity; isHoleComplete = false; swingState = 0;
                     window.announce("Welcome to the Driving Range. Unlimited practice.");
                     document.getElementById('visual-output').innerText = "Driving Range. Ready.";
                 } else {
@@ -456,9 +441,11 @@
                 if (e.code === 'KeyY' || e.code === 'Enter') {
                     e.preventDefault();
                     gameMode = 'chipping'; confirmingGreen = false; strokes = 0; isHoleComplete = false; swingState = 0;
-                    distanceToPin = chippingRange === 'short' ? Math.floor(Math.random() * 16) + 5 : Math.floor(Math.random() * 61) + 20;
-                    window.announce(`Welcome to the Chipping Green. Target is ${distanceToPin} yards.`);
-                    document.getElementById('visual-output').innerText = `Chipping Green. Target: ${distanceToPin} yards.`;
+                    ballX = 0; ballY = 0; pinX = 0;
+                    pinY = chippingRange === 'short' ? Math.floor(Math.random() * 16) + 5 : Math.floor(Math.random() * 61) + 20;
+                    let targetDist = calculateDistanceToPin();
+                    window.announce(`Welcome to the Chipping Green. Target is ${targetDist} yards.`);
+                    document.getElementById('visual-output').innerText = `Chipping Green. Target: ${targetDist} yards.`;
                 } else {
                     confirmingGreen = false; window.announce("Chipping Green travel cancelled.");
                 }
@@ -478,8 +465,9 @@
                         chippingRange = chippingRange === 'short' ? 'long' : 'short';
                         let newTarget = chippingRange === 'short' ? Math.floor(Math.random() * 16) + 5 : Math.floor(Math.random() * 61) + 20;
                         if (gameMode === 'chipping') {
-                            distanceToPin = newTarget;
-                            window.announce(`Chipping range set to ${chippingRange}. New target: ${distanceToPin} yards.`);
+                            ballX = 0; ballY = 0; pinX = 0; pinY = newTarget;
+                            let targetDist = calculateDistanceToPin();
+                            window.announce(`Chipping range set to ${chippingRange}. New target: ${targetDist} yards.`);
                         } else {
                             window.announce(`Chipping range set to ${chippingRange}.`);
                         }
@@ -494,9 +482,11 @@
                     let targetHole = parseInt(e.code.replace('Digit', ''));
                     if (e.shiftKey) targetHole += 9;
 
-                    gameMode = 'course'; hole = targetHole; par = 4; distanceToPin = 420; strokes = 0; isHoleComplete = false; swingState = 0;
+                    gameMode = 'course'; hole = targetHole; par = 4; strokes = 0; isHoleComplete = false; swingState = 0;
+                    ballX = 0; ballY = 0; pinX = 0; pinY = 420;
                     aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; confirmingRange = false;
-                    let msg = `Warping to Hole ${hole}. Par ${par}. ${distanceToPin} yards.`;
+                    let targetDist = calculateDistanceToPin();
+                    let msg = `Warping to Hole ${hole}. Par ${par}. ${targetDist} yards.`;
                     window.announce(msg);
                     document.getElementById('visual-output').innerText = msg;
                     return;
@@ -589,7 +579,7 @@
                 }
                 if (e.code === 'KeyT') {
                     e.preventDefault();
-                    const distMsg = `${distanceToPin} yards to the pin.`;
+                    const distMsg = `${calculateDistanceToPin()} yards to the pin.`;
                     document.getElementById('visual-output').innerText = distMsg;
                     window.announce(distMsg);
                 }
