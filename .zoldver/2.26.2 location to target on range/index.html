@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Accessible Golf - Physics Engine v2.26.3</title>
+    <title>Accessible Golf - Physics Engine v2.26.2</title>
     <style>
         body { font-family: sans-serif; padding: 2rem; background-color: #121212; color: #ffffff; max-width: 800px; margin: auto; line-height: 1.6; display: flex; flex-direction: column; align-items: center; }
         h1 { color: #4CAF50; margin-bottom: 0.5rem; }
@@ -29,12 +29,11 @@
     <div id="aria-announce" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
 
     <script>
-        console.log("Accessible Golf Engine v2.26.4 loaded");
+        console.log("Accessible Golf Engine v2.26.2 loaded");
 
         let audioCtx = null;
         let powerOscillator, powerGain;
         let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
-        let devPower = false, devHinge = false, devImpact = false;
         let stateTimeouts = [];
 
         let backswingStartTime = 0, downswingStartTime = 0, impactStartTime = 0;
@@ -312,11 +311,8 @@
                 return;
             }
 
-            if (devPower) finalPower = 100;
-            if (devHinge) { hingeTimeBack = 1000; hingeTimeDown = 1000; }
-            let impactDiff = devImpact ? 0 : Math.round((performance.now() - impactStartTime) - dropDurationMs);
-            let hingeDiff = devHinge ? 0 : Math.round(hingeTimeDown - hingeTimeBack);
-
+            const impactDiff = Math.round((performance.now() - impactStartTime) - dropDurationMs);
+            const hingeDiff = Math.round(hingeTimeDown - hingeTimeBack);
             let pressure = finalPower > 105 ? (finalPower - 105) / 15 : 0;
 
             // --- v2.19 PHYSICS ---
@@ -477,18 +473,22 @@
                         } else {
                             if (gameMode === 'range') {
                                 let finalProximity = distanceToPin;
+
+                                // Calculate relative position based on 0-degree target line
+                                // ballY is forward/back, ballX is lateral
                                 let vertDir = ballY < pinY ? "Short" : "Long";
                                 let horizDir = ballX < 0 ? "Left" : "Right";
-                                let relativePos = (finalProximity <= 1) ? "Dead Center" : `${vertDir}-${horizDir}`;
+
+                                // If very close, simplify the description
+                                let relativePos = "";
+                                if (finalProximity <= 1) {
+                                    relativePos = "Dead Center";
+                                } else {
+                                    relativePos = `${vertDir}-${horizDir}`;
+                                }
 
                                 const rangeMsg = `Driving Range. ${shotBroadcast} Finished ${finalProximity} yards from target, ${relativePos}.`;
-                                
-                                // --- FIX: Store the report so KeyC can find it ---
-                                lastShotReport = rangeMsg + "\n\nTelemetry:\n" + metrics;
-                                
-                                ballX = 0; ballY = 0; // Snap back to tee
-                                window.announce(rangeMsg);
-                                document.getElementById('visual-output').innerText = lastShotReport;
+                                ballX = 0; ballY = 0;
 
                                 driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0;
                             } else {
@@ -508,22 +508,6 @@
         }
 
         window.addEventListener('keydown', (e) => {
-            if (e.code === 'F1') {
-                e.preventDefault();
-                devPower = !devPower;
-                window.announce(`Dev Power 100% ${devPower ? 'On' : 'Off'}`);
-            }
-            if (e.code === 'F2') {
-                e.preventDefault();
-                devHinge = !devHinge;
-                window.announce(`Dev Perfect Hinge ${devHinge ? 'On' : 'Off'}`);
-            }
-            if (e.code === 'F3') {
-                e.preventDefault();
-                devImpact = !devImpact;
-                window.announce(`Dev Perfect Impact ${devImpact ? 'On' : 'Off'}`);
-            }
-
             if (confirmingRange) {
                 if (e.code === 'KeyY' || e.code === 'Enter') {
                     e.preventDefault();
