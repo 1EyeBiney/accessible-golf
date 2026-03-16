@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accessible Golf - Physics Engine v2.11</title>
+    <title>Accessible Golf - Physics Engine v2.12</title>
     <style>
         body { font-family: sans-serif; padding: 2rem; background-color: #121212; color: #ffffff; max-width: 800px; margin: auto; line-height: 1.6; display: flex; flex-direction: column; align-items: center; }
         h1 { color: #4CAF50; margin-bottom: 0.5rem; }
@@ -18,7 +18,7 @@
 <body>
 
     <h1>Accessible Golf Engine</h1>
-    <div class="version">Flight Tracking & Roll Physics v2.11</div>
+    <div class="version">Flight Tracking & Roll Physics v2.12</div>
 
     <button id="initBtn" autofocus onclick="initGame()">Press Enter to Begin</button>
 
@@ -29,7 +29,7 @@
     <div id="aria-announce" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
 
     <script>
-        console.log("Accessible Golf Engine v2.11 loaded");
+        console.log("Accessible Golf Engine v2.12 loaded");
 
         let audioCtx = null;
         let powerOscillator, powerGain;
@@ -43,6 +43,7 @@
         let windY = 0;
         let aimAngle = 0;
         let stanceIndex = 2;
+        let stanceAlignment = 0;
 
         const AUDIO_GAIN_BOOST = 1.45;
         const CONTINUOUS_GAIN_BOOST = 1.4;
@@ -63,6 +64,7 @@
             { name: "Sand Wedge", baseDistance: 100, maxDispersion: 8, loft: 56, rollPct: -0.03 } // Heavy spin back
         ];
         const stanceNames = ["Far Forward", "Forward", "Neutral", "Back", "Far Back"];
+        const alignmentNames = ["Severe Closed", "Closed", "Neutral", "Open", "Severe Open"];
         let currentClubIndex = 0;
         let club = clubs[currentClubIndex];
         const fairwayWidth = 35;
@@ -101,7 +103,7 @@
         }
 
         function getStanceReport() {
-            return `Stance: ${stanceNames[stanceIndex]}.`;
+            return "Stance: Ball " + stanceNames[stanceIndex] + ", " + alignmentNames[stanceAlignment + 2] + " Alignment.";
         }
 
         window.initGame = function() {
@@ -279,7 +281,9 @@
             backspinRPM += hingeDiff * 18;
             backspinRPM = Math.max(400, Math.round(backspinRPM * contactMultiplier));
 
-            const sideSpinRPM = Math.round((impactDiff / 400) * 3200 * (1 + pressure));
+            let sideSpinRPM = Math.round((impactDiff / 400) * 3200 * (1 + pressure));
+            let alignmentSpinMod = stanceAlignment * 800;
+            sideSpinRPM += alignmentSpinMod;
 
             // Hang time: Higher loft & higher distance = longer hang time (cap at ~6 secs)
             let hangTimeSecs = Math.max(0.5, (totalDistance / 60) + (dynamicLoft / 15));
@@ -369,6 +373,7 @@
                     generateWind();
                     aimAngle = 0;
                     stanceIndex = 2;
+                    stanceAlignment = 0;
                     swingState = 0; // Reset for next shot
                 }, bounceSequenceMs + (rollTimeSecs * 1000) + 500);
 
@@ -409,12 +414,19 @@
                 }
                 if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
                     e.preventDefault();
-                    const aimStep = e.shiftKey ? 5 : 1;
-                    aimAngle += e.code === 'ArrowLeft' ? -aimStep : aimStep;
-                    aimAngle = Math.max(-90, Math.min(90, aimAngle));
-                    const aimReport = getAimReport();
-                    document.getElementById('visual-output').innerText = aimReport;
-                    window.announce(aimReport);
+                    if (e.shiftKey) {
+                        stanceAlignment += e.code === 'ArrowLeft' ? -1 : 1;
+                        stanceAlignment = Math.max(-2, Math.min(2, stanceAlignment));
+                        const stanceReport = getStanceReport();
+                        document.getElementById('visual-output').innerText = stanceReport;
+                        window.announce(stanceReport);
+                    } else {
+                        aimAngle += e.code === 'ArrowLeft' ? -1 : 1;
+                        aimAngle = Math.max(-90, Math.min(90, aimAngle));
+                        const aimReport = getAimReport();
+                        document.getElementById('visual-output').innerText = aimReport;
+                        window.announce(aimReport);
+                    }
                 }
                 if (e.code === 'KeyW') {
                     e.preventDefault();
