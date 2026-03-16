@@ -77,3 +77,11 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Progression Logic:** `distanceToPin` is updated using absolute math (`Math.abs(distanceToPin - totalDistance)`) after every shot. `strokes` increments per swing.
 - **Victory Condition:** If `distanceToPin <= 20`, `isHoleComplete` becomes true. A victory arpeggio plays, the Caddy announces the total strokes, and keyboard inputs are locked to prevent further swinging.
 - **Narrative Updates:** Caddy broadcasts now continuously report the current stroke and remaining distance to the pin.
+### 17. v2.15 Engine Addendum (Short Game & Chipping Green)
+- **Swing Types:** `swingTypeIndex` tracks Full (0), Pitch (1), Chip (2), Flop (3). Modifies distance, loft, spin, and roll multipliers.
+- **The Skull Penalty:** A thin Flop shot (`hingeDiff < -50`) overrides normal flop physics, resulting in a low, high-speed line drive.
+- **Chipping Green Mode:** `gameMode = 'chipping'`. The engine evaluates shot proximity, then immediately generates a new random `distanceToPin`.
+- **Keybindings (State 0 Only):**
+  - `KeyT`: Cycles Swing Type.
+  - `KeyG`: Prompts travel to Chipping Green.
+  - `Shift + KeyG`: Toggles Chipping Green targets between 'short' (5-20) and 'long' (20-80).
