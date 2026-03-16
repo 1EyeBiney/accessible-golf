@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Accessible Golf - Physics Engine v2.25.1</title>
+    <title>Accessible Golf - Physics Engine v2.26.1</title>
     <style>
         body { font-family: sans-serif; padding: 2rem; background-color: #121212; color: #ffffff; max-width: 800px; margin: auto; line-height: 1.6; display: flex; flex-direction: column; align-items: center; }
         h1 { color: #4CAF50; margin-bottom: 0.5rem; }
@@ -29,7 +29,7 @@
     <div id="aria-announce" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
 
     <script>
-        console.log("Accessible Golf Engine v2.25.1 loaded");
+        console.log("Accessible Golf Engine v2.26.1 loaded");
 
         let audioCtx = null;
         let powerOscillator, powerGain;
@@ -332,21 +332,36 @@
 
             let forgiveness = finalPower <= 100 ? 1 + ((100 - finalPower) * 0.01) : Math.max(0.4, 1 - ((finalPower - 100) * 0.02));
             forgiveness *= lieForgivenessMod; // Apply rough penalty to timing windows
-            let absImpact = Math.abs(impactDiff), impactAcc = 100, spinPenalty = 1;
-            if (absImpact <= 40 * forgiveness) { impactAcc = 100; spinPenalty = 0.5; }
-            else if (absImpact <= 90 * forgiveness) { impactAcc = 85; spinPenalty = 2; }
-            else if (absImpact <= 160 * forgiveness) { impactAcc = 60; spinPenalty = 6; }
-            else { impactAcc = 30; spinPenalty = 12; }
+
+            // --- v2.26.1 Continuous Physics Model ---
+            let absImpact = Math.abs(impactDiff);
+            let adjustedImpact = absImpact / forgiveness;
+
+            // A. Calculate Spin Penalty (How much the ball curves)
+            // Scaling: 200ms adjusted impact = ~2000 RPM (depending on club/pressure)
+            let spinPenalty = 0.5 + (adjustedImpact / 50); 
+            if (adjustedImpact > 160) spinPenalty = 5 + ((adjustedImpact - 160) / 20);
+
+            // B. Calculate Distance Dampening (Based on the Side Spin we are about to generate)
+            // We calculate a temporary sideSpin to determine the 'energy loss'
+            let tempSideSpin = Math.abs(Math.round((impactDiff / 20) * 100 * spinPenalty * (1 + pressure)));
+            // 2000 RPM side spin should be roughly 10% penalty (0.9 multiplier)
+            let dampening = Math.max(0.25, 1 - (tempSideSpin / 20000)); 
+
+            // C. Final Impact Accuracy Score (For the Caddy)
+            let impactAcc = Math.max(10, 100 - (adjustedImpact / 2.5));
 
             const currentStyle = shotStyles[shotStyleIndex];
             const accuracyScore = Math.round((impactAcc + hingeAcc) / 2);
             let dynamicLoft = Math.max(0, club.loft + currentStyle.loftMod + ((2 - stanceIndex) * 5));
             let backspinRPM = Math.max(400, Math.round((club.loft * 150) + (finalPower * 10) + (impactAcc * 7) + ((stanceIndex - 2) * 500) + currentStyle.spinMod));
+            
+            // D. Apply results to the Side Spin and Distance variables
             let sideSpinRPM = Math.round((impactDiff / 20) * 100 * spinPenalty * (1 + pressure)) + (stanceAlignment * 800);
 
-            // B. Calculate total yardage with Lie Penalty
+            // B. Calculate total yardage using the new Dampening and 25% Floor
             let potentialDist = club.baseDistance * (finalPower / 100) * (1 + (hingeTimeBack / 2000 * 0.15)) * currentStyle.distMod * lieMod;
-            let totalDistance = Math.round(potentialDist * (impactAcc / 100) * Math.max(0.2, 1 - Math.pow(Math.abs(hingeDiff) / 400, 2)));
+            let totalDistance = Math.round(potentialDist * dampening * Math.max(0.2, 1 - Math.pow(Math.abs(hingeDiff) / 400, 2)));
 
             let hangTimeSecs = Math.min(6, Math.max(0.5, (totalDistance / 60) + (dynamicLoft / 15)));
             let windYEffect = Math.round(windY * (hangTimeSecs / 1.5) * currentStyle.windMod);
@@ -357,7 +372,9 @@
             const userAimRad = aimAngle * (Math.PI / 180); // User's manual left/right aim
             const finalRad = targetAngleRad + userAimRad; // Final combined launch angle
 
-            const physicsX = (typeof isPutt !== 'undefined' && isPutt) ? 0 : (sideSpinRPM / 3200) * (club.maxDispersion * (typeof lieDispersionMod !== 'undefined' ? lieDispersionMod : 1));
+            // E. Boost Lateral Movement (Increase the 'Leak' and 'Slice' feel)
+            // Increase the lateral movement weight from 3200 to 2400 to make spin more impactful
+            const physicsX = (typeof isPutt !== 'undefined' && isPutt) ? 0 : (sideSpinRPM / 2400) * (club.maxDispersion * (typeof lieDispersionMod !== 'undefined' ? lieDispersionMod : 1));
             const lateralTotal = physicsX + windXEffect;
 
             // Apply trigonometry relative to the target line, not the fairway line
