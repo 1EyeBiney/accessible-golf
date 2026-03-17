@@ -124,3 +124,17 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **The Yardage Book (KeyA):** The engine uses semantic trigger zones (Tee, Approach, Greenside, Trouble_Left, Trouble_Right) to pull context-aware strategic advice from a flat-table database based on the current `caddyLevel`.
 - **Fairway Descriptions (KeyF):** Reads a custom `fairwayDescription` from the hole data, allowing blind players to understand the spatial layout and "dead space" between target zones.
 - **Automatic Green Broadcast:** When a ball finishes on the green, the detailed feet-and-inches proximity report is automatically appended to the ARIA broadcast, eliminating the need to manually query the Caddy.
+### 25. v3.50 - v3.51 Engine Addendum (Advanced Caddy Brain)
+- **Granular Semantic Triggers:** The `window.getCaddyAdvice` function now prioritizes specific lie and distance combinations over general zones. It tracks advanced states like `Bunker_Fairway`, `Rough_Deep`, `Approach_Scoring` (inside 120 yards), and `Approach_Long`.
+- **Flat-Table Database:** The Caddy pulls from a master array of contingencies per hole, allowing for highly specific, localized strategic advice depending on the player's exact geometric location, lie, and active `caddyLevel`.
+
+### 26. v3.60 Engine Addendum (Canvas Swing Meter)
+- **60fps Rhythm Bar:** A `<canvas>` element renders a visual representation of the audio physics. It uses `requestAnimationFrame` synced exactly to `performance.now()` to guarantee visual frame-parity with the Web Audio API scheduling.
+- **Visual Metronome & Hinges:** The 600Hz triangle pings are drawn as static hash marks. Tapping the Spacebar during the swing draws permanent yellow (backswing) and orange (downswing) markers on the bar to visually map the `hingeDiff`.
+- **Freeze Frame:** `lockedImpactTime` permanently freezes the visual impact cursor the exact millisecond the player strikes the ball in State 4.
+
+### 27. v3.61 - v3.62 Engine Addendum (The Spectator HUD)
+- **The Marquee:** `window.announce` overrides default behavior to simultaneously push ARIA text to a retro, CSS-animated scrolling marquee at the top of the screen.
+- **The Caddy Panel:** The massive `lastShotReport` (including carry, roll, proximity, and hidden telemetry) is routed to a persistent, stylized DOM element upon hole/shot completion, separating it from the core swing prompts.
+- **Real-Time Telemetry Dashboard:** A 4-column visual grid permanently displays Target Info, Environment (Wind/Lie), Equipment (Club/Style), and Setup (Aim/Stance). 
+- **Input Binding:** `window.updateDashboard()` is wired into every State 0 keydown listener (`PageUp`, `ArrowLeft`, `Home`, `W`, etc.) and the `driftWind()` loop to provide instant, real-time visual feedback to sighted spectators as the player makes adjustments.

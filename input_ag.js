@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v3.62.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v3.70.0)
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
@@ -38,7 +38,42 @@ window.addEventListener('keydown', (e) => {
         return;
     }
 
+    // --- v3.70.0 Help Menu Interceptor ---
+    if (viewingHelp) {
+        e.preventDefault();
+        if (e.code === 'ArrowDown') {
+            if (helpIndex < helpMenuText.length - 1) helpIndex++;
+            window.announceHelp();
+        } else if (e.code === 'ArrowUp') {
+            if (helpIndex > 0) helpIndex--;
+            window.announceHelp();
+        } else if (e.code === 'KeyH') {
+            if (e.shiftKey) {
+                for (let i = helpIndex - 1; i >= 0; i--) {
+                    if (helpMenuText[i].heading) { helpIndex = i; break; }
+                }
+            } else {
+                for (let i = helpIndex + 1; i < helpMenuText.length; i++) {
+                    if (helpMenuText[i].heading) { helpIndex = i; break; }
+                }
+            }
+            window.announceHelp();
+        } else if (e.code === 'Escape' || e.code === 'Enter') {
+            viewingHelp = false;
+            window.announce("Exited Help Menu.");
+            document.getElementById('visual-output').innerText = getSetupReport();
+        }
+        return; // Block all other inputs while viewing help
+    }
+
     if (swingState === 0 || isHoleComplete) {
+        if (e.key === '?') {
+            e.preventDefault();
+            viewingHelp = true;
+            helpIndex = 0;
+            window.announceHelp();
+            return;
+        }
         if (e.code === 'KeyC') {
             e.preventDefault();
             if (e.shiftKey) {
@@ -400,4 +435,10 @@ window.announceHazard = function(h) {
     const finalMsg = `${h.name || h.type}. ${edgeMsg} ${lineMsg}`;
     window.announce(finalMsg);
     document.getElementById('visual-output').innerText = finalMsg;
+};
+
+window.announceHelp = function() {
+    const line = helpMenuText[helpIndex];
+    window.announce(line.text);
+    document.getElementById('visual-output').innerText = line.text;
 };
