@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v3.61.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v3.62.0)
 
 function calculateDistanceToPin() {
     return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
@@ -25,6 +25,7 @@ function driftWind() {
     if (windX < -level.max) windX = -level.max;
     if (windY > level.max) windY = level.max;
     if (windY < -level.max) windY = -level.max;
+    window.updateDashboard();
 }
 
 function getWindReport() {
@@ -368,6 +369,7 @@ function calculateShot(autoMiss = false) {
                 document.getElementById('caddy-panel').style.display = 'block';
                 document.getElementById('caddy-panel-text').innerText = lastShotReport;
                 driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
+                window.updateDashboard();
             } else {
                 if (gameMode === 'course' && distanceToPin <= 20 && !currentLie.toLowerCase().includes("water")) isHoleComplete = true;
 
@@ -398,6 +400,7 @@ function calculateShot(autoMiss = false) {
 
                         if (gameMode === 'course') window.updateTargetZone();
                         driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0;
+                        window.updateDashboard();
                     } else {
                         let penaltyStr = ".";
                         if (currentLie.toLowerCase().includes("water") && gameMode === 'course') {
@@ -415,6 +418,7 @@ function calculateShot(autoMiss = false) {
                         
                         if (gameMode === 'course') window.updateTargetZone();
                         driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
+                        window.updateDashboard();
                     }
                 }
             }

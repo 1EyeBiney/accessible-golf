@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v3.61.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v3.62.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -47,6 +47,7 @@ function loadHole(holeNumber) {
     if (currentClubIndex === -1) currentClubIndex = 0;
     club = clubs[currentClubIndex];
     shotStyleIndex = 0;
+    window.updateDashboard();
 }
 
 function getSightReport() {
@@ -141,6 +142,28 @@ window.announce = function(msg) {
     }
 };
 
+window.updateDashboard = function() {
+    if (!document.getElementById('dashboard-panel')) return;
+    
+    // 1. Hole / Target Info
+    let holeStr = gameMode === 'course' ? `Hole ${hole} (Par ${par})\n${calculateDistanceToPin()}y to Pin` :
+                  gameMode === 'range' ? `Driving Range\n${pinY}y Target` : `Chipping Green\n${calculateDistanceToPin()}y Target`;
+    document.getElementById('dash-hole').innerText = holeStr;
+    
+    // 2. Environment Info
+    let windStr = windX === 0 && windY === 0 ? "Calm" : `${Math.abs(windY)}y ${windY>0?'Tail':'Head'}\n${Math.abs(windX)}y ${windX>0?'Right':'Left'}`;
+    let activeLie = gameMode === 'range' ? rangeLie : currentLie;
+    document.getElementById('dash-env').innerText = `${activeLie}\n${windStr}`;
+    
+    // 3. Equipment Info
+    let style = shotStyles[shotStyleIndex];
+    document.getElementById('dash-club').innerText = `${club.name}\n${style.name} Swing`;
+    
+    // 4. Setup Info
+    let aimStr = aimAngle === 0 ? "Center" : `${Math.abs(aimAngle)}° ${aimAngle < 0 ? 'Left' : 'Right'}`;
+    document.getElementById('dash-setup').innerText = `Aim: ${aimStr}\n${stanceNames[stanceIndex]}`;
+};
+
 window.initGame = function() {
     window.initAudio();
     generateWind();
@@ -148,6 +171,8 @@ window.initGame = function() {
     document.getElementById('initBtn').style.display = 'none';
     document.getElementById('game-container').style.display = 'flex';
     document.getElementById('hud-top').style.display = 'block';
+    document.getElementById('dashboard-panel').style.display = 'grid';
+    window.updateDashboard();
     document.getElementById('swing-meter').style.display = 'block';
     requestAnimationFrame(window.drawMeter);
     document.getElementById('game-container').focus();

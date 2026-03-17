@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v3.46.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v3.62.0)
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
@@ -62,6 +62,7 @@ window.addEventListener('keydown', (e) => {
                 const lieMsg = `Ball is on the ${currentLie}.`;
                 document.getElementById('visual-output').innerText = lieMsg; window.announce(lieMsg);
             }
+            window.updateDashboard();
             return;
         }
         if (e.code === 'KeyR') {
@@ -170,6 +171,7 @@ window.addEventListener('keydown', (e) => {
             if (e.code === 'End') stanceIndex = Math.min(4, stanceIndex + 1);
             const stanceReport = getStanceReport();
             document.getElementById('visual-output').innerText = stanceReport; window.announce(stanceReport);
+            window.updateDashboard();
         }
         if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
             e.preventDefault();
@@ -189,6 +191,7 @@ window.addEventListener('keydown', (e) => {
                 const allObstacles = [...(holeData.hazards || []), ...(holeData.trees || [])];
                 window.announceHazard(allObstacles[hazardIndex]);
             }
+            window.updateDashboard();
         }
         if (e.code === 'KeyW') {
             e.preventDefault();
@@ -197,6 +200,7 @@ window.addEventListener('keydown', (e) => {
                 const level = windLevels[windLevelIndex];
                 const windMsg = `Wind level set to ${level.name}. ${getWindReport()}`;
                 document.getElementById('visual-output').innerText = windMsg; window.announce(windMsg);
+                window.updateDashboard();
             } else {
                 const windReport = getWindReport();
                 document.getElementById('visual-output').innerText = windReport; window.announce(windReport);
@@ -244,6 +248,7 @@ window.addEventListener('keydown', (e) => {
                 const setupReport = getSetupReport();
                 window.announce(setupReport); document.getElementById('visual-output').innerText = setupReport;
             }
+            window.updateDashboard();
         }
         if (e.code === 'PageDown') {
             e.preventDefault();
@@ -253,6 +258,7 @@ window.addEventListener('keydown', (e) => {
                 const setupReport = getSetupReport();
                 window.announce(setupReport); document.getElementById('visual-output').innerText = setupReport;
             }
+            window.updateDashboard();
         }
         if (e.code === 'KeyS') {
             e.preventDefault(); 
@@ -261,6 +267,7 @@ window.addEventListener('keydown', (e) => {
             const typeMsg = `Style: ${style.name}`;
             document.getElementById('visual-output').innerText = typeMsg; 
             window.announce(typeMsg);
+            window.updateDashboard();
         }
         if (e.code === 'KeyX') {
             e.preventDefault();
@@ -313,6 +320,7 @@ window.addEventListener('keydown', (e) => {
             
             let msg = `Target shifted to ${selectedTarget.name}, ${dist} yards away. Auto-equipped ${club.name}.`;
             window.announce(msg); document.getElementById('visual-output').innerText = msg;
+            window.updateDashboard();
             return;
         }
         if (e.code === 'KeyT') {
