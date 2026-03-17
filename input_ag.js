@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v3.35.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v3.36.1)
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
@@ -195,6 +195,17 @@ window.addEventListener('keydown', (e) => {
                 document.getElementById('visual-output').innerText = windReport; window.announce(windReport);
             }
         }
+        if (e.code === 'KeyD' && gameMode === 'course') {
+            e.preventDefault();
+            const holeData = courses[currentCourseIndex].holes[hole - 1];
+            if (holeData.description) {
+                document.getElementById('visual-output').innerText = holeData.description; 
+                window.announce(holeData.description);
+            } else {
+                window.announce("No description available for this hole.");
+            }
+            return;
+        }
         if (e.code === 'PageUp') {
             e.preventDefault();
             if (currentClubIndex > 0) {
@@ -240,10 +251,16 @@ window.addEventListener('keydown', (e) => {
             aimAngle = 0; // Reset aim when shifting targets
             
             let dist = Math.round(Math.sqrt(Math.pow(targetX - ballX, 2) + Math.pow(targetY - ballY, 2)));
+            
+            let lieMultiplier = 1.0;
+            if (currentLie === 'Sand') lieMultiplier = 0.70;
+            else if (currentLie === 'Light Rough' || (gameMode === 'range' && rangeLie === 'Rough')) lieMultiplier = 0.90;
+
             let bestClubIndex = 0; let smallestDiff = 9999;
             for (let i = 0; i < clubs.length; i++) {
                 if (clubs[i].name === "Putter") continue;
-                let diff = Math.abs(clubs[i].baseDistance - dist);
+                let expectedDist = clubs[i].baseDistance * lieMultiplier;
+                let diff = Math.abs(expectedDist - dist);
                 if (diff < smallestDiff) { smallestDiff = diff; bestClubIndex = i; }
             }
             currentClubIndex = bestClubIndex; club = clubs[currentClubIndex];

@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v3.35.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v3.36.1)
 
 function calculateDistanceToPin() {
     return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
@@ -45,14 +45,16 @@ function getStanceReport() {
 
 function getSetupReport() {
     const style = shotStyles[shotStyleIndex];
-    const activeFairwayWidth = gameMode === 'course' ? courses[currentCourseIndex].holes[hole - 1].fairwayWidth : fairwayWidth;
-    const isRough = gameMode === 'course' ? (currentLie === 'Light Rough') : (rangeLie === 'Rough');
     const baseCarry = club.baseDistance * style.distMod;
     const baseTotal = baseCarry + (baseCarry * (club.rollPct * style.rollMod));
     
-    if (isRough) {
-        const minTotal = Math.round(baseTotal * 0.6);
-        const maxTotal = Math.round(baseTotal * 0.9);
+    if (gameMode === 'course' && currentLie === 'Sand') {
+        const minTotal = Math.round(baseTotal * 0.60);
+        const maxTotal = Math.round(baseTotal * 0.80);
+        return `${club.name}. In the sand. 100% power hits ${minTotal} to ${maxTotal} yards. Style: ${style.name}.`;
+    } else if ((gameMode === 'course' && currentLie === 'Light Rough') || (gameMode === 'range' && rangeLie === 'Rough')) {
+        const minTotal = Math.round(baseTotal * 0.85);
+        const maxTotal = Math.round(baseTotal * 0.95);
         return `${club.name}. In the rough. 100% power hits ${minTotal} to ${maxTotal} yards. Style: ${style.name}.`;
     } else {
         return `${club.name}. 100% power hits ${Math.round(baseTotal)} yards. Style: ${style.name}.`;
@@ -95,9 +97,15 @@ function calculateShot(autoMiss = false) {
     let lieMod = 1.0, lieDispersionMod = 1.0, lieForgivenessMod = 1.0;
 
     if (isStartingInRough) {
-        lieMod = 0.6 + (Math.random() * 0.3);
-        lieDispersionMod = 2.0;
-        lieForgivenessMod = 0.7; 
+        if (currentLie === 'Sand') {
+            lieMod = 0.6 + (Math.random() * 0.2); // 60% to 80%
+            lieDispersionMod = 2.0;
+            lieForgivenessMod = 0.7;
+        } else { // Light Rough or Range Rough
+            lieMod = 0.85 + (Math.random() * 0.1); // 85% to 95%
+            lieDispersionMod = 1.5; 
+            lieForgivenessMod = 0.8; 
+        }
     }
 
     let forgiveness = finalPower <= 100 ? 1 + ((100 - finalPower) * 0.01) : Math.max(0.4, 1 - ((finalPower - 100) * 0.02));
