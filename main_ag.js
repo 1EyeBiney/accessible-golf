@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v3.41.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v3.43.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;

@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v3.41.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v3.43.0)
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
@@ -183,6 +183,11 @@ window.addEventListener('keydown', (e) => {
                 const aimReport = getAimReport();
                 document.getElementById('visual-output').innerText = aimReport; window.announce(aimReport);
             }
+            if (viewingHazards && !e.shiftKey) {
+                const holeData = courses[currentCourseIndex].holes[hole - 1];
+                const allObstacles = [...(holeData.hazards || []), ...(holeData.trees || [])];
+                window.announceHazard(allObstacles[hazardIndex]);
+            }
         }
         if (e.code === 'KeyW') {
             e.preventDefault();
@@ -317,33 +322,50 @@ window.addEventListener('keyup', (e) => {
 
 window.announceHazard = function(h) {
     if (!h) return;
-    const targetAngleRad = Math.atan2(targetX - ballX, targetY - ballY);
     const toDeg = 180 / Math.PI;
-    let msg = "";
-
-    if (h.radius) {
+    const toRad = Math.PI / 180;
+    
+    // 1. EDGE FINDER MATH (Angles to bypass)
+    let edgeMsg = "";
+    if (h.radius) { // Tree/Circle
         const dist = Math.sqrt(Math.pow(h.x - ballX, 2) + Math.pow(h.y - ballY, 2));
         const angleToCenter = Math.atan2(h.x - ballX, h.y - ballY) * toDeg;
-        const angleOffset = Math.asin(h.radius / dist) * toDeg;
-        const leftEdge = Math.round(angleToCenter - angleOffset);
-        const rightEdge = Math.round(angleToCenter + angleOffset);
-        
-        const side = h.x < 0 ? "Left" : "Right";
-        msg = `${h.name}. At ${h.y} yards. To clear: aim ${leftEdge} degrees for left edge, or ${rightEdge} degrees for right edge.`;
-    } else {
+        const angleOffset = Math.asin(Math.min(0.99, h.radius / dist)) * toDeg;
+        edgeMsg = `To clear edges: aim ${Math.round(angleToCenter - angleOffset)}° left, or ${Math.round(angleToCenter + angleOffset)}° right.`;
+    } else { // Rectangular Hazard
         const corners = [
-            {x: h.offset - h.width/2, y: h.distance},
-            {x: h.offset + h.width/2, y: h.distance},
-            {x: h.offset - h.width/2, y: h.distance + h.depth},
-            {x: h.offset + h.width/2, y: h.distance + h.depth}
+            {x: h.offset - h.width/2, y: h.distance}, {x: h.offset + h.width/2, y: h.distance},
+            {x: h.offset - h.width/2, y: h.distance + h.depth}, {x: h.offset + h.width/2, y: h.distance + h.depth}
         ];
         const angles = corners.map(c => Math.atan2(c.x - ballX, c.y - ballY) * toDeg);
-        const leftEdge = Math.round(Math.min(...angles));
-        const rightEdge = Math.round(Math.max(...angles));
-
-        msg = `${h.type} on the ${h.side || 'Center'}. Starts at ${h.distance} yards. To clear: aim ${leftEdge} degrees for left edge, or ${rightEdge} degrees for right edge.`;
+        edgeMsg = `To clear edges: aim ${Math.round(Math.min(...angles))}° left, or ${Math.round(Math.max(...angles))}° right.`;
     }
+
+    // 2. AIM LINE MATH (Distance to reach/clear on current heading)
+    const targetAngleRad = Math.atan2(targetX - ballX, targetY - ballY);
+    const finalRad = targetAngleRad + (aimAngle * toRad);
+    const dirX = Math.sin(finalRad);
+    const dirY = Math.cos(finalRad);
     
-    window.announce(msg);
-    document.getElementById('visual-output').innerText = msg;
+    let tmin = -Infinity, tmax = Infinity;
+    const bounds = h.radius ? 
+        {minX: h.x - h.radius, maxX: h.x + h.radius, minY: h.y - h.radius, maxY: h.y + h.radius} :
+        {minX: h.offset - h.width/2, maxX: h.offset + h.width/2, minY: h.distance, maxY: h.distance + h.depth};
+
+    [[bounds.minX, bounds.maxX, ballX, dirX], [bounds.minY, bounds.maxY, ballY, dirY]].forEach(([min, max, pos, dir]) => {
+        if (Math.abs(dir) > 0.00001) {
+            let t1 = (min - pos) / dir, t2 = (max - pos) / dir;
+            tmin = Math.max(tmin, Math.min(t1, t2)); tmax = Math.min(tmax, Math.max(t1, t2));
+        } else if (pos < min || pos > max) { tmin = Infinity; }
+    });
+
+    let lineMsg = "Your current line is clear of this obstacle.";
+    if (tmax >= tmin && tmax > 0) {
+        let reach = Math.max(0, Math.round(tmin)), clear = Math.round(tmax);
+        lineMsg = reach === 0 ? `Line is inside obstacle. ${clear} yards to clear.` : `On this line: ${reach} yards to reach, ${clear} yards to clear.`;
+    }
+
+    const finalMsg = `${h.name || h.type}. ${edgeMsg} ${lineMsg}`;
+    window.announce(finalMsg);
+    document.getElementById('visual-output').innerText = finalMsg;
 };
