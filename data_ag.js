@@ -1,4 +1,4 @@
-// data_ag.js - Static Arrays and Configurations (v3.36.0)
+// data_ag.js - Club Data, Wind Levels, and Course Layouts (v3.45.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -62,6 +62,13 @@ const courses = [
                 approachWidth: 10, apronRadius: 20,
                 pinLocation: "Back-Right",
                 description: "A massive 540-yard par 5. A 40-yard wide bunker sits dead center at 270 yards, demanding a strategic layup or a brave, aggressive carry.",
+                caddyNotes: [
+                    { level: 1, trigger: 'Tee', text: 'A long Par 5. Hit it straight and far.' },
+                    { level: 2, trigger: 'Tee', text: 'Watch out for the massive bunker at 270 yards covering the center-right.' },
+                    { level: 3, trigger: 'Tee', text: 'There is a narrow 15-yard gap to the left of the 270-yard bunker. Aim about 10 degrees left to thread the needle and set up an Eagle approach.' },
+                    { level: 3, trigger: 'Trouble_Left', text: 'You are in the rough, but you have a clear angle past the bunker. If you have the distance, you can go straight for the green.' },
+                    { level: 3, trigger: 'Greenside', text: 'The green is fast and slopes away. Play the ball back in your stance to maximize your backspin and get some bite.' }
+                ],
                 hazards: [{ type: "Bunker", distance: 270, depth: 20, side: "Center", offset: 0, width: 40 }],
                 zones: [{ name: "First Layup", x: 0, y: 250 }, { name: "Aggressive Carry", x: 10, y: 300 }, { name: "Approach Layup", x: 15, y: 440 }]
             },
@@ -69,6 +76,12 @@ const courses = [
                 number: 4, par: 4, distance: 330, pinX: 0, pinY: 330, fairwayWidth: 35, greenRadius: 15,
                 pinLocation: "Center",
                 description: "A 330-yard driveable par 4. A massive, deep bunker protects the front of the green, and a 30-foot tree cluster pinches the left side of the fairway.",
+                caddyNotes: [
+                    { level: 1, trigger: 'Tee', text: 'It is a dogleg. Find the fairway.' },
+                    { level: 2, trigger: 'Tee', text: 'Sharp dogleg right. The trees block a direct shot to the green, so you must lay up to the corner.' },
+                    { level: 3, trigger: 'Tee', text: 'To hit the elbow of the fairway perfectly, you need about 240 yards of carry aimed straight ahead. That will leave a clear 150-yard approach.' },
+                    { level: 3, trigger: 'Trouble_Right', text: 'You are blocked by the trees on the right. Pitch out sideways to the fairway; do not try to be a hero through the branches.' }
+                ],
                 hazards: [{ type: "Bunker", distance: 290, depth: 30, side: "Center", offset: 0, width: 30 }],
                 trees: [{ x: -15, y: 250, radius: 10, height: 30, name: "Left Woods" }],
                 zones: [{ name: "Safe Layup", x: 15, y: 240 }, { name: "Go For It", x: 0, y: 330 }]
@@ -85,6 +98,11 @@ const courses = [
                 number: 6, par: 5, distance: 510, pinX: 0, pinY: 510, fairwayWidth: 35, greenRadius: 15,
                 pinLocation: "Center",
                 description: "A reachable 510-yard par 5. The green is an island peninsula, surrounded by a water moat that spans the entire fairway from 480 to 495 yards.",
+                caddyNotes: [
+                    { level: 1, trigger: 'Tee', text: 'Do not hit it in the water.' },
+                    { level: 2, trigger: 'Tee', text: 'Island green. Check the wind carefully before you swing.' },
+                    { level: 3, trigger: 'Tee', text: 'If the wind is in your face, club up. If you are not confident, aim for the left edge of the green—there is a small bailout area of grass there.' }
+                ],
                 hazards: [{ type: "Water", distance: 480, depth: 15, side: "Center", offset: 0, width: 100 }],
                 trees: [],
                 zones: [{ name: "Approach Layup", x: 0, y: 460 }, { name: "Aggressive Carry", x: 0, y: 510 }]

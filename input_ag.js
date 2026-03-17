@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v3.43.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v3.45.0)
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
@@ -93,6 +93,7 @@ window.addEventListener('keydown', (e) => {
             confirmingRange = false;
             if (typeof isPutting !== 'undefined') isPutting = false;
 
+            strokes = 0; holeTelemetry = [];
             loadHole(targetHole);
 
             let targetDist = calculateDistanceToPin();
@@ -209,6 +210,21 @@ window.addEventListener('keydown', (e) => {
                 window.announce(holeData.description);
             } else {
                 window.announce("No description available for this hole.");
+            }
+            return;
+        }
+        if (e.code === 'KeyN') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                caddyLevel = caddyLevel >= 3 ? 1 : caddyLevel + 1;
+                let levelName = caddyLevel === 1 ? "Rookie" : caddyLevel === 2 ? "Veteran" : "Tour Pro";
+                let msg = `Caddy swapped. You now have a Level ${caddyLevel} (${levelName}) Caddy.`;
+                document.getElementById('visual-output').innerText = msg;
+                window.announce(msg);
+            } else {
+                let advice = window.getCaddyAdvice();
+                document.getElementById('visual-output').innerText = advice;
+                window.announce(advice);
             }
             return;
         }

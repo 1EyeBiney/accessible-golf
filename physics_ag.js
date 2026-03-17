@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v3.42.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v3.44.0)
 
 function calculateDistanceToPin() {
     return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
@@ -226,13 +226,35 @@ function calculateShot(autoMiss = false) {
     currentLie = Math.abs(ballX) > (currentFW / 2) ? "Light Rough" : "Fairway";
     let inWater = false;
 
+    let rollStopTriggered = false;
     if (holeData.hazards && gameMode === 'course') {
+        const startY = ballY - moveY;
+        const carryY = startY + (moveY * (carryDistance / totalDistance));
+        const carryX = (ballX - moveX) + (moveX * (carryDistance / totalDistance));
+
         holeData.hazards.forEach(h => {
-            if (ballY >= h.distance && ballY <= h.distance + h.depth) {
-                if (ballX >= h.offset - (h.width / 2) && ballX <= h.offset + (h.width / 2)) {
-                    if (h.type === "Bunker") currentLie = "Sand";
-                    if (h.type === "Water") inWater = true;
+            const hLeft = h.offset - (h.width / 2);
+            const hRight = h.offset + (h.width / 2);
+            const hStart = h.distance;
+            const hEnd = h.distance + h.depth;
+
+            // Check if the ball CARRY landed in hazard
+            if (carryY >= hStart && carryY <= hEnd && carryX >= hLeft && carryX <= hRight) {
+                if (h.type === "Bunker") currentLie = "Sand";
+                if (h.type === "Water") inWater = true;
+            } 
+            // Check if the ball ROLL entered a hazard
+            else if (!inWater && ballY >= hStart && ballY <= hEnd && ballX >= hLeft && ballX <= hRight) {
+                if (h.type === "Bunker") {
+                    currentLie = "Sand";
+                    rollStopTriggered = true;
+                    // Stop the ball just inside the bunker edge
+                    const entryBuffer = 2; 
+                    ballY = hStart + entryBuffer;
+                    rollDistance = Math.max(0, Math.round(ballY - carryY));
+                    totalDistance = carryDistance + rollDistance;
                 }
+                if (h.type === "Water") inWater = true;
             }
         });
     }
@@ -284,7 +306,7 @@ function calculateShot(autoMiss = false) {
                 }, bounceOffsetMs);
             });
 
-            if (rollTimeSecs > 0) {
+            if (rollTimeSecs > 0 && currentLie !== "Sand") {
                 setTimeout(() => {
                     document.getElementById('visual-output').innerText = "Ball is bouncing and rolling...";
                     playNoise(rollTimeSecs, 0.4, true); 

@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v3.43.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v3.45.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -17,6 +17,7 @@ let isHoleComplete = false, gameMode = 'course';
 let viewingHazards = false, hazardIndex = 0;
 let rangeLie = 'Fairway', confirmingRange = false;
 let shotStyleIndex = 0, chippingRange = 'short', confirmingGreen = false;
+let caddyLevel = 3; // 1: Rookie, 2: Veteran, 3: Tour Pro
 let currentClubIndex = 0;
 let club = clubs[currentClubIndex]; // Pulls from data_ag.js
 let lastShotReport = "No caddy report available yet.";
@@ -80,6 +81,34 @@ window.updateTargetZone = function() {
         targetX = validTargets[0].x;
         targetY = validTargets[0].y;
     }
+};
+
+window.getCaddyAdvice = function() {
+    if (gameMode !== 'course') return "Caddy advice is only available on the course.";
+    const holeData = courses[currentCourseIndex].holes[hole - 1];
+    if (!holeData.caddyNotes) return "I don't have any notes for this hole.";
+
+    let distToPin = Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
+    
+    // Determine Semantic Trigger Zone
+    let currentTrigger = 'Approach';
+    if (strokes === 0) currentTrigger = 'Tee';
+    else if (distToPin <= 50) currentTrigger = 'Greenside';
+    else if (ballX < -15) currentTrigger = 'Trouble_Left';
+    else if (ballX > 15) currentTrigger = 'Trouble_Right';
+
+    // Find all notes for this zone that the current Caddy Level is smart enough to know
+    let availableNotes = holeData.caddyNotes.filter(n => n.trigger === currentTrigger && n.level <= caddyLevel);
+    
+    if (availableNotes.length === 0) {
+        // Fallback to generic "Always" advice if available, otherwise default
+        availableNotes = holeData.caddyNotes.filter(n => n.trigger === 'Always' && n.level <= caddyLevel);
+        if (availableNotes.length === 0) return "Just hit a good golf shot here. I don't have specific advice.";
+    }
+
+    // Sort to get the highest level advice available (index 0)
+    availableNotes.sort((a, b) => b.level - a.level);
+    return `[Level ${caddyLevel} Caddy]: ${availableNotes[0].text}`;
 };
 
 window.initGame = function() {
