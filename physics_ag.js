@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v3.37.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v3.38.0)
 
 function calculateDistanceToPin() {
     return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
@@ -51,11 +51,11 @@ function getSetupReport() {
     if (gameMode === 'course' && currentLie === 'Sand') {
         const minTotal = Math.round(baseTotal * 0.60);
         const maxTotal = Math.round(baseTotal * 0.80);
-        return `${club.name}. In the sand. 100% power hits ${minTotal} to ${maxTotal} yards. Style: ${style.name}.`;
+        return `${club.name}. 100% power hits ${minTotal} to ${maxTotal} yards. In the sand. Style: ${style.name}.`;
     } else if ((gameMode === 'course' && currentLie === 'Light Rough') || (gameMode === 'range' && rangeLie === 'Rough')) {
         const minTotal = Math.round(baseTotal * 0.85);
         const maxTotal = Math.round(baseTotal * 0.95);
-        return `${club.name}. In the rough. 100% power hits ${minTotal} to ${maxTotal} yards. Style: ${style.name}.`;
+        return `${club.name}. 100% power hits ${minTotal} to ${maxTotal} yards. In the rough. Style: ${style.name}.`;
     } else {
         return `${club.name}. 100% power hits ${Math.round(baseTotal)} yards. Style: ${style.name}.`;
     }

@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v3.37.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v3.38.0)
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
@@ -226,16 +226,32 @@ window.addEventListener('keydown', (e) => {
             }
         }
         if (e.code === 'KeyS') {
-            e.preventDefault(); shotStyleIndex = (shotStyleIndex + 1) % shotStyles.length;
-            const typeMsg = getSetupReport();
-            document.getElementById('visual-output').innerText = typeMsg; window.announce(typeMsg);
+            e.preventDefault(); 
+            shotStyleIndex = (shotStyleIndex + 1) % shotStyles.length;
+            const style = shotStyles[shotStyleIndex];
+            const typeMsg = `Style: ${style.name}`;
+            document.getElementById('visual-output').innerText = typeMsg; 
+            window.announce(typeMsg);
         }
         if (e.code === 'KeyX') {
             e.preventDefault();
             const style = shotStyles[shotStyleIndex];
             const baseCarry = club.baseDistance * style.distMod;
-            const baseTotal = Math.round(baseCarry + (baseCarry * (club.rollPct * style.rollMod)));
-            const msg = `Holding ${club.name}. Expect ${baseTotal} yards at 100% power under ideal conditions.`;
+            const baseTotal = baseCarry + (baseCarry * (club.rollPct * style.rollMod));
+            let msg = "";
+            
+            if (gameMode === 'course' && currentLie === 'Sand') {
+                const minTotal = Math.round(baseTotal * 0.60);
+                const maxTotal = Math.round(baseTotal * 0.80);
+                msg = `Holding ${club.name}. In the sand. Expect ${minTotal} to ${maxTotal} yards at 100% power.`;
+            } else if ((gameMode === 'course' && currentLie === 'Light Rough') || (gameMode === 'range' && rangeLie === 'Rough')) {
+                const minTotal = Math.round(baseTotal * 0.85);
+                const maxTotal = Math.round(baseTotal * 0.95);
+                msg = `Holding ${club.name}. In the rough. Expect ${minTotal} to ${maxTotal} yards at 100% power.`;
+            } else {
+                msg = `Holding ${club.name}. Expect ${Math.round(baseTotal)} yards at 100% power.`;
+            }
+            
             document.getElementById('visual-output').innerText = msg; window.announce(msg);
         }
         if (e.code === 'KeyZ' && gameMode === 'course') {
