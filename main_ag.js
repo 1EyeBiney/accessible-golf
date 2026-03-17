@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v3.60.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v3.61.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -126,12 +126,28 @@ window.getCaddyAdvice = function() {
     return `[Level ${caddyLevel} Caddy]: ${availableNotes[0].text}`;
 };
 
+window.announce = function(msg) {
+    const ariaBox = document.getElementById('aria-announce');
+    if (ariaBox) ariaBox.innerText = msg;
+    
+    // Push the same text to the visual marquee
+    const marquee = document.getElementById('marquee-text');
+    if (marquee) {
+        marquee.innerText = msg;
+        // Reset the CSS animation to force it to restart from the right side
+        marquee.style.animation = 'none';
+        void marquee.offsetWidth; // Trigger reflow
+        marquee.style.animation = 'scrollMarquee 12s linear infinite';
+    }
+};
+
 window.initGame = function() {
     window.initAudio();
     generateWind();
     loadHole(1);
     document.getElementById('initBtn').style.display = 'none';
     document.getElementById('game-container').style.display = 'flex';
+    document.getElementById('hud-top').style.display = 'block';
     document.getElementById('swing-meter').style.display = 'block';
     requestAnimationFrame(window.drawMeter);
     document.getElementById('game-container').focus();

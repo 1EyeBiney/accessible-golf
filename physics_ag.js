@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v3.60.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v3.61.0)
 
 function calculateDistanceToPin() {
     return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
@@ -365,7 +365,8 @@ function calculateShot(autoMiss = false) {
                 window.announce(chippingMsg);
                 lastShotReport = chippingMsg + "\n\nTelemetry:\n" + metrics;
                 holeTelemetry.push(lastShotReport);
-                document.getElementById('visual-output').innerText = lastShotReport;
+                document.getElementById('caddy-panel').style.display = 'block';
+                document.getElementById('caddy-panel-text').innerText = lastShotReport;
                 driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
             } else {
                 if (gameMode === 'course' && distanceToPin <= 20 && !currentLie.toLowerCase().includes("water")) isHoleComplete = true;
@@ -376,7 +377,8 @@ function calculateShot(autoMiss = false) {
                     window.announce(completionMessage);
                     lastShotReport = completionMessage + "\n\nTelemetry:\n" + metrics;
                     holeTelemetry.push(lastShotReport);
-                    document.getElementById('visual-output').innerText = lastShotReport;
+                    document.getElementById('caddy-panel').style.display = 'block';
+                    document.getElementById('caddy-panel-text').innerText = lastShotReport;
                     swingState = 6;
                 } else {
                     if (gameMode === 'range') {
@@ -391,7 +393,8 @@ function calculateShot(autoMiss = false) {
                         
                         ballX = 0; ballY = 0; 
                         window.announce(rangeMsg);
-                        document.getElementById('visual-output').innerText = lastShotReport;
+                        document.getElementById('caddy-panel').style.display = 'block';
+                        document.getElementById('caddy-panel-text').innerText = lastShotReport;
 
                         if (gameMode === 'course') window.updateTargetZone();
                         driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0;
@@ -406,7 +409,8 @@ function calculateShot(autoMiss = false) {
                             window.announce(broadcast);
                             lastShotReport = broadcast + "\n\nTelemetry:\n" + metrics;
                             holeTelemetry.push(lastShotReport);
-                            document.getElementById('visual-output').innerText = lastShotReport;
+                            document.getElementById('caddy-panel').style.display = 'block';
+                            document.getElementById('caddy-panel-text').innerText = lastShotReport;
                         }, typeof isPutting !== 'undefined' && isPutting && club.name === "Putter" && strokes > 1 ? 1500 : 0);
                         
                         if (gameMode === 'course') window.updateTargetZone();
