@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v3.38.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v3.39.0)
 
 function calculateDistanceToPin() {
     return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
@@ -88,7 +88,8 @@ function calculateShot(autoMiss = false) {
     let impactDiff = devImpact ? 0 : Math.round((performance.now() - impactStartTime) - dropDurationMs);
     let hingeDiff = devHinge ? 0 : Math.round(hingeTimeDown - hingeTimeBack);
 
-    let pressure = finalPower > 105 ? (finalPower - 105) / 15 : 0;
+    let powerOvercharge = finalPower > 100 ? finalPower - 100 : 0;
+    let pressureDispersion = 1 + (powerOvercharge * 0.04); 
     const hingeAcc = Math.max(10, 100 - (Math.abs(hingeDiff) / 4));
     
     const activeFairwayWidth = gameMode === 'course' ? courses[currentCourseIndex].holes[hole - 1].fairwayWidth : fairwayWidth;
@@ -108,7 +109,7 @@ function calculateShot(autoMiss = false) {
         }
     }
 
-    let forgiveness = finalPower <= 100 ? 1 + ((100 - finalPower) * 0.01) : Math.max(0.4, 1 - ((finalPower - 100) * 0.02));
+    let forgiveness = finalPower <= 100 ? 1 + ((100 - finalPower) * 0.01) : Math.max(0.6, 1 - (powerOvercharge * 0.015));
     forgiveness *= lieForgivenessMod; 
 
     let absImpact = Math.abs(impactDiff);
@@ -116,18 +117,33 @@ function calculateShot(autoMiss = false) {
     let spinPenalty = 0.5 + (adjustedImpact / 50); 
     if (adjustedImpact > 160) spinPenalty = 5 + ((adjustedImpact - 160) / 20);
 
-    let tempSideSpin = Math.abs(Math.round((impactDiff / 20) * 100 * spinPenalty * (1 + pressure)));
+    let tempSideSpin = Math.abs(Math.round((impactDiff / 20) * 100 * spinPenalty * pressureDispersion));
     let dampening = Math.max(0.25, 1 - (tempSideSpin / 20000)); 
     let impactAcc = Math.max(10, 100 - (adjustedImpact / 2.5));
 
     const currentStyle = shotStyles[shotStyleIndex];
     const accuracyScore = Math.round((impactAcc + hingeAcc) / 2);
     let dynamicLoft = Math.max(0, club.loft + currentStyle.loftMod + ((2 - stanceIndex) * 5));
-    let backspinRPM = Math.max(400, Math.round((club.loft * 150) + (finalPower * 10) + (impactAcc * 7) + ((stanceIndex - 2) * 500) + currentStyle.spinMod));
     
-    let sideSpinRPM = Math.round((impactDiff / 20) * 100 * spinPenalty * (1 + pressure)) + (stanceAlignment * 800);
+    let styleSideSpinMod = currentStyle.name === "Full" ? 1.0 : (currentStyle.distMod * 0.4);
+
+    let backspinRPM = Math.max(400, Math.round((club.loft * 150) + (finalPower * 10) + (impactAcc * 7) + ((stanceIndex - 2) * 500) + currentStyle.spinMod));
+    let sideSpinRPM = Math.round((impactDiff / 20) * 100 * spinPenalty * pressureDispersion * styleSideSpinMod) + (stanceAlignment * 800 * styleSideSpinMod);
+    
     let potentialDist = club.baseDistance * (finalPower / 100) * (1 + (hingeTimeBack / 2000 * 0.15)) * currentStyle.distMod * lieMod;
     let totalDistance = Math.round(potentialDist * dampening * Math.max(0.2, 1 - Math.pow(Math.abs(hingeDiff) / 400, 2)));
+
+    let activeRollMod = currentStyle.rollMod;
+    if (shotStyleIndex > 0 && isStartingInRough) {
+        if (impactDiff < -25) { 
+            backspinRPM = Math.round(backspinRPM * 0.4);
+            totalDistance = Math.round(totalDistance * 0.85);
+        } else if (impactDiff > 25) { 
+            dynamicLoft = Math.max(5, dynamicLoft - 15);
+            backspinRPM = Math.round(backspinRPM * 0.2);
+            activeRollMod *= 2.5; 
+        }
+    }
 
     let hangTimeSecs = Math.min(6, Math.max(0.5, (totalDistance / 60) + (dynamicLoft / 15)));
     let baseWindY = windY * (hangTimeSecs / 2.5) * currentStyle.windMod;
@@ -142,7 +158,7 @@ function calculateShot(autoMiss = false) {
     const userAimRad = aimAngle * (Math.PI / 180); 
     const finalRad = targetAngleRad + userAimRad; 
 
-    const physicsX = (typeof isPutt !== 'undefined' && isPutt) ? 0 : (sideSpinRPM / 2400) * (club.maxDispersion * (typeof lieDispersionMod !== 'undefined' ? lieDispersionMod : 1));
+    const physicsX = (typeof isPutt !== 'undefined' && isPutt) ? 0 : (sideSpinRPM / 2400) * (club.maxDispersion * (typeof lieDispersionMod !== 'undefined' ? lieDispersionMod : 1) * pressureDispersion);
     const lateralTotal = physicsX + windXEffect;
 
     const moveY = Math.cos(finalRad) * totalDistance - Math.sin(finalRad) * lateralTotal;
@@ -151,11 +167,11 @@ function calculateShot(autoMiss = false) {
     ballY += moveY;
     ballX += moveX;
 
-    let lateralKick = Math.round((sideSpinRPM / 350) * currentStyle.rollMod);
+    let lateralKick = Math.round((sideSpinRPM / 350) * activeRollMod);
     ballY -= Math.sin(finalRad) * lateralKick;
     ballX += Math.cos(finalRad) * lateralKick;
 
-    let rollDistance = Math.round(totalDistance * club.rollPct * currentStyle.rollMod);
+    let rollDistance = Math.round(totalDistance * club.rollPct * activeRollMod);
     let carryDistance = Math.max(0, totalDistance - rollDistance);
     let lateralX = Math.round((physicsX + windXEffect + lateralKick) * 10) / 10;
 
