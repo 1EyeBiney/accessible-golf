@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v3.36.1)
+// input_ag.js - Keyboard Controls and Event Listeners (v3.37.0)
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
@@ -14,7 +14,7 @@ window.addEventListener('keydown', (e) => {
     if (confirmingRange) {
         if (e.code === 'KeyY' || e.code === 'Enter') {
             e.preventDefault();
-            gameMode = 'range'; confirmingRange = false; strokes = 0; ballX = 0; ballY = 0; pinX = 0; pinY = club.baseDistance; rangeLie = 'Fairway'; isHoleComplete = false; swingState = 0; if (typeof isPutting !== 'undefined') isPutting = false;
+            gameMode = 'range'; confirmingRange = false; strokes = 0; holeTelemetry = []; ballX = 0; ballY = 0; pinX = 0; pinY = club.baseDistance; rangeLie = 'Fairway'; isHoleComplete = false; swingState = 0; if (typeof isPutting !== 'undefined') isPutting = false;
             window.announce(`Welcome to the Driving Range. Target set to ${pinY} yards. Lie is ${rangeLie}.`);
             document.getElementById('visual-output').innerText = `Driving Range. Target: ${pinY}. Lie: ${rangeLie}.`;
         } else {
@@ -26,7 +26,7 @@ window.addEventListener('keydown', (e) => {
     if (confirmingGreen) {
         if (e.code === 'KeyY' || e.code === 'Enter') {
             e.preventDefault();
-            gameMode = 'chipping'; confirmingGreen = false; strokes = 0; isHoleComplete = false; swingState = 0;
+            gameMode = 'chipping'; confirmingGreen = false; strokes = 0; holeTelemetry = []; isHoleComplete = false; swingState = 0;
             ballX = 0; ballY = 0; pinX = 0;
             pinY = chippingRange === 'short' ? Math.floor(Math.random() * 16) + 5 : Math.floor(Math.random() * 61) + 20;
             let targetDist = calculateDistanceToPin();
@@ -42,8 +42,9 @@ window.addEventListener('keydown', (e) => {
         if (e.code === 'KeyC') {
             e.preventDefault();
             if (e.shiftKey) {
-                navigator.clipboard.writeText(lastShotReport).then(() => {
-                    const msg = "Telemetry copied to clipboard.";
+                let exportData = holeTelemetry.length > 0 ? holeTelemetry.join('\n\n---\n\n') : lastShotReport;
+                navigator.clipboard.writeText(exportData).then(() => {
+                    const msg = `Copied ${holeTelemetry.length} shots to clipboard.`;
                     document.getElementById('visual-output').innerText = msg; window.announce(msg);
                 });
             } else {

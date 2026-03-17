@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v3.36.1)
+// main_ag.js - Game State, Variables, and Swing Sequence (v3.37.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -20,6 +20,7 @@ let shotStyleIndex = 0, chippingRange = 'short', confirmingGreen = false;
 let currentClubIndex = 0;
 let club = clubs[currentClubIndex]; // Pulls from data_ag.js
 let lastShotReport = "No caddy report available yet.";
+let holeTelemetry = [];
 
 function loadHole(holeNumber) {
     const course = courses[currentCourseIndex];
@@ -35,6 +36,7 @@ function loadHole(holeNumber) {
     currentLie = "Tee";
     aimAngle = 0; stanceIndex = 2; stanceAlignment = 0;
     swingState = 0; // FIX: Added state reset
+    holeTelemetry = [];
     window.updateTargetZone();
     viewingHazards = false;
     

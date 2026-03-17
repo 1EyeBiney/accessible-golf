@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v3.36.1)
+// physics_ag.js - Math, Wind, and Shot Calculation (v3.37.0)
 
 function calculateDistanceToPin() {
     return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
@@ -289,6 +289,7 @@ function calculateShot(autoMiss = false) {
                 const chippingMsg = `Chipping Green. ${shotBroadcast} Shot finished ${finalProximity} yards from the pin. New target: ${newTarget} yards.`;
                 window.announce(chippingMsg);
                 lastShotReport = chippingMsg + "\n\nTelemetry:\n" + metrics;
+                holeTelemetry.push(lastShotReport);
                 document.getElementById('visual-output').innerText = lastShotReport;
                 if (gameMode === 'course') window.updateTargetZone();
                 driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
@@ -300,6 +301,7 @@ function calculateShot(autoMiss = false) {
                     const completionMessage = `Hole complete! You reached the green in ${strokes} strokes, finishing ${distanceToPin} yards from the pin.`;
                     window.announce(completionMessage);
                     lastShotReport = completionMessage + "\n\n" + shotBroadcast + "\n\nTelemetry:\n" + metrics;
+                    holeTelemetry.push(lastShotReport);
                     document.getElementById('visual-output').innerText = lastShotReport;
                     swingState = 6;
                 } else {
@@ -311,6 +313,7 @@ function calculateShot(autoMiss = false) {
 
                         const rangeMsg = `Driving Range. ${shotBroadcast} Finished ${finalProximity} yards from target, ${relativePos}.`;
                         lastShotReport = rangeMsg + "\n\nTelemetry:\n" + metrics;
+                        holeTelemetry.push(lastShotReport);
                         
                         ballX = 0; ballY = 0; 
                         window.announce(rangeMsg);
@@ -328,6 +331,7 @@ function calculateShot(autoMiss = false) {
                         setTimeout(() => {
                             window.announce(broadcast);
                             lastShotReport = broadcast + "\n\nTelemetry:\n" + metrics;
+                            holeTelemetry.push(lastShotReport);
                             document.getElementById('visual-output').innerText = lastShotReport;
                         }, typeof isPutting !== 'undefined' && isPutting && club.name === "Putter" && strokes > 1 ? 1500 : 0);
                         
