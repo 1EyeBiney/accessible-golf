@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v3.33.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v3.32.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -136,14 +136,63 @@ function startImpactPhase() {
 window.announceHazard = function(h) {
     if (!h) return;
     let msg = "";
+
+    // Calculate the exact ray direction based on current aim
+    const targetAngleRad = Math.atan2(pinX - ballX, pinY - ballY);
+    const userAimRad = aimAngle * (Math.PI / 180);
+    const finalRad = targetAngleRad + userAimRad;
+    const dirX = Math.sin(finalRad);
+    const dirY = Math.cos(finalRad);
+
     if (h.radius) {
-        // This is a tree
+        // Tree logic (Static for now)
         const side = h.x < 0 ? "Left" : h.x > 0 ? "Right" : "Center";
         msg = `${h.name}. Located at ${h.y} yards, ${Math.abs(h.x)} yards ${side}. Radius is ${h.radius} yards.`;
     } else {
-        // This is a standard hazard (Water/Bunker)
-        msg = `${h.type}. Starts at ${h.distance} yards. Located on the ${h.side || 'Center'}. ${h.width} yards wide and ${h.depth} yards deep.`;
+        // Rectangular Hazard Math (AABB Raycasting)
+        let minX = h.offset - (h.width / 2);
+        let maxX = h.offset + (h.width / 2);
+        let minY = h.distance;
+        let maxY = h.distance + h.depth;
+
+        let tmin = -Infinity, tmax = Infinity;
+
+        // X-Axis bounds
+        if (Math.abs(dirX) > 0.00001) {
+            let tx1 = (minX - ballX) / dirX;
+            let tx2 = (maxX - ballX) / dirX;
+            tmin = Math.max(tmin, Math.min(tx1, tx2));
+            tmax = Math.min(tmax, Math.max(tx1, tx2));
+        } else if (ballX < minX || ballX > maxX) {
+            tmin = Infinity; tmax = -Infinity;
+        }
+
+        // Y-Axis bounds
+        if (Math.abs(dirY) > 0.00001) {
+            let ty1 = (minY - ballY) / dirY;
+            let ty2 = (maxY - ballY) / dirY;
+            tmin = Math.max(tmin, Math.min(ty1, ty2));
+            tmax = Math.min(tmax, Math.max(ty1, ty2));
+        } else if (ballY < minY || ballY > maxY) {
+            tmin = Infinity; tmax = -Infinity;
+        }
+
+        let tacticalMsg = "";
+        if (tmax >= tmin && tmax > 0) {
+            let reachDist = Math.max(0, Math.round(tmin));
+            let clearDist = Math.round(tmax);
+            if (reachDist === 0) {
+                tacticalMsg = ` You are currently inside it. It will take ${clearDist} yards to clear it on this line.`;
+            } else {
+                tacticalMsg = ` On your current aim line, it is ${reachDist} yards to reach it, and ${clearDist} yards to clear it.`;
+            }
+        } else {
+            tacticalMsg = ` It is not in your current flight path.`;
+        }
+
+        msg = `${h.type}. Starts at ${h.distance} yards. Located on the ${h.side || 'Center'}. ${h.width} yards wide and ${h.depth} yards deep.${tacticalMsg}`;
     }
+    
     window.announce(msg);
     document.getElementById('visual-output').innerText = msg;
 };
