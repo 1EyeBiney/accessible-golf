@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v3.44.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v3.46.0)
 
 function calculateDistanceToPin() {
     return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
@@ -371,9 +371,9 @@ function calculateShot(autoMiss = false) {
 
                 if (isHoleComplete) {
                     playTone(440, 'sine', 0.2, 0.4); setTimeout(() => playTone(554, 'sine', 0.2, 0.4), 200); setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 400);
-                    const completionMessage = `Hole complete! You reached the green in ${strokes} strokes, finishing ${distanceToPin} yards from the pin.`;
+                    const completionMessage = `Hole complete! ${shotBroadcast} You reached the green in ${strokes} strokes.`;
                     window.announce(completionMessage);
-                    lastShotReport = completionMessage + "\n\n" + shotBroadcast + "\n\nTelemetry:\n" + metrics;
+                    lastShotReport = completionMessage + "\n\nTelemetry:\n" + metrics;
                     holeTelemetry.push(lastShotReport);
                     document.getElementById('visual-output').innerText = lastShotReport;
                     swingState = 6;

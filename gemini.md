@@ -105,3 +105,22 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
     - **Distance Floor:** Even maximum "shanks" retain at least 25% of the club's potential yardage.
 - **Lateral Weighting:** Lateral movement weight increased (`sideSpinRPM / 2400`) to ensure high-spin shots "leak" and "slice" significantly offline.
 - **Relative Proximity (v2.26.2):** Range reporting includes directional context relative to the initial target line (e.g., "Finished 15 yards from target, Short-Right").
+### 21. v3.41 Engine Addendum (Green Precision & Edge Finder)
+- **High-Precision Proximity:** Any shot landing or finishing within 30 yards of the pin triggers the `window.formatProximity` helper, which converts yardages into precise feet and inches.
+- **Landing Spot Intelligence:** The engine calculates exact landing coordinates (`landX`, `landY`) relative to the pin before calculating the roll, producing a three-part narrative: "Landed X, Rolled Y, Finished Z."
+- **Edge Finder Math:** Pressing `KeyH` (Hazard List) calculates the exact angles (in degrees) required to aim left or right to completely bypass a hazard's bounding box or a tree's radius.
+
+### 22. v3.42 Engine Addendum (Dynamic Roll Physics)
+- **Loft-Based Distance Scaling:** Ball placement physically alters launch energy. Lower loft (Back stance) increases forward velocity (`loftDistMod`), while higher loft (Forward stance) reduces total distance in favor of vertical apex.
+- **Spin-Dependent Roll:** The `rollDistance` is no longer a flat percentage. It calculates friction via `spinRollMod`—high backspin (from wedges or a Back stance) forces the ball to "check up" quickly, while low spin allows for natural release and run-out.
+
+### 23. v3.43 - v3.44 Engine Addendum (Tactical Hazards & Terrain Friction)
+- **Tactical Hybrid Reporting (KeyH):** The Hazard menu combines "Edge Finder" bypass angles with "Aim Line" raycasting, telling the player exactly how many yards to reach and clear an obstacle on their *current* heading. Dynamically updates if the player rotates (Arrow Left/Right) while the menu is open.
+- **Continuous Collision (v3.44.1):** Uses AABB (Axis-Aligned Bounding Box) logic to evaluate the entire roll path. If a rolling ball intersects a bunker or water boundary at any point, the roll is immediately intercepted and terminated inside the hazard. 
+- **Sand Silencer:** Balls rolling into sand (`currentLie === "Sand"`) no longer trigger the "Fairway Roll" grass audio loop.
+
+### 24. v3.45 - v3.46 Engine Addendum (Caddy Skill System & Course Navigation)
+- **Caddy Skill Level:** `caddyLevel` tracks the Caddy's intelligence (1: Rookie, 2: Veteran, 3: Tour Pro). Toggled via `Shift + KeyA`.
+- **The Yardage Book (KeyA):** The engine uses semantic trigger zones (Tee, Approach, Greenside, Trouble_Left, Trouble_Right) to pull context-aware strategic advice from a flat-table database based on the current `caddyLevel`.
+- **Fairway Descriptions (KeyF):** Reads a custom `fairwayDescription` from the hole data, allowing blind players to understand the spatial layout and "dead space" between target zones.
+- **Automatic Green Broadcast:** When a ball finishes on the green, the detailed feet-and-inches proximity report is automatically appended to the ARIA broadcast, eliminating the need to manually query the Caddy.

@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v3.45.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v3.46.0)
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
@@ -213,7 +213,7 @@ window.addEventListener('keydown', (e) => {
             }
             return;
         }
-        if (e.code === 'KeyN') {
+        if (e.code === 'KeyA') {
             e.preventDefault();
             if (e.shiftKey) {
                 caddyLevel = caddyLevel >= 3 ? 1 : caddyLevel + 1;
@@ -226,6 +226,14 @@ window.addEventListener('keydown', (e) => {
                 document.getElementById('visual-output').innerText = advice;
                 window.announce(advice);
             }
+            return;
+        }
+        if (e.code === 'KeyF' && gameMode === 'course') {
+            e.preventDefault();
+            const holeData = courses[currentCourseIndex].holes[hole - 1];
+            let fwMsg = holeData.fairwayDescription || `The fairway is ${holeData.fairwayWidth} yards wide.`;
+            document.getElementById('visual-output').innerText = fwMsg;
+            window.announce(fwMsg);
             return;
         }
         if (e.code === 'PageUp') {
