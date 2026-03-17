@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accessible Golf - Physics Engine v3.50.0</title>
+    <title>Accessible Golf - Physics Engine v3.60.0</title>
     <style>
         body { font-family: sans-serif; padding: 2rem; background-color: #121212; color: #ffffff; max-width: 800px; margin: auto; line-height: 1.6; display: flex; flex-direction: column; align-items: center; }
         h1 { color: #4CAF50; margin-bottom: 0.5rem; }
@@ -18,19 +18,20 @@
 <body>
 
     <h1>Accessible Golf Engine</h1>
-    <div class="version">Modular Codebase v3.50.0</div>
+    <div class="version">Modular Codebase v3.60.0</div>
 
     <button id="initBtn" autofocus onclick="initGame()">Press Enter to Begin</button>
     <div id="game-container" tabindex="0" role="application" aria-label="Golf Swing Engine">
         <div id="visual-output" aria-hidden="true">Ready. Hold Down Arrow to start backswing.</div>
+        <canvas id="swing-meter" width="800" height="120" aria-hidden="true" style="margin-top: 1rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); background: #111; display: none;"></canvas>
     </div>
 
     <div id="aria-announce" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
 
-    <script src="data_ag.js?v=3.50.0"></script>
-    <script src="audio_ag.js?v=3.50.0"></script>
-    <script src="main_ag.js?v=3.50.0"></script>
-    <script src="physics_ag.js?v=3.50.0"></script>
-    <script src="input_ag.js?v=3.50.0"></script>
+    <script src="data_ag.js?v=3.60.0"></script>
+    <script src="audio_ag.js?v=3.60.0"></script>
+    <script src="main_ag.js?v=3.60.0"></script>
+    <script src="physics_ag.js?v=3.60.0"></script>
+    <script src="input_ag.js?v=3.60.0"></script>
 </body>
 </html>

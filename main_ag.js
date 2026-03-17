@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v3.45.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v3.60.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -7,6 +7,7 @@ let stateTimeouts = [];
 let backswingStartTime = 0, downswingStartTime = 0, impactStartTime = 0, powerStartTime = 0;
 let hingeTimeBack = 0, hingeTimeDown = 0;
 let finalPower = 0, dropDurationMs = 0;
+let lockedImpactTime = 0;
 let windX = 0, windY = 0, windLevelIndex = 3; 
 let aimAngle = 0, stanceIndex = 2, stanceAlignment = 0;
 let hole = 1, par = 4, strokes = 0;
@@ -90,19 +91,33 @@ window.getCaddyAdvice = function() {
 
     let distToPin = Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
     
-    // Determine Semantic Trigger Zone
-    let currentTrigger = 'Approach';
-    if (strokes === 0) currentTrigger = 'Tee';
-    else if (distToPin <= 50) currentTrigger = 'Greenside';
-    else if (ballX < -15) currentTrigger = 'Trouble_Left';
-    else if (ballX > 15) currentTrigger = 'Trouble_Right';
+    // Determine Advanced Semantic Trigger Zone (Priority Order)
+    let currentTrigger = 'Approach_Long'; 
+
+    if (strokes === 0) {
+        currentTrigger = 'Tee';
+    } else if (distToPin <= 50) {
+        currentTrigger = 'Greenside';
+    } else if (currentLie === 'Sand') {
+        currentTrigger = 'Bunker_Fairway';
+    } else if (ballX < -20) {
+        currentTrigger = 'Trouble_Left';
+    } else if (ballX > 20) {
+        currentTrigger = 'Trouble_Right';
+    } else if (currentLie === 'Light Rough') {
+        currentTrigger = 'Rough_Deep';
+    } else if (currentLie === 'Fairway' && distToPin <= 120) {
+        currentTrigger = 'Approach_Scoring';
+    } else if (currentLie === 'Fairway' && distToPin > 120) {
+        currentTrigger = 'Approach_Long';
+    }
 
     // Find all notes for this zone that the current Caddy Level is smart enough to know
     let availableNotes = holeData.caddyNotes.filter(n => n.trigger === currentTrigger && n.level <= caddyLevel);
     
     if (availableNotes.length === 0) {
-        // Fallback to generic "Always" advice if available, otherwise default
-        availableNotes = holeData.caddyNotes.filter(n => n.trigger === 'Always' && n.level <= caddyLevel);
+        // Fallback to legacy 'Approach' or 'Always' if specific granular data isn't written yet
+        availableNotes = holeData.caddyNotes.filter(n => (n.trigger === 'Approach' || n.trigger === 'Always') && n.level <= caddyLevel);
         if (availableNotes.length === 0) return "Just hit a good golf shot here. I don't have specific advice.";
     }
 
@@ -117,6 +132,8 @@ window.initGame = function() {
     loadHole(1);
     document.getElementById('initBtn').style.display = 'none';
     document.getElementById('game-container').style.display = 'flex';
+    document.getElementById('swing-meter').style.display = 'block';
+    requestAnimationFrame(window.drawMeter);
     document.getElementById('game-container').focus();
     let setupReport = getSetupReport();
     if (gameMode === 'course') setupReport += getSightReport();
@@ -183,4 +200,113 @@ function startImpactPhase() {
     [75, 50, 25].forEach(m => { if (finalPower > m) stateTimeouts.push(setTimeout(() => triggerMilestone(m), (finalPower - m) * 15)); });
     stateTimeouts.push(setTimeout(() => { if (swingState === 4) calculateShot(true); }, dropDurationMs + 400));
 }
+
+window.drawMeter = function() {
+    requestAnimationFrame(window.drawMeter);
+    const canvas = document.getElementById('swing-meter');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+
+    // Clear background
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#111';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, 0, w, h);
+
+    if (swingState === 0 || isHoleComplete) {
+        ctx.fillStyle = '#4CAF50';
+        ctx.font = '24px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText("READY - Hold Down Arrow to Swing", w/2, h/2 + 8);
+        return;
+    }
+
+    const now = performance.now();
+
+    const drawHinges = () => {
+        if (hingeTimeBack > 0) {
+            let x = (hingeTimeBack / 2000) * w;
+            ctx.fillStyle = '#ffeb3b'; 
+            ctx.beginPath(); ctx.moveTo(x - 12, 0); ctx.lineTo(x + 12, 0); ctx.lineTo(x, 25); ctx.fill();
+        }
+        if (hingeTimeDown > 0) {
+            let x = (hingeTimeDown / 2000) * w;
+            ctx.fillStyle = '#ff9800'; 
+            ctx.beginPath(); ctx.moveTo(x - 12, h); ctx.lineTo(x + 12, h); ctx.lineTo(x, h - 25); ctx.fill();
+        }
+    };
+
+    if (swingState === 1 || swingState === 3) {
+        let isBack = swingState === 1;
+        let start = isBack ? backswingStartTime : downswingStartTime;
+        let elapsed = now - start;
+        let progress = Math.min(1, Math.max(0, elapsed / 2000));
+        
+        // Fill the bar
+        ctx.fillStyle = isBack ? '#2e7d32' : '#0277bd';
+        ctx.fillRect(0, 0, w * progress, h);
+        
+        // Draw Audio Metronome Hash Marks
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        for(let i=1; i<=4; i++) {
+            ctx.fillRect((w * (i * 0.25)) - 2, 0, 4, h);
+        }
+        
+        ctx.fillStyle = 'white';
+        ctx.font = '20px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(isBack ? "BACKSWING (Tap Space for Hinge)" : "DOWNSWING (Tap Space for Hinge)", 15, 30);
+        
+        drawHinges();
+    }
+    else if (swingState === 2) {
+        let elapsed = now - powerStartTime;
+        let pwr = 25 + ((elapsed / 2000) * 75);
+        let progress = Math.min(1, Math.max(0, pwr / 120));
+        
+        ctx.fillStyle = pwr > 100 ? '#c62828' : '#6a1b9a';
+        ctx.fillRect(0, 0, w * progress, h);
+        
+        let mark100 = (100 / 120) * w;
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.fillRect(mark100 - 3, 0, 6, h);
+        
+        ctx.fillStyle = 'white';
+        ctx.font = '20px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(`POWER PHASE: ${Math.round(pwr)}% (Release to Lock)`, 15, 30);
+    }
+    else if (swingState === 4 || swingState === 5) {
+        let targetX = w * 0.8; 
+        let currentElapsed = swingState === 4 ? now - impactStartTime : lockedImpactTime;
+        
+        // Sweet Spot (Green Zone)
+        let sweetSpotWidth = (60 / dropDurationMs) * targetX * 2;
+        ctx.fillStyle = 'rgba(76, 175, 80, 0.4)';
+        ctx.fillRect(targetX - (sweetSpotWidth/2), 0, sweetSpotWidth, h);
+        
+        // White Target Line
+        ctx.fillStyle = 'white';
+        ctx.fillRect(targetX - 2, 0, 4, h);
+        
+        // Moving Cursor
+        let cursorX = (currentElapsed / dropDurationMs) * targetX;
+        ctx.fillStyle = '#ffeb3b';
+        ctx.fillRect(cursorX - 4, 0, 8, h);
+        
+        ctx.fillStyle = 'white';
+        ctx.font = '20px sans-serif';
+        ctx.textAlign = 'left';
+        if (swingState === 4) {
+            ctx.fillText("IMPACT ZONE (Press Down Arrow at the White Line)", 15, 30);
+        } else {
+            let diff = Math.round(currentElapsed - dropDurationMs);
+            ctx.fillText(`IMPACT LOCKED: ${Math.abs(diff)}ms ${diff < 0 ? 'Early' : diff > 0 ? 'Late' : 'Perfect'}`, 15, 30);
+        }
+    }
+};
 

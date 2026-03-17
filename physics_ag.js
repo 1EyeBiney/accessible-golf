@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v3.46.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v3.60.0)
 
 function calculateDistanceToPin() {
     return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
@@ -74,6 +74,7 @@ function calculateShot(autoMiss = false) {
     swingState = 5; 
     stateTimeouts.forEach(clearTimeout);
     strokes++;
+    lockedImpactTime = performance.now() - impactStartTime;
     if (autoMiss) {
         playTone(150, 'sine', 0.5, 0.5);
         let missDist = calculateDistanceToPin();
