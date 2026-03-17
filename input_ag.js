@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v2.31.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v3.33.0)
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
@@ -83,16 +83,19 @@ window.addEventListener('keydown', (e) => {
         if (e.code === 'KeyH') {
             e.preventDefault();
             const holeData = courses[currentCourseIndex].holes[hole - 1];
-            if (!holeData.hazards || holeData.hazards.length === 0) {
-                window.announce("No hazards on this hole.");
+            // Combine hazards and trees into one list for the menu
+            const allObstacles = [...(holeData.hazards || []), ...(holeData.trees || [])];
+            
+            if (allObstacles.length === 0) {
+                window.announce("No hazards or trees on this hole.");
                 return;
             }
             viewingHazards = !viewingHazards;
             if (viewingHazards) {
                 hazardIndex = 0;
-                window.announceHazard(holeData.hazards[hazardIndex]);
+                window.announceHazard(allObstacles[hazardIndex]);
             } else {
-                window.announce("Exited Hazard List.");
+                window.announce("Exited Obstacle List.");
                 document.getElementById('visual-output').innerText = getSetupReport();
             }
             return;
@@ -101,17 +104,18 @@ window.addEventListener('keydown', (e) => {
         if (viewingHazards) {
             e.preventDefault();
             const holeData = courses[currentCourseIndex].holes[hole - 1];
+            const allObstacles = [...(holeData.hazards || []), ...(holeData.trees || [])];
             if (e.code === 'ArrowDown') {
-                if (hazardIndex < holeData.hazards.length - 1) hazardIndex++;
-                window.announceHazard(holeData.hazards[hazardIndex]);
+                if (hazardIndex < allObstacles.length - 1) hazardIndex++;
+                window.announceHazard(allObstacles[hazardIndex]);
             }
             if (e.code === 'ArrowUp') {
                 if (hazardIndex > 0) hazardIndex--;
-                window.announceHazard(holeData.hazards[hazardIndex]);
+                window.announceHazard(allObstacles[hazardIndex]);
             }
             if (e.code === 'Escape') {
                 viewingHazards = false; 
-                window.announce("Exited Hazard List.");
+                window.announce("Exited Obstacle List.");
                 document.getElementById('visual-output').innerText = getSetupReport();
             }
             return; // Block swing/aim inputs while viewing hazards
@@ -212,12 +216,10 @@ window.addEventListener('keydown', (e) => {
         if (e.code === 'KeyT') {
             e.preventDefault(); 
             let distMsg = `${calculateDistanceToPin()} yards to the pin.`;
-            
             if (gameMode === 'course') {
                 const holeData = courses[currentCourseIndex].holes[hole - 1];
-                if (holeData.pinLocation) {
-                    distMsg += ` Pin placement is ${holeData.pinLocation}.`;
-                }
+                if (holeData.pinLocation) distMsg += ` Pin is ${holeData.pinLocation}.`;
+                distMsg += getSightReport(); // Add the tree warning
             }
             
             document.getElementById('visual-output').innerText = distMsg; 

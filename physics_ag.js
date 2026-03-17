@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v2.30.3)
+// physics_ag.js - Math, Wind, and Shot Calculation (v3.33.1)
 
 function calculateDistanceToPin() {
     return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
@@ -146,6 +146,34 @@ function calculateShot(autoMiss = false) {
     let rollDistance = Math.round(totalDistance * club.rollPct * currentStyle.rollMod);
     let carryDistance = Math.max(0, totalDistance - rollDistance);
     let lateralX = Math.round((physicsX + windXEffect + lateralKick) * 10) / 10;
+
+    const currentHole = courses[currentCourseIndex].holes[hole - 1];
+    let treeCollisionReport = "";
+    if (currentHole.trees) {
+        currentHole.trees.forEach(tree => {
+            // Check if ball path (from 0,0 to ballX,ballY) intersects the tree radius
+            // Simplified check: if the ball lands within or passes very close to the tree
+            let distToTree = Math.sqrt(Math.pow(tree.x - ballX, 2) + Math.pow(tree.y - ballY, 2));
+            if (distToTree < tree.radius) {
+                let treeDistFromBall = Math.sqrt(Math.pow(tree.x - ballX, 2) + Math.pow(tree.y - ballY, 2));
+                let ballHeightAtTree = (treeDistFromBall * Math.tan(dynamicLoft * Math.PI / 180));
+                
+                if (ballHeightAtTree < tree.height) {
+                    playTone(1200, 'square', 0.1, 0.5); 
+                    window.announce(`Hit the ${tree.name}!`);
+                    ballX = tree.x + (Math.random() * 4 - 2);
+                    ballY = tree.y - 5; 
+                    totalDistance *= 0.4;
+                    rollDistance = 2;
+                    treeCollisionReport = `[Tree Check: ${tree.name} is ${tree.height}y tall. Ball height was ${Math.round(ballHeightAtTree)}y. Result: THWACK]`;
+                } else {
+                    window.announce(`Sailed right over the ${tree.name}!`);
+                    treeCollisionReport = `[Tree Check: ${tree.name} is ${tree.height}y tall. Ball height was ${Math.round(ballHeightAtTree)}y. Result: CLEARED]`;
+                }
+            }
+        });
+    }
+
     let distanceToPin = calculateDistanceToPin();
     const holeData = courses[currentCourseIndex].holes[hole - 1];
     
@@ -235,7 +263,7 @@ function calculateShot(autoMiss = false) {
             let displayX = Math.round(ballX * 10) / 10;
             let dirStr = displayX === 0 ? "dead center" : `${Math.abs(displayX)} yards ${displayX < 0 ? 'left' : 'right'} of center`;
             const sideSpinShape = sideSpinRPM === 0 ? "Straight" : sideSpinRPM > 0 ? "Slice" : "Hook";
-            const metrics = `Power ${finalPower}%. Hinge Diff ${hingeDiff}ms. Impact Offset ${impactDiff}ms. Accuracy Score ${accuracyScore}%. Backspin: ${backspinRPM} RPM. Side Spin: ${sideSpinRPM} RPM (${sideSpinShape}).`;
+            const metrics = `Power ${finalPower}%. Hinge Diff ${hingeDiff}ms. Impact Offset ${impactDiff}ms. Accuracy Score ${accuracyScore}%. Backspin: ${backspinRPM} RPM. Side Spin: ${sideSpinRPM} RPM (${sideSpinShape}). ${treeCollisionReport}`;
             const roughDesc = isStartingInRough ? "Hacked it out of the rough. " : "";
             let kickDesc = lateralKick === 0 ? "rolls straight" : `kicks ${Math.abs(lateralKick)} yds ${lateralKick > 0 ? 'right' : 'left'}`;
             const shotBroadcast = `${club.name}. ${roughDesc}${shotDesc} ${windDesc} Carries ${carryDistance}, rolls ${rollDistance} forward and ${kickDesc} for a total of ${totalDistance}. Settles in the ${lie}, ${dirStr}.`;

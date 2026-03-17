@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence
+// main_ag.js - Game State, Variables, and Swing Sequence (v3.33.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -41,6 +41,25 @@ function loadHole(holeNumber) {
     shotStyleIndex = 0;
 }
 
+function getSightReport() {
+    const currentHole = courses[currentCourseIndex].holes[hole - 1];
+    if (!currentHole.trees) return "";
+    
+    let warnings = [];
+    currentHole.trees.forEach(tree => {
+        // Calculate angle to tree relative to ball position
+        let angleToTree = Math.atan2(tree.x - ballX, tree.y - ballY) * (180 / Math.PI);
+        let relativeAngle = Math.abs(angleToTree - aimAngle);
+        
+        // If tree is within 15 degrees of our aim line and ahead of us
+        if (relativeAngle < 15 && tree.y > ballY) {
+            let dist = Math.round(Math.sqrt(Math.pow(tree.x - ballX, 2) + Math.pow(tree.y - ballY, 2)));
+            warnings.push(`${tree.name} is in your line of sight, ${dist} yards ahead.`);
+        }
+    });
+    return warnings.length > 0 ? " Warning: " + warnings.join(" ") : "";
+}
+
 window.initGame = function() {
     window.initAudio();
     generateWind();
@@ -48,7 +67,8 @@ window.initGame = function() {
     document.getElementById('initBtn').style.display = 'none';
     document.getElementById('game-container').style.display = 'flex';
     document.getElementById('game-container').focus();
-    const setupReport = getSetupReport();
+    let setupReport = getSetupReport();
+    if (gameMode === 'course') setupReport += getSightReport();
     let targetDist = calculateDistanceToPin();
     window.announce(`Hole ${hole}. Par ${par}. ${targetDist} yards. Ready. ${setupReport} Use Page Up or Down to change clubs.`);
     document.getElementById('visual-output').innerText = `Hole ${hole}. Par ${par}. ${targetDist} yards. Ready. ${setupReport}`;
@@ -115,7 +135,15 @@ function startImpactPhase() {
 
 window.announceHazard = function(h) {
     if (!h) return;
-    const msg = `${h.type}. Starts at ${h.distance} yards. Located on the ${h.side}. ${h.width} yards wide and ${h.depth} yards deep.`;
+    let msg = "";
+    if (h.radius) {
+        // This is a tree
+        const side = h.x < 0 ? "Left" : h.x > 0 ? "Right" : "Center";
+        msg = `${h.name}. Located at ${h.y} yards, ${Math.abs(h.x)} yards ${side}. Radius is ${h.radius} yards.`;
+    } else {
+        // This is a standard hazard (Water/Bunker)
+        msg = `${h.type}. Starts at ${h.distance} yards. Located on the ${h.side || 'Center'}. ${h.width} yards wide and ${h.depth} yards deep.`;
+    }
     window.announce(msg);
     document.getElementById('visual-output').innerText = msg;
 };

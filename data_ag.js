@@ -1,4 +1,4 @@
-// data_ag.js - Static Arrays and Configurations (v2.31.0)
+// data_ag.js - Static Arrays and Configurations (v3.33.1)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -44,6 +44,10 @@ const courses = [
                 pinLocation: "Middle-Center",
                 hazards: [
                     { type: "Water", distance: 100, depth: 250, side: "Left", offset: -45, width: 40 }
+                ],
+                trees: [
+                    { x: 15, y: 200, radius: 5, height: 25, name: "Oak Tree" },
+                    { x: -18, y: 250, radius: 4, height: 20, name: "Maple Tree" }
                 ]
             },
             { 
