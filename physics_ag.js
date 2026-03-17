@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v3.39.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v3.42.0)
 
 function calculateDistanceToPin() {
     return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
@@ -130,7 +130,9 @@ function calculateShot(autoMiss = false) {
     let backspinRPM = Math.max(400, Math.round((club.loft * 150) + (finalPower * 10) + (impactAcc * 7) + ((stanceIndex - 2) * 500) + currentStyle.spinMod));
     let sideSpinRPM = Math.round((impactDiff / 20) * 100 * spinPenalty * pressureDispersion * styleSideSpinMod) + (stanceAlignment * 800 * styleSideSpinMod);
     
-    let potentialDist = club.baseDistance * (finalPower / 100) * (1 + (hingeTimeBack / 2000 * 0.15)) * currentStyle.distMod * lieMod;
+    // Loft-based distance modifier: lower loft = more forward energy
+    let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005); 
+    let potentialDist = club.baseDistance * (finalPower / 100) * (1 + (hingeTimeBack / 2000 * 0.15)) * currentStyle.distMod * lieMod * loftDistMod;
     let totalDistance = Math.round(potentialDist * dampening * Math.max(0.2, 1 - Math.pow(Math.abs(hingeDiff) / 400, 2)));
 
     let activeRollMod = currentStyle.rollMod;
@@ -158,7 +160,8 @@ function calculateShot(autoMiss = false) {
     const userAimRad = aimAngle * (Math.PI / 180); 
     const finalRad = targetAngleRad + userAimRad; 
 
-    const physicsX = (typeof isPutt !== 'undefined' && isPutt) ? 0 : (sideSpinRPM / 2400) * (club.maxDispersion * (typeof lieDispersionMod !== 'undefined' ? lieDispersionMod : 1) * pressureDispersion);
+    const isPutt = club.name === "Putter";
+    const physicsX = isPutt ? 0 : (sideSpinRPM / 2400) * (club.maxDispersion * (typeof lieDispersionMod !== 'undefined' ? lieDispersionMod : 1) * pressureDispersion);
     const lateralTotal = physicsX + windXEffect;
 
     const moveY = Math.cos(finalRad) * totalDistance - Math.sin(finalRad) * lateralTotal;
@@ -171,7 +174,14 @@ function calculateShot(autoMiss = false) {
     ballY -= Math.sin(finalRad) * lateralKick;
     ballX += Math.cos(finalRad) * lateralKick;
 
-    let rollDistance = Math.round(totalDistance * club.rollPct * activeRollMod);
+    // Backspin affects rollout: every 1000 RPM above 4000 reduces roll by 10%
+    let spinRollMod = Math.max(0.1, 1 - ((backspinRPM - 4000) / 10000));
+    let rollDistance = Math.round(totalDistance * club.rollPct * activeRollMod * spinRollMod);
+    
+    // If it's a chip/pitch style, ensure roll is at least 10% of total unless it's a flop
+    if (shotStyleIndex > 0 && shotStyleIndex < 5 && rollDistance < (totalDistance * 0.1)) {
+        rollDistance = Math.round(totalDistance * 0.15 * spinRollMod);
+    }
     let carryDistance = Math.max(0, totalDistance - rollDistance);
     let lateralX = Math.round((physicsX + windXEffect + lateralKick) * 10) / 10;
 
@@ -227,12 +237,13 @@ function calculateShot(autoMiss = false) {
         });
     }
 
+    const greenSize = holeData.greenRadius || 20;
     if (inWater) {
         currentLie = "Water Penalty";
         strokes++; 
         ballY = Math.max(0, ballY - 20); 
         ballX = 0; 
-    } else if (gameMode === 'course' && distanceToPin <= 20) {
+    } else if (gameMode === 'course' && distanceToPin <= greenSize) {
         currentLie = "Green";
     }
 
@@ -295,7 +306,32 @@ function calculateShot(autoMiss = false) {
             const metrics = `Power ${finalPower}%. Hinge Diff ${hingeDiff}ms. Impact Offset ${impactDiff}ms. Accuracy Score ${accuracyScore}%. Backspin: ${backspinRPM} RPM. Side Spin: ${sideSpinRPM} RPM (${sideSpinShape}). ${treeCollisionReport}`;
             const roughDesc = isStartingInRough ? "Hacked it out of the rough. " : "";
             let kickDesc = lateralKick === 0 ? "rolls straight" : `kicks ${Math.abs(lateralKick)} yds ${lateralKick > 0 ? 'right' : 'left'}`;
-            const shotBroadcast = `${club.name}. ${roughDesc}${shotDesc} ${windDesc} Carries ${carryDistance}, rolls ${rollDistance} forward and ${kickDesc} for a total of ${totalDistance}. Settles in the ${currentLie}, ${dirStr}.`;
+
+            // Calculate landing position relative to pin
+            const landX = (ballX - moveX) + (Math.sin(finalRad) * carryDistance + Math.cos(finalRad) * (physicsX + windXEffect));
+            const landY = (ballY - moveY) + (Math.cos(finalRad) * carryDistance - Math.sin(finalRad) * (physicsX + windXEffect));
+            const landDistToPin = Math.sqrt(Math.pow(pinX - landX, 2) + Math.pow(pinY - landY, 2));
+            const landRelY = landY - pinY;
+            const landRelX = landX - pinX;
+            const greenSize = holeData.greenRadius || 20;
+
+            let proximityDesc = `Settles in the ${currentLie}, ${dirStr}.`;
+            
+            // Trigger precision reporting if on the green OR if it landed on the green
+            if (currentLie === "Green" || landDistToPin <= greenSize) {
+                const finalRelY = ballY - pinY;
+                const finalRelX = ballX - pinX;
+                const finalDistToPin = Math.sqrt(Math.pow(finalRelX, 2) + Math.pow(finalRelY, 2));
+
+                const landDir = landRelY < -1 ? "short" : landRelY > 1 ? "long" : "pin-high";
+                const finalVertDir = finalRelY < landRelY ? "back" : "forward"; // Direction of roll
+                const cupRelDir = finalRelY < 0 ? "short of" : "past";
+                const finalSideDir = finalRelX < 0 ? "left" : "right";
+
+                proximityDesc = `Landed ${window.formatProximity(landRelY)} ${landDir}. Rolled ${window.formatProximity(finalRelY - landRelY)} ${finalVertDir}, settling ${cupRelDir} the cup. Finished ${window.formatProximity(finalDistToPin)} from the pin, ${window.formatProximity(finalRelX)} to the ${finalSideDir}.`;
+            }
+
+            const shotBroadcast = `${club.name}. ${roughDesc}${shotDesc} ${windDesc} Carries ${carryDistance}, rolls ${rollDistance} forward and ${kickDesc} for a total of ${totalDistance}. ${proximityDesc}`;
 
             if (gameMode === 'chipping') {
                 let finalProximity = distanceToPin;
@@ -307,7 +343,6 @@ function calculateShot(autoMiss = false) {
                 lastShotReport = chippingMsg + "\n\nTelemetry:\n" + metrics;
                 holeTelemetry.push(lastShotReport);
                 document.getElementById('visual-output').innerText = lastShotReport;
-                if (gameMode === 'course') window.updateTargetZone();
                 driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
             } else {
                 if (gameMode === 'course' && distanceToPin <= 20 && !currentLie.toLowerCase().includes("water")) isHoleComplete = true;
@@ -360,3 +395,14 @@ function calculateShot(autoMiss = false) {
 
     }, hangTimeSecs * 1000);
 }
+
+window.formatProximity = function(yards) {
+    const absoluteYards = Math.abs(yards);
+    if (absoluteYards >= 30) return `${Math.round(absoluteYards)} yards`;
+    const totalInches = Math.round(absoluteYards * 36);
+    const feet = Math.floor(totalInches / 12);
+    const inches = totalInches % 12;
+    if (feet === 0) return `${inches} inches`;
+    if (inches === 0) return `${feet} feet`;
+    return `${feet} feet, ${inches} inches`;
+};

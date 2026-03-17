@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v3.38.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v3.41.0)
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
@@ -314,3 +314,36 @@ window.addEventListener('keyup', (e) => {
         e.preventDefault(); startDownswing();
     }
 });
+
+window.announceHazard = function(h) {
+    if (!h) return;
+    const targetAngleRad = Math.atan2(targetX - ballX, targetY - ballY);
+    const toDeg = 180 / Math.PI;
+    let msg = "";
+
+    if (h.radius) {
+        const dist = Math.sqrt(Math.pow(h.x - ballX, 2) + Math.pow(h.y - ballY, 2));
+        const angleToCenter = Math.atan2(h.x - ballX, h.y - ballY) * toDeg;
+        const angleOffset = Math.asin(h.radius / dist) * toDeg;
+        const leftEdge = Math.round(angleToCenter - angleOffset);
+        const rightEdge = Math.round(angleToCenter + angleOffset);
+        
+        const side = h.x < 0 ? "Left" : "Right";
+        msg = `${h.name}. At ${h.y} yards. To clear: aim ${leftEdge} degrees for left edge, or ${rightEdge} degrees for right edge.`;
+    } else {
+        const corners = [
+            {x: h.offset - h.width/2, y: h.distance},
+            {x: h.offset + h.width/2, y: h.distance},
+            {x: h.offset - h.width/2, y: h.distance + h.depth},
+            {x: h.offset + h.width/2, y: h.distance + h.depth}
+        ];
+        const angles = corners.map(c => Math.atan2(c.x - ballX, c.y - ballY) * toDeg);
+        const leftEdge = Math.round(Math.min(...angles));
+        const rightEdge = Math.round(Math.max(...angles));
+
+        msg = `${h.type} on the ${h.side || 'Center'}. Starts at ${h.distance} yards. To clear: aim ${leftEdge} degrees for left edge, or ${rightEdge} degrees for right edge.`;
+    }
+    
+    window.announce(msg);
+    document.getElementById('visual-output').innerText = msg;
+};
