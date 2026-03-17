@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v3.33.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v3.35.0)
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
@@ -39,6 +39,30 @@ window.addEventListener('keydown', (e) => {
     }
 
     if (swingState === 0 || isHoleComplete) {
+        if (e.code === 'KeyC') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                navigator.clipboard.writeText(lastShotReport).then(() => {
+                    const msg = "Telemetry copied to clipboard.";
+                    document.getElementById('visual-output').innerText = msg; window.announce(msg);
+                });
+            } else {
+                document.getElementById('visual-output').innerText = lastShotReport; window.announce(lastShotReport);
+            }
+            return;
+        }
+        if (e.code === 'KeyL') {
+            e.preventDefault();
+            if (gameMode === 'range') {
+                rangeLie = rangeLie === 'Fairway' ? 'Rough' : 'Fairway';
+                const lieMsg = `Virtual lie set to ${rangeLie}.`;
+                document.getElementById('visual-output').innerText = lieMsg; window.announce(lieMsg);
+            } else {
+                const lieMsg = `Ball is on the ${currentLie}.`;
+                document.getElementById('visual-output').innerText = lieMsg; window.announce(lieMsg);
+            }
+            return;
+        }
         if (e.code === 'KeyR') {
             e.preventDefault(); confirmingRange = true; window.announce("Go to Driving Range? Press Y or Enter to confirm."); return;
         }
@@ -171,25 +195,6 @@ window.addEventListener('keydown', (e) => {
                 document.getElementById('visual-output').innerText = windReport; window.announce(windReport);
             }
         }
-        if (e.code === 'KeyC') {
-            e.preventDefault();
-            if (e.shiftKey) {
-                navigator.clipboard.writeText(lastShotReport).then(() => {
-                    const msg = "Telemetry copied to clipboard.";
-                    document.getElementById('visual-output').innerText = msg; window.announce(msg);
-                }).catch(err => {
-                    const errMsg = "Failed to copy telemetry.";
-                    document.getElementById('visual-output').innerText = errMsg; window.announce(errMsg);
-                });
-            } else {
-                document.getElementById('visual-output').innerText = lastShotReport; window.announce(lastShotReport);
-            }
-        }
-        if (e.code === 'KeyL' && gameMode === 'range') {
-            e.preventDefault(); rangeLie = rangeLie === 'Fairway' ? 'Rough' : 'Fairway';
-            const lieMsg = `Virtual lie set to ${rangeLie}.`;
-            document.getElementById('visual-output').innerText = lieMsg; window.announce(lieMsg);
-        }
         if (e.code === 'PageUp') {
             e.preventDefault();
             if (currentClubIndex > 0) {
@@ -213,13 +218,55 @@ window.addEventListener('keydown', (e) => {
             const typeMsg = getSetupReport();
             document.getElementById('visual-output').innerText = typeMsg; window.announce(typeMsg);
         }
+        if (e.code === 'KeyX') {
+            e.preventDefault();
+            const style = shotStyles[shotStyleIndex];
+            const baseCarry = club.baseDistance * style.distMod;
+            const baseTotal = Math.round(baseCarry + (baseCarry * (club.rollPct * style.rollMod)));
+            const msg = `Holding ${club.name}. Expect ${baseTotal} yards at 100% power under ideal conditions.`;
+            document.getElementById('visual-output').innerText = msg; window.announce(msg);
+        }
+        if (e.code === 'KeyZ' && gameMode === 'course') {
+            e.preventDefault();
+            const holeData = courses[currentCourseIndex].holes[hole - 1];
+            let validTargets = [];
+            if (holeData.zones) validTargets = holeData.zones.filter(z => z.y > ballY + 15);
+            validTargets.push({ name: "The Pin", x: holeData.pinX, y: holeData.pinY });
+            
+            currentZoneIndex = (currentZoneIndex + 1) % validTargets.length;
+            let selectedTarget = validTargets[currentZoneIndex];
+            targetX = selectedTarget.x;
+            targetY = selectedTarget.y;
+            aimAngle = 0; // Reset aim when shifting targets
+            
+            let dist = Math.round(Math.sqrt(Math.pow(targetX - ballX, 2) + Math.pow(targetY - ballY, 2)));
+            let bestClubIndex = 0; let smallestDiff = 9999;
+            for (let i = 0; i < clubs.length; i++) {
+                if (clubs[i].name === "Putter") continue;
+                let diff = Math.abs(clubs[i].baseDistance - dist);
+                if (diff < smallestDiff) { smallestDiff = diff; bestClubIndex = i; }
+            }
+            currentClubIndex = bestClubIndex; club = clubs[currentClubIndex];
+            
+            let msg = `Target shifted to ${selectedTarget.name}, ${dist} yards away. Auto-equipped ${club.name}.`;
+            window.announce(msg); document.getElementById('visual-output').innerText = msg;
+            return;
+        }
         if (e.code === 'KeyT') {
             e.preventDefault(); 
-            let distMsg = `${calculateDistanceToPin()} yards to the pin.`;
+            let distToPin = calculateDistanceToPin();
+            let distMsg = "";
             if (gameMode === 'course') {
                 const holeData = courses[currentCourseIndex].holes[hole - 1];
+                if (targetY !== holeData.pinY || targetX !== holeData.pinX) {
+                    let distToTarget = Math.round(Math.sqrt(Math.pow(targetX - ballX, 2) + Math.pow(targetY - ballY, 2)));
+                    distMsg += `Aiming at zone, ${distToTarget} yards away. `;
+                }
+                distMsg += `${distToPin} yards to the pin.`;
                 if (holeData.pinLocation) distMsg += ` Pin is ${holeData.pinLocation}.`;
-                distMsg += getSightReport(); // Add the tree warning
+                distMsg += getSightReport(); 
+            } else {
+                distMsg = `${distToPin} yards to the pin.`;
             }
             
             document.getElementById('visual-output').innerText = distMsg; 

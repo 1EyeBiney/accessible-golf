@@ -1,4 +1,4 @@
-// data_ag.js - Static Arrays and Configurations (v3.33.1)
+// data_ag.js - Static Arrays and Configurations (v3.34.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -45,6 +45,7 @@ const courses = [
                 hazards: [
                     { type: "Water", distance: 100, depth: 250, side: "Left", offset: -45, width: 40 }
                 ],
+                zones: [{ name: "Safe Drive", x: 0, y: 250 }],
                 trees: [
                     { x: 15, y: 200, radius: 5, height: 25, name: "Oak Tree" },
                     { x: -18, y: 250, radius: 4, height: 20, name: "Maple Tree" }
@@ -55,7 +56,8 @@ const courses = [
                 pinLocation: "Front-Left",
                 hazards: [
                     { type: "Bunker", distance: 152, depth: 15, offset: 15, width: 10 }
-                ]
+                ],
+                zones: [{ name: "Green Center", x: 0, y: 160 }]
             },
             { 
                 number: 3, par: 5, distance: 540, pinX: 60, pinY: 537, fairwayWidth: 40, greenRadius: 18,
@@ -63,7 +65,8 @@ const courses = [
                 pinLocation: "Back-Right",
                 hazards: [
                     { type: "Bunker", distance: 270, depth: 20, side: "Center", offset: 0, width: 40 }
-                ]
+                ],
+                zones: [{ name: "First Layup", x: 0, y: 250 }, { name: "Aggressive Carry", x: 10, y: 300 }, { name: "Approach Layup", x: 15, y: 440 }]
             }
         ]
     }

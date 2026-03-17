@@ -1,7 +1,11 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v3.33.1)
+// physics_ag.js - Math, Wind, and Shot Calculation (v3.35.0)
 
 function calculateDistanceToPin() {
     return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
+}
+
+function calculateDistanceToTarget() {
+    return Math.round(Math.sqrt(Math.pow(targetX - ballX, 2) + Math.pow(targetY - ballY, 2)));
 }
 
 function generateWind() {
@@ -42,16 +46,16 @@ function getStanceReport() {
 function getSetupReport() {
     const style = shotStyles[shotStyleIndex];
     const activeFairwayWidth = gameMode === 'course' ? courses[currentCourseIndex].holes[hole - 1].fairwayWidth : fairwayWidth;
-    const isRough = Math.abs(ballX) > (activeFairwayWidth / 2);
+    const isRough = gameMode === 'course' ? (currentLie === 'Light Rough') : (rangeLie === 'Rough');
     const baseCarry = club.baseDistance * style.distMod;
     const baseTotal = baseCarry + (baseCarry * (club.rollPct * style.rollMod));
     
     if (isRough) {
         const minTotal = Math.round(baseTotal * 0.6);
         const maxTotal = Math.round(baseTotal * 0.9);
-        return `${club.name}. Style: ${style.name}. In the rough. 100% power hits ${minTotal} to ${maxTotal} yards.`;
+        return `${club.name}. In the rough. 100% power hits ${minTotal} to ${maxTotal} yards. Style: ${style.name}.`;
     } else {
-        return `${club.name}. Style: ${style.name}. 100% power hits ${Math.round(baseTotal)} yards.`;
+        return `${club.name}. 100% power hits ${Math.round(baseTotal)} yards. Style: ${style.name}.`;
     }
 }
 
@@ -86,7 +90,7 @@ function calculateShot(autoMiss = false) {
     const hingeAcc = Math.max(10, 100 - (Math.abs(hingeDiff) / 4));
     
     const activeFairwayWidth = gameMode === 'course' ? courses[currentCourseIndex].holes[hole - 1].fairwayWidth : fairwayWidth;
-    const isStartingInRough = gameMode === 'range' ? (rangeLie === 'Rough') : (typeof isPutt !== 'undefined' && !isPutt && Math.abs(ballX) > (activeFairwayWidth / 2));
+    const isStartingInRough = gameMode === 'range' ? (rangeLie === 'Rough') : (currentLie === 'Light Rough' || currentLie === 'Sand');
     
     let lieMod = 1.0, lieDispersionMod = 1.0, lieForgivenessMod = 1.0;
 
@@ -126,7 +130,7 @@ function calculateShot(autoMiss = false) {
     let windYEffect = Math.round(baseWindY * gyroMod);
     let windXEffect = Math.round((baseWindX * gyroMod) + spinWindInteraction);
 
-    const targetAngleRad = Math.atan2(pinX - ballX, pinY - ballY); 
+    const targetAngleRad = Math.atan2(targetX - ballX, targetY - ballY); 
     const userAimRad = aimAngle * (Math.PI / 180); 
     const finalRad = targetAngleRad + userAimRad; 
 
@@ -185,15 +189,14 @@ function calculateShot(autoMiss = false) {
         currentFW = 30; // Apron width
     }
 
-    let lie = Math.abs(ballX) > (currentFW / 2) ? "Rough" : "Fairway";
+    currentLie = Math.abs(ballX) > (currentFW / 2) ? "Light Rough" : "Fairway";
     let inWater = false;
 
-    // Hazard Detection
     if (holeData.hazards && gameMode === 'course') {
         holeData.hazards.forEach(h => {
             if (ballY >= h.distance && ballY <= h.distance + h.depth) {
                 if (ballX >= h.offset - (h.width / 2) && ballX <= h.offset + (h.width / 2)) {
-                    if (h.type === "Bunker") lie = "Bunker";
+                    if (h.type === "Bunker") currentLie = "Sand";
                     if (h.type === "Water") inWater = true;
                 }
             }
@@ -201,10 +204,12 @@ function calculateShot(autoMiss = false) {
     }
 
     if (inWater) {
-        lie = "Water Penalty";
-        strokes++; // Add the penalty stroke here
-        ballY = Math.max(0, ballY - 20); // Drop 20 yards back
-        ballX = 0; // Drop in center fairway
+        currentLie = "Water Penalty";
+        strokes++; 
+        ballY = Math.max(0, ballY - 20); 
+        ballX = 0; 
+    } else if (gameMode === 'course' && distanceToPin <= 20) {
+        currentLie = "Green";
     }
 
     document.getElementById('visual-output').innerText = "Ball is in the air...";
@@ -228,7 +233,7 @@ function calculateShot(autoMiss = false) {
         }
 
         // FIX: Moved rollTimeSecs outside the block so the Caddy timer can read it later
-        let isWater = lie.toLowerCase().includes("water");
+        let isWater = currentLie.toLowerCase().includes("water");
         let rollTimeSecs = Math.max(0, Math.abs(rollDistance) / 10);
 
         if (isWater) {
@@ -266,7 +271,7 @@ function calculateShot(autoMiss = false) {
             const metrics = `Power ${finalPower}%. Hinge Diff ${hingeDiff}ms. Impact Offset ${impactDiff}ms. Accuracy Score ${accuracyScore}%. Backspin: ${backspinRPM} RPM. Side Spin: ${sideSpinRPM} RPM (${sideSpinShape}). ${treeCollisionReport}`;
             const roughDesc = isStartingInRough ? "Hacked it out of the rough. " : "";
             let kickDesc = lateralKick === 0 ? "rolls straight" : `kicks ${Math.abs(lateralKick)} yds ${lateralKick > 0 ? 'right' : 'left'}`;
-            const shotBroadcast = `${club.name}. ${roughDesc}${shotDesc} ${windDesc} Carries ${carryDistance}, rolls ${rollDistance} forward and ${kickDesc} for a total of ${totalDistance}. Settles in the ${lie}, ${dirStr}.`;
+            const shotBroadcast = `${club.name}. ${roughDesc}${shotDesc} ${windDesc} Carries ${carryDistance}, rolls ${rollDistance} forward and ${kickDesc} for a total of ${totalDistance}. Settles in the ${currentLie}, ${dirStr}.`;
 
             if (gameMode === 'chipping') {
                 let finalProximity = distanceToPin;
@@ -277,9 +282,10 @@ function calculateShot(autoMiss = false) {
                 window.announce(chippingMsg);
                 lastShotReport = chippingMsg + "\n\nTelemetry:\n" + metrics;
                 document.getElementById('visual-output').innerText = lastShotReport;
+                if (gameMode === 'course') window.updateTargetZone();
                 driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
             } else {
-                if (gameMode === 'course' && distanceToPin <= 20 && !lie.toLowerCase().includes("water")) isHoleComplete = true;
+                if (gameMode === 'course' && distanceToPin <= 20 && !currentLie.toLowerCase().includes("water")) isHoleComplete = true;
 
                 if (isHoleComplete) {
                     playTone(440, 'sine', 0.2, 0.4); setTimeout(() => playTone(554, 'sine', 0.2, 0.4), 200); setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 400);
@@ -302,10 +308,11 @@ function calculateShot(autoMiss = false) {
                         window.announce(rangeMsg);
                         document.getElementById('visual-output').innerText = lastShotReport;
 
+                        if (gameMode === 'course') window.updateTargetZone();
                         driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0;
                     } else {
                         let penaltyStr = ".";
-                        if (lie.toLowerCase().includes("water") && gameMode === 'course') {
+                        if (currentLie.toLowerCase().includes("water") && gameMode === 'course') {
                             penaltyStr = " (includes 1 stroke water penalty).";
                         }
                         const broadcast = `Stroke ${strokes + 1}${penaltyStr} ${distanceToPin} yards to the pin. ${shotBroadcast}`;
@@ -316,6 +323,7 @@ function calculateShot(autoMiss = false) {
                             document.getElementById('visual-output').innerText = lastShotReport;
                         }, typeof isPutting !== 'undefined' && isPutting && club.name === "Putter" && strokes > 1 ? 1500 : 0);
                         
+                        if (gameMode === 'course') window.updateTargetZone();
                         driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
                     }
                 }

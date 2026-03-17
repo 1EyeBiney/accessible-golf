@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v3.32.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v3.35.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -11,6 +11,8 @@ let windX = 0, windY = 0, windLevelIndex = 3;
 let aimAngle = 0, stanceIndex = 2, stanceAlignment = 0;
 let hole = 1, par = 4, strokes = 0;
 let ballX = 0, ballY = 0, pinX = 0, pinY = 420;
+let targetX = 0, targetY = 0, currentZoneIndex = -1;
+let currentLie = "Tee";
 let isHoleComplete = false, gameMode = 'course';
 let viewingHazards = false, hazardIndex = 0;
 let rangeLie = 'Fairway', confirmingRange = false;
@@ -30,8 +32,10 @@ function loadHole(holeNumber) {
     pinY = holeData.pinY;
     
     ballX = 0; ballY = 0; strokes = 0; isHoleComplete = false;
+    currentLie = "Tee";
     aimAngle = 0; stanceIndex = 2; stanceAlignment = 0;
     swingState = 0; // FIX: Added state reset
+    window.updateTargetZone();
     viewingHazards = false;
     
     let defaultClub = holeData.par === 3 ? "7 Iron" : "Driver";
@@ -48,8 +52,9 @@ function getSightReport() {
     let warnings = [];
     currentHole.trees.forEach(tree => {
         // Calculate angle to tree relative to ball position
-        let angleToTree = Math.atan2(tree.x - ballX, tree.y - ballY) * (180 / Math.PI);
-        let relativeAngle = Math.abs(angleToTree - aimAngle);
+        let targetAngleRad = Math.atan2(targetX - ballX, targetY - ballY);
+        let treeAngleRad = Math.atan2(tree.x - ballX, tree.y - ballY);
+        let relativeAngle = Math.abs((treeAngleRad - targetAngleRad) * (180 / Math.PI) - aimAngle);
         
         // If tree is within 15 degrees of our aim line and ahead of us
         if (relativeAngle < 15 && tree.y > ballY) {
@@ -59,6 +64,21 @@ function getSightReport() {
     });
     return warnings.length > 0 ? " Warning: " + warnings.join(" ") : "";
 }
+
+window.updateTargetZone = function() {
+    if (gameMode !== 'course') return;
+    const holeData = courses[currentCourseIndex].holes[hole - 1];
+    let validTargets = [];
+    if (holeData.zones) validTargets = holeData.zones.filter(z => z.y > ballY + 15);
+    validTargets.push({ name: "The Pin", x: holeData.pinX, y: holeData.pinY });
+    
+    let currentStillValid = validTargets.find(t => t.x === targetX && t.y === targetY);
+    if (!currentStillValid) {
+        currentZoneIndex = 0;
+        targetX = validTargets[0].x;
+        targetY = validTargets[0].y;
+    }
+};
 
 window.initGame = function() {
     window.initAudio();
@@ -138,7 +158,7 @@ window.announceHazard = function(h) {
     let msg = "";
 
     // Calculate the exact ray direction based on current aim
-    const targetAngleRad = Math.atan2(pinX - ballX, pinY - ballY);
+    const targetAngleRad = Math.atan2(targetX - ballX, targetY - ballY);
     const userAimRad = aimAngle * (Math.PI / 180);
     const finalRad = targetAngleRad + userAimRad;
     const dirX = Math.sin(finalRad);
