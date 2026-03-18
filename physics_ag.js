@@ -1,15 +1,15 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.1.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.4.1)
 
 window.initPutting = function() {
-    isPutting = true; puttState = 0; swingState = 0;
+    isPutting = true; swingState = 0; puttState = 0;
     currentClubIndex = clubs.findIndex(c => c.name === "Putter");
     if (currentClubIndex !== -1) club = clubs[currentClubIndex];
     
     let dist = Math.round(calculateDistanceToPin());
-    puttTargetDist = dist; puttGridX = 0; puttGridY = 0; aimAngle = 0;
+    puttTargetDist = dist; aimAngle = 0;
     
     let locationStr = gameMode === 'putting' ? "Welcome to the Practice Putting Green." : "On the green!";
-    let msg = `${locationStr} ${dist} yards to the cup. Press P to enter Swing Mode when ready.`;
+    let msg = `${locationStr} ${dist} yards to the cup. Targeting Mode. Use Arrows to aim and set target. Press P to Swing.`;
     window.announce(msg);
     document.getElementById('visual-output').innerText = msg;
     window.updateDashboard();
@@ -105,46 +105,70 @@ function calculateShot(autoMiss = false) {
         let tempoBonus = Math.abs(hingeDiff) < 50 ? 1.2 : 1.0; // Perfect tempo gives 20% wider cup capture
         
         let powerOvercharge = finalPower > 100 ? finalPower - 100 : 0;
-        let rollDistance = puttTargetDist * (finalPower / 100);
-        
-        // v4.0.0 Temporary flat roll physics
+
         let distToPin = calculateDistanceToPin();
-        let passSpeed = rollDistance - distToPin; 
+        let broadcast = `Putt: ${finalPower}% Power. Target was ${puttTargetDist}y.`;
+
+        // v4.4.0 Gravity Engine (Step Simulation)
+        let activeContours = gameMode === 'course' ? (courses[currentCourseIndex].holes[hole - 1].greenContours || []) : 
+            [{ startY: 30, endY: 10, slopeX: 0.6, slopeY: 0.3 }, { startY: 10, endY: 0, slopeX: -0.5, slopeY: -0.2 }];
+
+        let distTraveled = 0;
+        let simX = ballX;
+        let simY = ballY;
+        let speedRemaining = puttTargetDist * (finalPower / 100);
+        let currentHeading = aimAngle * (Math.PI / 180);
         
-        // Cup Capture Logic (Jam it in)
-        let captureSpeedLimit = 1.5; // Yards past the hole it can travel and still drop
-        if (distToPin <= 2 && accuracyScore > 90) captureSpeedLimit *= 3.0; // "Jam it in" buff
-        captureSpeedLimit *= tempoBonus;
+        let madeIt = false;
+        let lipOut = false;
+        let captureRadius = accuracyScore > 90 ? 0.6 : 0.4; // ~15-21 inches
+        let captureSpeedLimit = (distToPin <= 2 && accuracyScore > 90) ? 6.0 : 2.5 * tempoBonus;
         
+        while (speedRemaining > 0 && distTraveled < 100) {
+            let stepDist = Math.min(1.0, speedRemaining);
+            let currentDistToHole = Math.sqrt(Math.pow(pinX - simX, 2) + Math.pow(pinY - simY, 2));
+            
+            // Cup Collision Check
+            if (currentDistToHole <= captureRadius) {
+                if (speedRemaining <= captureSpeedLimit) { madeIt = true; break; } 
+                else { lipOut = true; }
+            }
+            
+            // Apply Zone Gravity
+            let zone = activeContours.find(z => currentDistToHole <= z.startY && currentDistToHole > z.endY);
+            let sx = zone ? zone.slopeX : 0;
+            let sy = zone ? zone.slopeY : 0; 
+            
+            currentHeading -= (sx * 0.05); // Bend trajectory
+            let speedDrain = 1.0 + (sy * 0.15); // Uphill drains faster
+            
+            simX += Math.sin(currentHeading) * stepDist;
+            simY += Math.cos(currentHeading) * stepDist;
+            
+            distTraveled += stepDist;
+            speedRemaining -= speedDrain;
+        }
+
         let resultMsg = "";
-        let finalDist = 0;
-        
-        // Did we hit it hard enough to reach, and not too hard to lip out?
-        // (Assuming perfectly straight for v4.0 test)
-        if (Math.abs(aimAngle) < 2) {
-            if (passSpeed >= 0 && passSpeed <= captureSpeedLimit) {
-                playTone(440, 'sine', 0.2, 0.4); setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 200);
-                resultMsg = `IT'S IN THE HOLE!`;
-                isHoleComplete = true;
-            } else if (passSpeed > captureSpeedLimit) {
+        if (madeIt) {
+            playTone(440, 'sine', 0.2, 0.4); setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 200);
+            resultMsg = "IT'S IN THE HOLE!";
+            isHoleComplete = true;
+        } else {
+            ballX = simX; ballY = simY;
+            let finalDist = calculateDistanceToPin();
+            if (lipOut) {
                 playTone(150, 'square', 0.1, 0.5);
                 resultMsg = `Lipped out! Hit it too hard.`;
-                finalDist = Math.round(passSpeed);
-                ballY += distToPin + passSpeed; // Move ball past hole
             } else {
-                resultMsg = `Left it short.`;
-                finalDist = Math.round(Math.abs(passSpeed));
-                ballY += rollDistance;
+                let latStr = Math.abs(ballX - pinX) < 0.5 ? "straight" : ballX < pinX ? "left" : "right";
+                let vertStr = ballY < pinY ? "short" : "long";
+                resultMsg = `Missed. Settled ${vertStr} and ${latStr}.`;
             }
-        } else {
-            resultMsg = `Missed laterally.`;
-            ballY += rollDistance;
-            ballX += Math.sin(aimAngle * Math.PI / 180) * rollDistance;
-            finalDist = calculateDistanceToPin();
+            broadcast += ` ${finalDist} yards left.`;
         }
-        
-        let broadcast = `Putt: ${finalPower}% Power. Target was ${puttTargetDist}y. ${resultMsg}`;
-        if (!isHoleComplete) broadcast += ` ${finalDist} yards left.`;
+
+        broadcast += ` ${resultMsg}`;
         
         lastShotReport = broadcast + `\nTelemetry: Impact ${impactDiff}ms, Tempo ${hingeDiff}ms.`;
         holeTelemetry.push(lastShotReport);
@@ -155,9 +179,9 @@ function calculateShot(autoMiss = false) {
             if (gameMode === 'putting') {
                 // Infinite Retries: Teleport back to start
                 ballX = 0; ballY = 0; isHoleComplete = false;
-                puttState = 0; swingState = 0; strokes = 0;
+                swingState = 0; strokes = 0; puttState = 0;
                 puttTargetDist = Math.round(calculateDistanceToPin());
-                window.announce(`${broadcast} Resetting ball to ${puttTargetDist} yards. Try again, or press T for a new target.`);
+                window.announce(`${broadcast} Resetting ball to ${puttTargetDist} yards. Targeting Mode active. Press T for a new target.`);
                 window.updateDashboard();
             } else if (isHoleComplete) {
                 let compMsg = `Hole complete in ${strokes} strokes.`;
@@ -165,9 +189,9 @@ function calculateShot(autoMiss = false) {
                 document.getElementById('caddy-panel').innerText = compMsg;
                 swingState = 6;
             } else {
-                puttState = 0; swingState = 0;
+                swingState = 0; puttState = 0;
                 puttTargetDist = Math.round(calculateDistanceToPin());
-                window.announce(`${puttTargetDist} yards left. Pre-Putt mode active.`);
+                window.announce(`${puttTargetDist} yards left. Targeting Mode active.`);
                 window.updateDashboard();
             }
         }, 3000);

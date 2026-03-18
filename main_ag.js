@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.3.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.4.1)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -15,8 +15,7 @@ let ballX = 0, ballY = 0, pinX = 0, pinY = 420;
 let targetX = 0, targetY = 0, currentZoneIndex = -1;
 let currentLie = "Tee";
 let isHoleComplete = false, gameMode = 'course';
-let isPutting = false, puttState = 0; // 0: Pre-Putt Explore, 1: Swing Mode
-let puttGridX = 0, puttGridY = 0, puttTargetDist = 0;
+let isPutting = false, puttState = 0, puttTargetDist = 0;
 let viewingHazards = false, hazardIndex = 0;
 let viewingHelp = false, helpIndex = 0;
 let rangeLie = 'Fairway', confirmingRange = false;
@@ -93,40 +92,46 @@ window.updateTargetZone = function() {
 };
 
 window.getCaddyAdvice = function() {
-    // v4.3.0 Putting Caddy (Zone Reader)
+    // v4.4.0 Narrative Caddy
     if (isPutting) {
         let dist = calculateDistanceToPin();
-        let activeContours = [];
-        
-        if (gameMode === 'course') {
-            const holeData = courses[currentCourseIndex].holes[hole - 1];
-            if (holeData.greenContours) activeContours = holeData.greenContours;
-        } else if (gameMode === 'putting') {
-            // Default Practice Green Double-Breaker
-            activeContours = [
-                { startY: 30, endY: 10, slopeX: 0.6, slopeY: 0.3 },
-                { startY: 10, endY: 0, slopeX: -0.5, slopeY: -0.2 }
-            ];
-        }
+        let activeContours = gameMode === 'course' ? (courses[currentCourseIndex].holes[hole - 1].greenContours || []) : 
+            [{ startY: 30, endY: 10, slopeX: 0.6, slopeY: 0.3 }, { startY: 10, endY: 0, slopeX: -0.5, slopeY: -0.2 }];
 
-        if (activeContours.length === 0) return "This green is perfectly flat. Aim dead center.";
+        if (activeContours.length === 0) return "This green is perfectly flat. Aim dead center and hit it " + dist + " yards.";
 
-        // Filter to zones between the ball and the hole
         let relevantZones = activeContours.filter(z => z.endY < dist);
         if (relevantZones.length === 0) return "This putt looks straight and flat from here.";
 
-        let msg = `You have a ${dist} yard putt. `;
-        if (caddyLevel < 3) return msg + "Trust your feet and the Braille Grid. It's got some break to it.";
+        let netSlopeX = 0, netSlopeY = 0;
+        relevantZones.forEach(z => { netSlopeX += z.slopeX; netSlopeY += z.slopeY; });
 
-        msg += "Here is the read: ";
-        relevantZones.forEach(zone => {
-            let segmentLength = Math.min(dist, zone.startY) - zone.endY;
-            let vertStr = zone.slopeY > 0 ? "uphill" : zone.slopeY < 0 ? "downhill" : "flat";
-            let breakStr = zone.slopeX > 0 ? "Right-to-Left" : zone.slopeX < 0 ? "Left-to-Right" : "straight";
-            msg += `For ${Math.round(segmentLength)} yards, it plays ${vertStr} and breaks ${breakStr}. `;
-        });
-        
-        return msg;
+        let vertStr = netSlopeY > 0 ? "uphill" : netSlopeY < 0 ? "downhill" : "flat";
+        let breakStr = netSlopeX > 0 ? "right-to-left" : netSlopeX < 0 ? "left-to-right" : "straight";
+
+        if (caddyLevel === 1) {
+            return `You have ${dist} yards left. Looks like it plays ${vertStr} and breaks ${breakStr}.`;
+        } else if (caddyLevel === 2) {
+            let advice = `It's a ${dist} yard putt. `;
+            if (relevantZones.length > 1) advice += "It's a tricky multi-tier putt. ";
+            advice += `Overall, it plays ${vertStr}, so adjust your target distance. It breaks ${breakStr}, so make sure to aim outside the cup.`;
+            return advice;
+        } else {
+            // Level 3 God Mode Math
+            let expectedTarget = dist + Math.round(netSlopeY * dist * 0.2);
+            let expectedAim = Math.round(netSlopeX * dist * -0.5);
+            let aimDir = expectedAim < 0 ? "Left" : expectedAim > 0 ? "Right" : "Center";
+            
+            let msg = `[God Mode Read]: ${dist} yards out. `;
+            relevantZones.forEach(zone => {
+                let segmentLength = Math.min(dist, zone.startY) - zone.endY;
+                let zVert = zone.slopeY > 0 ? "uphill" : zone.slopeY < 0 ? "downhill" : "flat";
+                let zBreak = zone.slopeX > 0 ? "Right-to-Left" : zone.slopeX < 0 ? "Left-to-Right" : "straight";
+                msg += `For ${Math.round(segmentLength)}y, it's ${zVert} and breaks ${zBreak}. `;
+            });
+            msg += `To sink this at 100% power, set your target to ${expectedTarget} yards and aim ${Math.abs(expectedAim)}° ${aimDir}.`;
+            return msg;
+        }
     }
 
     if (gameMode === 'range' || (gameMode === 'chipping' && chippingRange === 'long')) {
@@ -258,24 +263,6 @@ window.announce = function(msg) {
     }
 };
 
-window.playPuttTone = function(elevation, panValue) {
-    if (!audioCtx) return;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    const panner = audioCtx.createStereoPanner();
-    
-    // Base frequency 400Hz. Uphill raises pitch, downhill lowers it.
-    osc.frequency.value = Math.max(100, 400 + (elevation * 20)); 
-    panner.pan.value = panValue; // -1 Left, 0 Center, 1 Right
-    
-    osc.connect(panner); panner.connect(gain); gain.connect(audioCtx.destination);
-    
-    gain.gain.setValueAtTime(0.15 * CONTINUOUS_GAIN_BOOST, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-    
-    osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-};
-
 window.updateDashboard = function() {
     if (!document.getElementById('dashboard-panel')) return;
     
@@ -288,9 +275,9 @@ window.updateDashboard = function() {
     }
 
     if (isPutting) {
-        let modeStr = puttState === 0 ? "EXPLORE MODE" : "SWING MODE";
         let locationStr = gameMode === 'putting' ? "Practice Putting Green" : "Putting Green";
         holeStr = `${locationStr}\n${calculateDistanceToPin()}y to Cup`;
+        let modeStr = puttState === 0 ? "TARGETING MODE" : "SWING MODE";
         document.getElementById('dash-env').innerText = modeStr;
         document.getElementById('dash-club').innerText = `Putter\nTarget: ${puttTargetDist}y`;
         let aimStr = aimAngle === 0 ? "Center" : `${Math.abs(aimAngle)}° ${aimAngle < 0 ? 'L' : 'R'}`;
