@@ -1,4 +1,4 @@
-// data_ag.js - Course Data, Clubs, and Shot Styles (v4.3.0)
+// data_ag.js - Course Data, Clubs, and Shot Styles (v4.7.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -34,6 +34,37 @@ const stanceNames = ["Far Forward", "Forward", "Neutral", "Back", "Far Back"];
 const alignmentNames = ["Severe Closed", "Closed", "Neutral", "Open", "Severe Open"];
 const fairwayWidth = 35;
 
+// v4.7.0 Green Architecture Dictionary
+const greenDictionary = {
+    "The Welcoming Bowl": [{ startY: 40, endY: 0, slopeX: 0.0, slopeY: 0.15 }], // Gentle back-to-front slope
+    "The Redan": [{ startY: 40, endY: 0, slopeX: 0.5, slopeY: -0.1 }], // Slopes right-to-left and slightly away
+    "The False Front": [
+        { startY: 40, endY: 15, slopeX: 0.0, slopeY: 0.1 },  // Back flat
+        { startY: 15, endY: 0, slopeX: 0.0, slopeY: 0.8 }    // Steep front ridge
+    ],
+    "The Saddle": [{ startY: 40, endY: 0, slopeX: 0.0, slopeY: 0.0 }], // Center line is completely flat
+    "The Two-Tiered Step": [
+        { startY: 40, endY: 20, slopeX: -0.2, slopeY: 0.0 }, // Back tier
+        { startY: 20, endY: 15, slopeX: -0.2, slopeY: 0.7 }, // Middle ridge
+        { startY: 15, endY: 0, slopeX: 0.2, slopeY: 0.0 }    // Front tier
+    ],
+    "The Turtleback": [
+        { startY: 40, endY: 20, slopeX: 0.3, slopeY: -0.3 }, // Back downhill
+        { startY: 20, endY: 0, slopeX: -0.3, slopeY: 0.5 }   // Front uphill (Crown at 20y)
+    ],
+    "The Augusta Monster": [
+        { startY: 45, endY: 25, slopeX: 0.8, slopeY: 0.4 },  // False Front
+        { startY: 25, endY: 10, slopeX: -0.3, slopeY: 0.0 }, // Plateau
+        { startY: 10, endY: 0, slopeX: 0.6, slopeY: -0.3 }   // Bowl
+    ],
+    "The Serpentine": [
+        { startY: 40, endY: 25, slopeX: 0.5, slopeY: 0.1 },
+        { startY: 25, endY: 10, slopeX: -0.5, slopeY: 0.1 },
+        { startY: 10, endY: 0, slopeX: 0.5, slopeY: 0.1 }
+    ],
+    "The Shelf": [{ startY: 40, endY: 0, slopeX: 0.8, slopeY: -0.1 }] // Severe lateral break towards water
+};
+
 // --- v2.30.0 Course Data with Hazards ---
 const courses = [
     {
@@ -42,11 +73,7 @@ const courses = [
             { 
                 number: 1, par: 4, distance: 420, pinX: 0,
                 pinY: 420,
-                // v4.3.0 Contour Zones. startY is further away, endY is closer to the hole.
-                greenContours: [
-                    { startY: 30, endY: 10, slopeX: 0.5, slopeY: 0.2 },  // Front tier: Uphill, breaks Right-to-Left
-                    { startY: 10, endY: 0, slopeX: -0.4, slopeY: -0.1 }  // Back tier: Downhill, breaks Left-to-Right
-                ],
+                greenType: "The Welcoming Bowl",
                 fairwayWidth: 35, greenRadius: 15,
                 pinLocation: "Middle-Center",
                 description: "A 420-yard par 4. Water runs down the entire left side, while an Oak and Maple tree pinch the landing zone on the right.",
@@ -65,7 +92,7 @@ const courses = [
                 ]
             },
             { 
-                number: 2, par: 3, distance: 165, pinX: -15, pinY: 164, fairwayWidth: 25, greenRadius: 12,
+                number: 2, par: 3, distance: 165, pinX: -15, pinY: 164, greenType: "The Redan", fairwayWidth: 25, greenRadius: 12,
                 pinLocation: "Front-Left",
                 description: "A 165-yard par 3. The pin is tucked safely on the left, but a bunker fiercely guards the front-right of the green.",
                 fairwayDescription: "There is no fairway. It is a 165-yard carry over rough directly to the green.",
@@ -78,7 +105,7 @@ const courses = [
                 zones: [{ name: "Green Center", x: 0, y: 160 }]
             },
             { 
-                number: 3, par: 5, distance: 540, pinX: 60, pinY: 537, fairwayWidth: 40, greenRadius: 18,
+                number: 3, par: 5, distance: 540, pinX: 60, pinY: 537, greenType: "The False Front", fairwayWidth: 40, greenRadius: 18,
                 approachWidth: 10, apronRadius: 20,
                 pinLocation: "Back-Right",
                 description: "A massive 540-yard par 5. A 40-yard wide bunker sits dead center at 270 yards, demanding a strategic layup or a brave, aggressive carry.",
@@ -99,7 +126,7 @@ const courses = [
                 zones: [{ name: "First Layup", x: 0, y: 250 }, { name: "Aggressive Carry", x: 10, y: 300 }, { name: "Approach Layup", x: 15, y: 440 }]
             },
             { 
-                number: 4, par: 4, distance: 330, pinX: 0, pinY: 330, fairwayWidth: 35, greenRadius: 15,
+                number: 4, par: 4, distance: 330, pinX: 0, pinY: 330, greenType: "The Saddle", fairwayWidth: 35, greenRadius: 15,
                 pinLocation: "Center",
                 description: "A 330-yard driveable par 4. A massive, deep bunker protects the front of the green, and a 30-foot tree cluster pinches the left side of the fairway.",
                 caddyNotes: [
@@ -113,7 +140,7 @@ const courses = [
                 zones: [{ name: "Safe Layup", x: 15, y: 240 }, { name: "Go For It", x: 0, y: 330 }]
             },
             { 
-                number: 5, par: 4, distance: 440, pinX: 20, pinY: 440, fairwayWidth: 35, greenRadius: 15,
+                number: 5, par: 4, distance: 440, pinX: 20, pinY: 440, greenType: "The Two-Tiered Step", fairwayWidth: 35, greenRadius: 15,
                 pinLocation: "Back-Right",
                 description: "A 440-yard dogleg right. A 50-foot tall forest completely blocks the direct line to the green from the tee, forcing you to play out to the left fairway.",
                 fairwayDescription: "A 35-yard wide dogleg right. You cannot cut the corner due to a massive 50-foot forest blocking the direct line. You must hit out to the left side of the fairway.",
@@ -127,7 +154,7 @@ const courses = [
                 zones: [{ name: "Fairway Center", x: -15, y: 260 }]
             },
             { 
-                number: 6, par: 5, distance: 510, pinX: 0, pinY: 510, fairwayWidth: 35, greenRadius: 15,
+                number: 6, par: 5, distance: 510, pinX: 0, pinY: 510, greenType: "The Turtleback", fairwayWidth: 35, greenRadius: 15,
                 pinLocation: "Center",
                 description: "A reachable 510-yard par 5. The green is an island peninsula, surrounded by a water moat that spans the entire fairway from 480 to 495 yards.",
                 fairwayDescription: "The fairway is a straight, 35-yard wide strip with no hazards until the water at 480 yards. It is wide open with plenty of safe grass, though there are no defined target zones before the 460-yard approach layup.",
@@ -143,7 +170,7 @@ const courses = [
                 zones: [{ name: "Approach Layup", x: 0, y: 460 }, { name: "Aggressive Carry", x: 0, y: 510 }]
             },
             { 
-                number: 7, par: 3, distance: 215, pinX: 10, pinY: 212, fairwayWidth: 25, greenRadius: 12,
+                number: 7, par: 3, distance: 215, pinX: 10, pinY: 212, greenType: "The Augusta Monster", fairwayWidth: 25, greenRadius: 12,
                 pinLocation: "Right",
                 description: "A brutal 215-yard par 3. A 40-foot tall Guardian Oak stands just short and right of the green, directly blocking the tucked pin. A bunker waits on the left.",
                 fairwayDescription: "There is no fairway. A 215-yard carry over rough directly to the green.",
@@ -157,7 +184,7 @@ const courses = [
                 zones: [{ name: "Green Center", x: -5, y: 215 }]
             },
             { 
-                number: 8, par: 4, distance: 400, pinX: 0, pinY: 400, fairwayWidth: 20, greenRadius: 15,
+                number: 8, par: 4, distance: 400, pinX: 0, pinY: 400, greenType: "The Serpentine", fairwayWidth: 20, greenRadius: 15,
                 pinLocation: "Center",
                 description: "A claustrophobic 400-yard par 4. The fairway is only 20 yards wide, heavily pinched by massive tree clusters on both the left and right at 250 yards. Driver is not recommended.",
                 fairwayDescription: "An extremely narrow 20-yard fairway, heavily pinched by dense woods on both sides at the 250-yard mark.",
@@ -171,7 +198,7 @@ const courses = [
                 zones: [{ name: "Tactical Tee", x: 0, y: 200 }]
             },
             { 
-                number: 9, par: 4, distance: 460, pinX: -10, pinY: 460, fairwayWidth: 35, greenRadius: 15,
+                number: 9, par: 4, distance: 460, pinX: -10, pinY: 460, greenType: "The Shelf", fairwayWidth: 35, greenRadius: 15,
                 pinLocation: "Left",
                 description: "A terrifying 460-yard finishing hole. A massive lake runs the entire right side from 100 yards all the way to the green.",
                 fairwayDescription: "A 35-yard wide fairway. The entire right side, from 100 yards out all the way to the green, is guarded by a massive lake.",

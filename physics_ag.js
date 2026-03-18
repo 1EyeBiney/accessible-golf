@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.6.1)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.7.0)
 
 window.initPutting = function() {
     isPutting = true; swingState = 0; puttState = 0;
@@ -111,12 +111,19 @@ function calculateShot(autoMiss = false) {
         let broadcast = `Putt: ${finalPower}% Power. Target was ${puttTargetDist}y.`;
 
         // v4.4.0 Gravity Engine (Step Simulation)
-        let activeContours = gameMode === 'course' ? (courses[currentCourseIndex].holes[hole - 1].greenContours || []) : 
-            [
-                { startY: 45, endY: 25, slopeX: 0.8, slopeY: 0.4 },  // The False Front
-                { startY: 25, endY: 10, slopeX: -0.3, slopeY: 0.0 }, // The Plateau
-                { startY: 10, endY: 0, slopeX: 0.6, slopeY: -0.3 }   // The Bowl
+        let activeContours = [];
+        if (gameMode === 'course') {
+            const holeData = courses[currentCourseIndex].holes[hole - 1];
+            if (holeData.greenType && typeof greenDictionary !== 'undefined') {
+                activeContours = greenDictionary[holeData.greenType] || [];
+            }
+        } else if (gameMode === 'putting') {
+            activeContours = [
+                { startY: 45, endY: 25, slopeX: 0.8, slopeY: 0.4 },
+                { startY: 25, endY: 10, slopeX: -0.3, slopeY: 0.0 },
+                { startY: 10, endY: 0, slopeX: 0.6, slopeY: -0.3 }
             ];
+        }
 
         let distTraveled = 0;
         let simX = ballX, simY = ballY;
