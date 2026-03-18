@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v3.81.1)
+// main_ag.js - Game State, Variables, and Swing Sequence (v3.83.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -119,20 +119,62 @@ window.getCaddyAdvice = function() {
         // Caddy Edge Finder Math
         let distToTreeCenter = Math.sqrt(Math.pow(synthTreeX, 2) + Math.pow(synthTreeDist, 2));
         let angleToCenter = Math.atan2(synthTreeX, synthTreeDist) * (180 / Math.PI);
-        let angleOffset = Math.asin(10 / distToTreeCenter) * (180 / Math.PI); // 10 is the tree radius
-        
+        let angleOffset = Math.asin(10 / distToTreeCenter) * (180 / Math.PI);
+
         let leftEdge = Math.round(angleToCenter - angleOffset);
         let rightEdge = Math.round(angleToCenter + angleOffset);
         let leftStr = leftEdge < 0 ? `${Math.abs(leftEdge)}° Left` : `${leftEdge}° Right`;
         let rightStr = rightEdge < 0 ? `${Math.abs(rightEdge)}° Left` : `${rightEdge}° Right`;
-        
+
         msg += `To bypass the canopy edges, aim past ${leftStr} or ${rightStr}. `;
-        
-        if (Math.abs(synthTreeX - (aimAngle * (synthTreeDist/60))) < 10) {
-            if (expectedApexFeet < synthTreeHeight + 3) msg += "Warning: You do not have the height. Move the ball forward or shape it around.";
-            else msg += "You have the height to clear it safely.";
+
+        // v3.83.0 Predictive Shape Simulation
+        let userAimRad = aimAngle * (Math.PI / 180);
+
+        // 1. Calculate Expected Spin & Wind Drift
+        let styleSideSpinMod = currentStyle.name === "Full" ? 1.0 : (currentStyle.distMod * 0.4);
+        let expectedSideSpinRPM = stanceAlignment * 800 * styleSideSpinMod;
+        let expectedPhysicsX = (expectedSideSpinRPM / 2400) * club.maxDispersion;
+
+        let expectedHangTime = Math.min(6, Math.max(0.5, (expectedTotal / 60) + (dynamicLoft / 15)));
+        let baseWindX = windX * (expectedHangTime / 2.5) * currentStyle.windMod;
+        let gyroMod = Math.max(0.6, Math.min(1.3, 1 - ((backspinRPM - 4000) / 10000)));
+        let spinWindInteraction = (windX * expectedSideSpinRPM) / 10000;
+        let expectedWindXEffect = Math.round((baseWindX * gyroMod) + spinWindInteraction);
+
+        let expectedLateralTotal = expectedPhysicsX + expectedWindXEffect;
+
+        // 2. Project Lateral Position at the Tree's Distance
+        let flightFraction = synthTreeDist / expectedCarry;
+        let expectedLandX = Math.sin(userAimRad) * expectedCarry + Math.cos(userAimRad) * expectedLateralTotal;
+        let expectedProjectedX = expectedLandX * flightFraction;
+        let straightAimProjectedX = Math.sin(userAimRad) * synthTreeDist;
+
+        // 3. Evaluate Clearance and generate Narrative
+        let willHitVertically = expectedApexFeet < synthTreeHeight + 3;
+
+        if (Math.abs(expectedProjectedX - synthTreeX) < 10) {
+            // The ball WILL hit the canopy laterally based on the curve/wind
+            if (willHitVertically) {
+                if (Math.abs(straightAimProjectedX - synthTreeX) >= 10) {
+                    let shapeName = expectedSideSpinRPM > 0 ? "slice" : expectedSideSpinRPM < 0 ? "hook" : "wind drift";
+                    let alignName = stanceAlignment !== 0 ? alignmentNames[stanceAlignment + 2].toLowerCase() : "neutral";
+                    msg += `Warning: Your aim clears the tree, but your ${alignName} alignment creates a ${shapeName} that curves right back into the branches!`;
+                } else {
+                    msg += "Warning: Your current line and shape will hit the tree. You do not have the height to clear it.";
+                }
+            } else {
+                msg += "Your shot shape will carry you safely over the top of the tree.";
+            }
         } else {
-            msg += "Your current aim line appears to bypass the tree laterally.";
+            // The ball WILL bypass the canopy laterally
+            if (Math.abs(straightAimProjectedX - synthTreeX) < 10 && willHitVertically) {
+                 let shapeName = expectedSideSpinRPM > 0 ? "slice" : expectedSideSpinRPM < 0 ? "hook" : "wind drift";
+                 let alignName = stanceAlignment !== 0 ? alignmentNames[stanceAlignment + 2].toLowerCase() : "neutral";
+                 msg += `Your initial line is blocked, but your ${alignName} alignment will ${shapeName} the ball beautifully around the edge.`;
+            } else {
+                msg += "Your current aim and shot shape will safely bypass the tree.";
+            }
         }
         return msg;
     }

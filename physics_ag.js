@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v3.81.1)
+// physics_ag.js - Math, Wind, and Shot Calculation (v3.82.0)
 
 function calculateDistanceToPin() {
     return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
@@ -390,7 +390,18 @@ function calculateShot(autoMiss = false) {
             let displayX = Math.round(ballX * 10) / 10;
             let dirStr = displayX === 0 ? "dead center" : `${Math.abs(displayX)} yards ${displayX < 0 ? 'left' : 'right'} of center`;
             const sideSpinShape = sideSpinRPM === 0 ? "Straight" : sideSpinRPM > 0 ? "Slice" : "Hook";
-            const metrics = `Power ${finalPower}%. Hinge Diff ${hingeDiff}ms. Impact Offset ${impactDiff}ms. Accuracy Score ${accuracyScore}%. Backspin: ${backspinRPM} RPM. Side Spin: ${sideSpinRPM} RPM (${sideSpinShape}). ${treeCollisionReport}`;
+            // v3.82.0 Comprehensive Telemetry Capture
+            const chokeStr = typeof isChokedDown !== 'undefined' && isChokedDown ? " (Choked 90%)" : "";
+            const setupMetrics = `Setup: ${club.name}${chokeStr} | Style: ${currentStyle.name} | Stance: ${stanceNames[stanceIndex]} / ${alignmentNames[stanceAlignment + 2]} | Aim: ${aimAngle}° | Wind: Y:${windY} X:${windX}`;
+
+            let envMetrics = "";
+            if (typeof synthTreeActive !== 'undefined' && synthTreeActive) {
+                envMetrics = `Environment: Synth Tree at ${synthTreeDist}y, X:${synthTreeX}, Height:${Math.round(synthTreeHeight)}ft\n`;
+            }
+
+            const execMetrics = `Execution: Power ${finalPower}%. Hinge Diff ${hingeDiff}ms. Impact Offset ${impactDiff}ms. Accuracy Score ${accuracyScore}%. Backspin: ${backspinRPM} RPM. Side Spin: ${sideSpinRPM} RPM (${sideSpinShape}).\n${treeCollisionReport}`;
+
+            const metrics = `${setupMetrics}\n${envMetrics}${execMetrics}`;
             const roughDesc = isStartingInRough ? "Hacked it out of the rough. " : "";
             let kickDesc = lateralKick === 0 ? "rolls straight" : `kicks ${Math.abs(lateralKick)} yds ${lateralKick > 0 ? 'right' : 'left'}`;
 
