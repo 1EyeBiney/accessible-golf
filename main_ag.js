@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.4.1)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.4.2)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -117,11 +117,45 @@ window.getCaddyAdvice = function() {
             advice += `Overall, it plays ${vertStr}, so adjust your target distance. It breaks ${breakStr}, so make sure to aim outside the cup.`;
             return advice;
         } else {
-            // Level 3 God Mode Math
-            let expectedTarget = dist + Math.round(netSlopeY * dist * 0.2);
-            let expectedAim = Math.round(netSlopeX * dist * -0.5);
-            let aimDir = expectedAim < 0 ? "Left" : expectedAim > 0 ? "Right" : "Center";
+            // Level 3 God Mode Math (v4.4.2 Ghost Simulator)
+            let bestAim = 0, bestTarget = dist;
+            let found = false, smallestMiss = 9999;
             
+            // Brute force over 4,000 combinations to find the perfect line
+            for (let t = Math.max(1, dist - 15); t <= dist + 30; t++) {
+                for (let a = -45; a <= 45; a++) {
+                    let speedRemaining = t;
+                    let currentHeading = a * (Math.PI / 180);
+                    let simX = ballX, simY = ballY;
+                    let distTraveled = 0;
+                    let madeIt = false;
+                    
+                    while (speedRemaining > 0 && distTraveled < 100) {
+                        let stepDist = Math.min(1.0, speedRemaining);
+                        let currentDistToHole = Math.sqrt(Math.pow(pinX - simX, 2) + Math.pow(pinY - simY, 2));
+                        
+                        // Assuming perfect >90% accuracy for the God Mode calculation
+                        if (currentDistToHole <= 0.6 && speedRemaining <= 2.5) { madeIt = true; break; }
+                        
+                        let zone = activeContours.find(z => currentDistToHole <= z.startY && currentDistToHole > z.endY);
+                        let sx = zone ? zone.slopeX : 0;
+                        let sy = zone ? zone.slopeY : 0; 
+                        
+                        currentHeading -= (sx * 0.05);
+                        simX += Math.sin(currentHeading) * stepDist;
+                        simY += Math.cos(currentHeading) * stepDist;
+                        distTraveled += stepDist;
+                        speedRemaining -= (1.0 + (sy * 0.15));
+                    }
+                    
+                    let missDist = Math.sqrt(Math.pow(pinX - simX, 2) + Math.pow(pinY - simY, 2));
+                    if (madeIt) { bestAim = a; bestTarget = t; found = true; break; }
+                    if (missDist < smallestMiss) { smallestMiss = missDist; bestAim = a; bestTarget = t; }
+                }
+                if (found) break;
+            }
+
+            let aimDir = bestAim < 0 ? "Left" : bestAim > 0 ? "Right" : "Center";
             let msg = `[God Mode Read]: ${dist} yards out. `;
             relevantZones.forEach(zone => {
                 let segmentLength = Math.min(dist, zone.startY) - zone.endY;
@@ -129,7 +163,7 @@ window.getCaddyAdvice = function() {
                 let zBreak = zone.slopeX > 0 ? "Right-to-Left" : zone.slopeX < 0 ? "Left-to-Right" : "straight";
                 msg += `For ${Math.round(segmentLength)}y, it's ${zVert} and breaks ${zBreak}. `;
             });
-            msg += `To sink this at 100% power, set your target to ${expectedTarget} yards and aim ${Math.abs(expectedAim)}° ${aimDir}.`;
+            msg += `To sink this at 100% power, set your target to ${bestTarget} yards and aim ${Math.abs(bestAim)}° ${aimDir}.`;
             return msg;
         }
     }

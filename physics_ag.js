@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.4.1)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.4.2)
 
 window.initPutting = function() {
     isPutting = true; swingState = 0; puttState = 0;
@@ -97,6 +97,7 @@ function calculateShot(autoMiss = false) {
     if (isPutting) {
         stateTimeouts.forEach(clearTimeout);
         strokes++;
+        if (devPower) finalPower = 100; // v4.4.2 FIX: Enforce dev power for putts
         let impactDiff = devImpact ? 0 : Math.round((performance.now() - impactStartTime) - dropDurationMs);
         let hingeDiff = devHinge ? 0 : Math.round(hingeTimeDown - hingeTimeBack);
         
