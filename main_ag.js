@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.5.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.6.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -339,6 +339,29 @@ window.updateDashboard = function() {
     // 4. Setup Info
     let aimStr = aimAngle === 0 ? "Center" : `${Math.abs(aimAngle)}° ${aimAngle < 0 ? 'Left' : 'Right'}`;
     document.getElementById('dash-setup').innerText = `Aim: ${aimStr}\n${stanceNames[stanceIndex]}`;
+};
+
+// v4.6.0 Spatial Audio Metronome
+window.playRollingBlip = function(speed, panValue) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const panner = audioCtx.createStereoPanner();
+    const gain = audioCtx.createGain();
+
+    // A low, thudding frequency that rises slightly with speed
+    osc.frequency.value = 120 + (speed * 15);
+    osc.type = 'sine';
+
+    // Cap the pan hard at -1 (Left) and 1 (Right)
+    panner.pan.value = Math.max(-1, Math.min(1, panValue));
+
+    // Short percussive pop
+    let boost = typeof CONTINUOUS_GAIN_BOOST !== 'undefined' ? CONTINUOUS_GAIN_BOOST : 1.0;
+    gain.gain.setValueAtTime(0.3 * boost, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+
+    osc.connect(panner); panner.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
 };
 
 window.initGame = function() {

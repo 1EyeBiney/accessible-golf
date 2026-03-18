@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.5.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.6.0)
 
 window.initPutting = function() {
     isPutting = true; swingState = 0; puttState = 0;
@@ -119,87 +119,111 @@ function calculateShot(autoMiss = false) {
             ];
 
         let distTraveled = 0;
-        let simX = ballX;
-        let simY = ballY;
+        let simX = ballX, simY = ballY;
         let speedRemaining = puttTargetDist * (finalPower / 100);
         let currentHeading = aimAngle * (Math.PI / 180);
         
-        let madeIt = false;
-        let lipOut = false;
-        let captureRadius = accuracyScore > 90 ? 0.6 : 0.4; // ~15-21 inches
+        let madeIt = false, lipOut = false;
+        let captureRadius = accuracyScore > 90 ? 0.6 : 0.4; 
         let captureSpeedLimit = (distToPin <= 2 && accuracyScore > 90) ? 6.0 : 2.5 * tempoBonus;
         
+        // v4.6.0 Record the Physics Steps
+        let playbackArray = [];
+
         while (speedRemaining > 0 && distTraveled < 100) {
             let stepDist = Math.min(1.0, speedRemaining);
             let currentDistToHole = Math.sqrt(Math.pow(pinX - simX, 2) + Math.pow(pinY - simY, 2));
             
-            // Cup Collision Check
             if (currentDistToHole <= captureRadius) {
-                if (speedRemaining <= captureSpeedLimit) { madeIt = true; break; } 
-                else { lipOut = true; }
+                if (speedRemaining <= captureSpeedLimit) { 
+                    madeIt = true; 
+                    playbackArray.push({ x: simX, y: simY, speed: speedRemaining, madeIt: true }); 
+                    break; 
+                } else { lipOut = true; }
             }
             
-            // Apply Zone Gravity
+            playbackArray.push({ x: simX, y: simY, speed: speedRemaining, madeIt: false });
+            
             let zone = activeContours.find(z => currentDistToHole <= z.startY && currentDistToHole > z.endY);
-            let sx = zone ? zone.slopeX : 0;
-            let sy = zone ? zone.slopeY : 0; 
+            let sx = zone ? zone.slopeX : 0, sy = zone ? zone.slopeY : 0; 
             
-            currentHeading -= (sx * 0.05); // Bend trajectory
-            let speedDrain = 1.0 + (sy * 0.15); // Uphill drains faster
-            
+            currentHeading -= (sx * 0.05); 
             simX += Math.sin(currentHeading) * stepDist;
             simY += Math.cos(currentHeading) * stepDist;
-            
             distTraveled += stepDist;
-            speedRemaining -= speedDrain;
+            speedRemaining -= (1.0 + (sy * 0.15));
         }
 
-        let resultMsg = "";
-        if (madeIt) {
-            playTone(440, 'sine', 0.2, 0.4); setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 200);
-            resultMsg = "IT'S IN THE HOLE!";
-            isHoleComplete = true;
-        } else {
-            ballX = simX; ballY = simY;
-            let finalDist = calculateDistanceToPin();
-            if (lipOut) {
-                playTone(150, 'square', 0.1, 0.5);
-                resultMsg = `Lipped out! Hit it too hard.`;
+        ballX = simX; ballY = simY; // Lock final position immediately
+
+        // v4.6.0 Real-Time Playback Engine
+        document.getElementById('visual-output').innerText = "Ball is rolling...";
+        let stepIndex = 0;
+
+        function playNextPuttStep() {
+            if (stepIndex >= playbackArray.length) { finishPutt(); return; }
+
+            let step = playbackArray[stepIndex];
+            
+            // Hyper-Pan: 3 yards left or right forces audio 100% into that ear
+            let panValue = (step.x - pinX) / 3.0; 
+            if (window.playRollingBlip) window.playRollingBlip(step.speed, panValue);
+
+            // Dynamic Metronome: High speed = fast 40ms delay. Low speed = slow 600ms delay.
+            let delayMs = Math.max(40, 300 / Math.max(0.5, step.speed));
+
+            if (step.madeIt) {
+                setTimeout(finishPutt, delayMs + 100);
             } else {
-                let latStr = Math.abs(ballX - pinX) < 0.5 ? "straight" : ballX < pinX ? "left" : "right";
-                let vertStr = ballY < pinY ? "short" : "long";
-                resultMsg = `Missed. Settled ${vertStr} and ${latStr}.`;
+                stepIndex++;
+                setTimeout(playNextPuttStep, delayMs);
             }
-            broadcast += ` ${finalDist} yards left.`;
         }
 
-        broadcast += ` ${resultMsg}`;
-        
-        lastShotReport = broadcast + `\nTelemetry: Impact ${impactDiff}ms, Tempo ${hingeDiff}ms.`;
-        holeTelemetry.push(lastShotReport);
-        window.announce(broadcast);
-        document.getElementById('visual-output').innerText = broadcast;
-        
-        setTimeout(() => {
-            if (gameMode === 'putting') {
-                // Infinite Retries: Teleport back to start
-                ballX = 0; ballY = 0; isHoleComplete = false;
-                swingState = 0; strokes = 0; puttState = 0;
-                puttTargetDist = Math.round(calculateDistanceToPin());
-                window.announce(`${broadcast} Resetting ball to ${puttTargetDist} yards. Targeting Mode active. Press T for a new target.`);
-                window.updateDashboard();
-            } else if (isHoleComplete) {
-                let compMsg = `Hole complete in ${strokes} strokes.`;
-                window.announce(compMsg);
-                document.getElementById('caddy-panel').innerText = compMsg;
-                swingState = 6;
+        function finishPutt() {
+            let resultMsg = "";
+            if (madeIt) {
+                playTone(440, 'sine', 0.2, 0.4); setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 200);
+                resultMsg = "IT'S IN THE HOLE!";
+                isHoleComplete = true;
             } else {
-                swingState = 0; puttState = 0;
-                puttTargetDist = Math.round(calculateDistanceToPin());
-                window.announce(`${puttTargetDist} yards left. Targeting Mode active.`);
-                window.updateDashboard();
+                let finalDist = calculateDistanceToPin();
+                if (lipOut) { playTone(150, 'square', 0.1, 0.5); resultMsg = `Lipped out! Hit it too hard.`; } 
+                else {
+                    let latStr = Math.abs(ballX - pinX) < 0.5 ? "straight" : ballX < pinX ? "left" : "right";
+                    let vertStr = ballY < pinY ? "short" : "long";
+                    resultMsg = `Missed. Settled ${vertStr} and ${latStr}.`;
+                }
+                broadcast += ` ${finalDist} yards left.`;
             }
-        }, 3000);
+
+            broadcast += ` ${resultMsg}`;
+            lastShotReport = broadcast + `\nTelemetry: Impact ${impactDiff}ms, Tempo ${hingeDiff}ms.`;
+            holeTelemetry.push(lastShotReport);
+            window.announce(broadcast);
+            document.getElementById('visual-output').innerText = broadcast;
+            
+            setTimeout(() => {
+                if (gameMode === 'putting') {
+                    ballX = 0; ballY = 0; isHoleComplete = false;
+                    swingState = 0; strokes = 0; puttState = 0;
+                    puttTargetDist = Math.round(calculateDistanceToPin());
+                    window.announce(`${broadcast} Resetting ball to ${puttTargetDist} yards. Targeting Mode active. Press T for a new target.`);
+                    window.updateDashboard();
+                } else if (isHoleComplete) {
+                    let compMsg = `Hole complete in ${strokes} strokes.`;
+                    window.announce(compMsg); document.getElementById('caddy-panel').innerText = compMsg;
+                    swingState = 6;
+                } else {
+                    swingState = 0; puttState = 0;
+                    puttTargetDist = Math.round(calculateDistanceToPin());
+                    window.announce(`${puttTargetDist} yards left. Targeting Mode active.`);
+                    window.updateDashboard();
+                }
+            }, 3000);
+        }
+
+        playNextPuttStep(); // Trigger the suspense
         return; // EXIT SHOT CALCULATION
     }
 
