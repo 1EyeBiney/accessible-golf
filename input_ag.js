@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v3.81.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v3.81.1)
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
@@ -92,9 +92,18 @@ window.addEventListener('keydown', (e) => {
                         // Ghost Simulation for Threshold Math
                         let currentStyle = shotStyles[shotStyleIndex];
                         let dynamicLoft = Math.max(0, club.loft + currentStyle.loftMod + ((2 - stanceIndex) * 5));
-                        
-                        // v3.81.0 Parabolic Math (Simulating 110% power expected carry)
-                        let expectedCarry = club.baseDistance * currentStyle.distMod * (isChokedDown ? 0.9 : 1.0) * 1.1;
+
+                        // v3.81.1 Parabolic Math (Simulating 110% power)
+                        let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
+                        let chokeMod = isChokedDown ? 0.9 : 1.0;
+                        let expectedTotal = club.baseDistance * currentStyle.distMod * loftDistMod * chokeMod * 1.1;
+
+                        let backspinRPM = Math.max(400, Math.round((club.loft * 150) + 1100 + 700 + ((stanceIndex - 2) * 500) + currentStyle.spinMod));
+                        let spinRollMod = Math.max(0.1, 1 - ((backspinRPM - 4000) / 10000));
+                        let expectedRoll = expectedTotal * club.rollPct * currentStyle.rollMod * spinRollMod;
+                        if (shotStyleIndex > 0 && shotStyleIndex < 5 && expectedRoll < (expectedTotal * 0.1)) expectedRoll = expectedTotal * 0.15 * spinRollMod;
+
+                        let expectedCarry = Math.max(1, expectedTotal - expectedRoll);
                         let apexYards = (Math.tan(dynamicLoft * Math.PI / 180) / expectedCarry) * synthTreeDist * (expectedCarry - synthTreeDist);
                         let perfectApexFeet = Math.max(0, apexYards * 3);
                         synthTreeHeight = perfectApexFeet;

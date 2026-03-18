@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v3.81.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v3.81.1)
 
 function calculateDistanceToPin() {
     return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
@@ -47,10 +47,14 @@ function getStanceReport() {
 function getSetupReport() {
     const style = shotStyles[shotStyleIndex];
     const chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
-    const baseCarry = club.baseDistance * style.distMod * chokeMod;
-    const baseTotal = baseCarry + (baseCarry * (club.rollPct * style.rollMod));
+
+    // v3.81.1 Calculate active loft penalty for bag check accuracy
+    let dynamicLoft = Math.max(0, club.loft + style.loftMod + ((2 - stanceIndex) * 5));
+    let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
+
+    const baseTotal = club.baseDistance * style.distMod * chokeMod * loftDistMod;
     let gripReport = typeof isChokedDown !== 'undefined' && isChokedDown ? "Choked down. " : "";
-    
+
     if (gameMode === 'course' && currentLie === 'Sand') {
         const minTotal = Math.round(baseTotal * 0.60);
         const maxTotal = Math.round(baseTotal * 0.80);

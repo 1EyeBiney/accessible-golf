@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v3.81.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v3.81.1)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -97,8 +97,18 @@ window.getCaddyAdvice = function() {
         let currentStyle = shotStyles[shotStyleIndex];
         let dynamicLoft = Math.max(0, club.loft + currentStyle.loftMod + ((2 - stanceIndex) * 5));
         
-        // v3.81.0 Parabolic Math
-        let expectedCarry = club.baseDistance * currentStyle.distMod * (isChokedDown ? 0.9 : 1.0);
+        // v3.81.1 Parabolic Math with True Carry Simulation
+        let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
+        let chokeMod = isChokedDown ? 0.9 : 1.0;
+        let expectedTotal = club.baseDistance * currentStyle.distMod * loftDistMod * chokeMod;
+
+        // Approximate backspin for a 100% flushed shot to find expected roll
+        let backspinRPM = Math.max(400, Math.round((club.loft * 150) + 1000 + 700 + ((stanceIndex - 2) * 500) + currentStyle.spinMod));
+        let spinRollMod = Math.max(0.1, 1 - ((backspinRPM - 4000) / 10000));
+        let expectedRoll = expectedTotal * club.rollPct * currentStyle.rollMod * spinRollMod;
+        if (shotStyleIndex > 0 && shotStyleIndex < 5 && expectedRoll < (expectedTotal * 0.1)) expectedRoll = expectedTotal * 0.15 * spinRollMod;
+
+        let expectedCarry = Math.max(1, expectedTotal - expectedRoll);
         let apexYards = (Math.tan(dynamicLoft * Math.PI / 180) / expectedCarry) * synthTreeDist * (expectedCarry - synthTreeDist);
         let expectedApexFeet = Math.max(0, Math.round(apexYards * 3));
         
