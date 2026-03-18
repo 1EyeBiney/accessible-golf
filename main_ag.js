@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.7.2)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.8.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -369,9 +369,9 @@ window.playRollingBlip = function(speed, panValue) {
     // Cap the pan hard at -1 (Left) and 1 (Right)
     panner.pan.value = Math.max(-1, Math.min(1, panValue));
 
-    // Short percussive pop
+    // Short percussive pop (v4.8.0 Volume Boost)
     let boost = typeof CONTINUOUS_GAIN_BOOST !== 'undefined' ? CONTINUOUS_GAIN_BOOST : 1.0;
-    gain.gain.setValueAtTime(0.3 * boost, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.8 * boost, audioCtx.currentTime); // Increased from 0.3
     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
 
     osc.connect(panner); panner.connect(gain); gain.connect(audioCtx.destination);
@@ -380,6 +380,21 @@ window.playRollingBlip = function(speed, panValue) {
 
 window.initGame = function() {
     window.initAudio();
+
+    // v4.8.0 Global Volume Overdrive (Boosts all Web Audio API sounds by 2.5x)
+    if (typeof window.originalPlayTone === 'undefined' && typeof window.playTone === 'function') {
+        window.originalPlayTone = window.playTone;
+        window.playTone = function(freq, type, duration, vol) {
+            window.originalPlayTone(freq, type, duration, Math.min(2.0, vol * 2.5)); 
+        };
+    }
+    if (typeof window.originalPlayNoise === 'undefined' && typeof window.playNoise === 'function') {
+        window.originalPlayNoise = window.playNoise;
+        window.playNoise = function(duration, vol, isBrown) {
+            window.originalPlayNoise(duration, Math.min(2.0, vol * 2.5), isBrown); 
+        };
+    }
+
     generateWind();
     loadHole(1);
     document.getElementById('initBtn').style.display = 'none';

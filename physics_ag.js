@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.7.2)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.8.0)
 
 window.initPutting = function() {
     isPutting = true; swingState = 0; puttState = 0;
@@ -233,6 +233,9 @@ function calculateShot(autoMiss = false) {
                 }
             }, 3000);
         }
+
+        // v4.8.0 Putter Strike Sound
+        if (typeof window.playTone === 'function') window.playTone(800, 'triangle', 0.05, 0.8);
 
         playNextPuttStep(); // Trigger the suspense
         return; // EXIT SHOT CALCULATION
@@ -604,11 +607,6 @@ function calculateShot(autoMiss = false) {
                 driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
                 window.updateDashboard();
             } else {
-                if (gameMode === 'course' && distanceToPin <= 20 && currentLie === "Green") {
-                    window.initPutting();
-                    return;
-                }
-
                 if (isHoleComplete) {
                     playTone(440, 'sine', 0.2, 0.4); setTimeout(() => playTone(554, 'sine', 0.2, 0.4), 200); setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 400);
                     const completionMessage = `Hole complete! ${shotBroadcast} You reached the green in ${strokes} strokes.`;
@@ -650,11 +648,17 @@ function calculateShot(autoMiss = false) {
                             holeTelemetry.push(lastShotReport);
                             document.getElementById('caddy-panel').style.display = 'block';
                             document.getElementById('caddy-panel-text').innerText = lastShotReport;
+
+                            // v4.8.0 Green Transition & Victory Arpeggio
+                            if (gameMode === 'course' && currentLie === "Green") {
+                                playTone(440, 'sine', 0.1, 0.5); setTimeout(() => playTone(554, 'sine', 0.1, 0.5), 150); setTimeout(() => playTone(659, 'sine', 0.2, 0.5), 300);
+                                setTimeout(() => { window.initPutting(); }, 3500); // Wait for Caddy to finish reading approach shot
+                            } else {
+                                if (gameMode === 'course') window.updateTargetZone();
+                                driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
+                                window.updateDashboard();
+                            }
                         }, typeof isPutting !== 'undefined' && isPutting && club.name === "Putter" && strokes > 1 ? 1500 : 0);
-                        
-                        if (gameMode === 'course') window.updateTargetZone();
-                        driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
-                        window.updateDashboard();
                     }
                 }
             }
