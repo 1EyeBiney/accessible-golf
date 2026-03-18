@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v3.83.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.3.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -15,6 +15,8 @@ let ballX = 0, ballY = 0, pinX = 0, pinY = 420;
 let targetX = 0, targetY = 0, currentZoneIndex = -1;
 let currentLie = "Tee";
 let isHoleComplete = false, gameMode = 'course';
+let isPutting = false, puttState = 0; // 0: Pre-Putt Explore, 1: Swing Mode
+let puttGridX = 0, puttGridY = 0, puttTargetDist = 0;
 let viewingHazards = false, hazardIndex = 0;
 let viewingHelp = false, helpIndex = 0;
 let rangeLie = 'Fairway', confirmingRange = false;
@@ -22,7 +24,7 @@ let synthTreeActive = false;
 let synthTreeX = 0;
 let synthTreeDist = 0;
 let synthTreeHeight = 0; // In feet
-let shotStyleIndex = 0, chippingRange = 'short', confirmingGreen = false;
+let shotStyleIndex = 0, chippingRange = 'short', confirmingGreen = false, confirmingPutting = false;
 let caddyLevel = 3; // 1: Rookie, 2: Veteran, 3: Tour Pro
 let currentClubIndex = 0;
 let club = clubs[currentClubIndex]; // Pulls from data_ag.js
@@ -91,6 +93,42 @@ window.updateTargetZone = function() {
 };
 
 window.getCaddyAdvice = function() {
+    // v4.3.0 Putting Caddy (Zone Reader)
+    if (isPutting) {
+        let dist = calculateDistanceToPin();
+        let activeContours = [];
+        
+        if (gameMode === 'course') {
+            const holeData = courses[currentCourseIndex].holes[hole - 1];
+            if (holeData.greenContours) activeContours = holeData.greenContours;
+        } else if (gameMode === 'putting') {
+            // Default Practice Green Double-Breaker
+            activeContours = [
+                { startY: 30, endY: 10, slopeX: 0.6, slopeY: 0.3 },
+                { startY: 10, endY: 0, slopeX: -0.5, slopeY: -0.2 }
+            ];
+        }
+
+        if (activeContours.length === 0) return "This green is perfectly flat. Aim dead center.";
+
+        // Filter to zones between the ball and the hole
+        let relevantZones = activeContours.filter(z => z.endY < dist);
+        if (relevantZones.length === 0) return "This putt looks straight and flat from here.";
+
+        let msg = `You have a ${dist} yard putt. `;
+        if (caddyLevel < 3) return msg + "Trust your feet and the Braille Grid. It's got some break to it.";
+
+        msg += "Here is the read: ";
+        relevantZones.forEach(zone => {
+            let segmentLength = Math.min(dist, zone.startY) - zone.endY;
+            let vertStr = zone.slopeY > 0 ? "uphill" : zone.slopeY < 0 ? "downhill" : "flat";
+            let breakStr = zone.slopeX > 0 ? "Right-to-Left" : zone.slopeX < 0 ? "Left-to-Right" : "straight";
+            msg += `For ${Math.round(segmentLength)} yards, it plays ${vertStr} and breaks ${breakStr}. `;
+        });
+        
+        return msg;
+    }
+
     if (gameMode === 'range' || (gameMode === 'chipping' && chippingRange === 'long')) {
         if (!synthTreeActive) return "The practice area is clear. Fire away.";
         
@@ -220,6 +258,24 @@ window.announce = function(msg) {
     }
 };
 
+window.playPuttTone = function(elevation, panValue) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const panner = audioCtx.createStereoPanner();
+    
+    // Base frequency 400Hz. Uphill raises pitch, downhill lowers it.
+    osc.frequency.value = Math.max(100, 400 + (elevation * 20)); 
+    panner.pan.value = panValue; // -1 Left, 0 Center, 1 Right
+    
+    osc.connect(panner); panner.connect(gain); gain.connect(audioCtx.destination);
+    
+    gain.gain.setValueAtTime(0.15 * CONTINUOUS_GAIN_BOOST, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+    
+    osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+};
+
 window.updateDashboard = function() {
     if (!document.getElementById('dashboard-panel')) return;
     
@@ -230,6 +286,19 @@ window.updateDashboard = function() {
         let latStr = synthTreeX === 0 ? 'Center' : `${Math.abs(synthTreeX)}y ${synthTreeX > 0 ? 'R' : 'L'}`;
         holeStr += `\nSynth Tree: ${synthTreeDist}y out, ${latStr} (${Math.round(synthTreeHeight)}ft)`;
     }
+
+    if (isPutting) {
+        let modeStr = puttState === 0 ? "EXPLORE MODE" : "SWING MODE";
+        let locationStr = gameMode === 'putting' ? "Practice Putting Green" : "Putting Green";
+        holeStr = `${locationStr}\n${calculateDistanceToPin()}y to Cup`;
+        document.getElementById('dash-env').innerText = modeStr;
+        document.getElementById('dash-club').innerText = `Putter\nTarget: ${puttTargetDist}y`;
+        let aimStr = aimAngle === 0 ? "Center" : `${Math.abs(aimAngle)}° ${aimAngle < 0 ? 'L' : 'R'}`;
+        document.getElementById('dash-setup').innerText = `Aim: ${aimStr}`;
+        document.getElementById('dash-hole').innerText = holeStr;
+        return; 
+    }
+
     document.getElementById('dash-hole').innerText = holeStr;
     
     // 2. Environment Info

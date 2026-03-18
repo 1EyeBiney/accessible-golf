@@ -138,3 +138,14 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **The Caddy Panel:** The massive `lastShotReport` (including carry, roll, proximity, and hidden telemetry) is routed to a persistent, stylized DOM element upon hole/shot completion, separating it from the core swing prompts.
 - **Real-Time Telemetry Dashboard:** A 4-column visual grid permanently displays Target Info, Environment (Wind/Lie), Equipment (Club/Style), and Setup (Aim/Stance). 
 - **Input Binding:** `window.updateDashboard()` is wired into every State 0 keydown listener (`PageUp`, `ArrowLeft`, `Home`, `W`, etc.) and the `driftWind()` loop to provide instant, real-time visual feedback to sighted spectators as the player makes adjustments.
+### 28. v3.70 - v3.83 Engine Addendum (The Launch Monitor & Physics Parity)
+- **The Parabolic Arc:** Tree/Obstacle clearance uses true parabolic projectile motion `(tan(loft) / carry) * dist * (carry - dist)`. The engine correctly penalizes distance and increases loft based on Stance Index.
+- **The Predictive Caddy (Level 3):** The `getCaddyAdvice` function runs a "Ghost Simulation." It calculates `loftDistMod`, subtracts spin-induced roll, evaluates wind drift, and applies Stance Alignment side-spin to predict if a shot will clear or curve into an obstacle mid-flight.
+- **Flight Path Narratives:** The engine interpolates the ball's mid-air coordinates `(projectedX, projectedY, ballHeightFeet)` exactly as it crosses an obstacle's distance, generating highly specific narratives (e.g., "shaved the left edge by 3 yards").
+
+### 29. v4.0 - v4.3 Engine Addendum (The Short Game & Contour Zones)
+- **Putting State:** Landing on the green triggers `isPutting = true`. Controls shift entirely to 2D targeting. The player always swings to the 100% audio mark; power is modulated by moving the `puttTargetDist` past or short of the hole using `-` and `=`.
+- **The Braille Green:** `KeyP` toggles "Explore Mode." Arrow keys navigate a 1-yard grid. The engine plays a centered tone, where Pitch = Elevation.
+- **Contour Zones:** Greens are not flat planes. `data_ag.js` defines `greenContours` as an array of distance brackets (e.g., `startY`, `endY`, `slopeX`, `slopeY`). 
+- **The God Caddy (Putting):** To prevent cognitive overload on complex multi-tier greens, the Level 3 Caddy translates the Contour Zones into a plain-text narrative (e.g., "The first 10 yards break left, then it feeds downhill and right").
+- **Touch/Tempo Mechanic:** Hinge timing is replaced by "Tempo" taps during the putt. Perfect tempo widens the "Capture Speed Limit" of the cup, allowing players to "jam it in" on short putts and blast through minor breaks.

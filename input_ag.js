@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v3.81.1)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.3.0)
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
@@ -38,6 +38,18 @@ window.addEventListener('keydown', (e) => {
         return;
     }
 
+    if (confirmingPutting) {
+        if (e.code === 'KeyY' || e.code === 'Enter') {
+            e.preventDefault();
+            gameMode = 'putting'; confirmingPutting = false; strokes = 0; holeTelemetry = []; isHoleComplete = false;
+            ballX = 0; ballY = 0; pinX = 0; pinY = Math.floor(Math.random() * 26) + 5; // 5 to 30 yards
+            window.initPutting();
+        } else {
+            confirmingPutting = false; window.announce("Putting Green travel cancelled.");
+        }
+        return;
+    }
+
     // --- v3.70.0 Help Menu Interceptor ---
     if (viewingHelp) {
         e.preventDefault();
@@ -73,6 +85,9 @@ window.addEventListener('keydown', (e) => {
             helpIndex = 0;
             window.announceHelp();
             return;
+        }
+        if (e.code === 'KeyP' && e.shiftKey) {
+            e.preventDefault(); confirmingPutting = true; window.announce("Go to Practice Putting Green? Press Y or Enter to confirm."); return;
         }
         if ((gameMode === 'range' || (gameMode === 'chipping' && chippingRange === 'long'))) {
             if (e.code === 'KeyY') {
@@ -231,7 +246,65 @@ window.addEventListener('keydown', (e) => {
         }
     }
 
-    if (isHoleComplete || e.repeat || swingState === 5) return;
+    if (isHoleComplete || e.repeat) return;
+    if (swingState === 5) return;
+
+    // --- v4.0.0 PUTTING CONTROLS ---
+    if (isPutting && (swingState === 0 || isHoleComplete)) {
+        if (e.code === 'KeyP') {
+            e.preventDefault();
+            puttState = puttState === 0 ? 1 : 0;
+            if (puttState === 1) {
+                window.announce(`Swing Mode. Target is ${puttTargetDist} yards. Press Down Arrow to start stroke.`);
+                document.getElementById('visual-output').innerText = `Swing Mode. Target: ${puttTargetDist} yards.`;
+            } else {
+                window.announce(`Explore Mode. Use arrows to read the green.`);
+                document.getElementById('visual-output').innerText = `Explore Mode Active.`;
+            }
+            window.updateDashboard();
+            return;
+        }
+
+        if (puttState === 0) {
+            // Explore Mode
+            if (e.code === 'ArrowUp') { e.preventDefault(); puttGridY = Math.min(Math.round(calculateDistanceToPin()), puttGridY + 1); playGridAudio(); return; }
+            if (e.code === 'ArrowDown') { e.preventDefault(); puttGridY = Math.max(0, puttGridY - 1); playGridAudio(); return; }
+            if (e.code === 'ArrowLeft') { e.preventDefault(); puttGridX = -1; playGridAudio(); return; }
+            if (e.code === 'ArrowRight') { e.preventDefault(); puttGridX = 1; playGridAudio(); return; }
+
+            if (e.code === 'KeyT') {
+                e.preventDefault();
+                if (gameMode === 'putting') {
+                    ballX = 0; ballY = 0; pinX = 0; pinY = Math.floor(Math.random() * 26) + 5;
+                    let dist = calculateDistanceToPin();
+                    puttTargetDist = dist; puttGridX = 0; puttGridY = 0; aimAngle = 0;
+                    let msg = `New target flag set at ${dist} yards.`;
+                    window.announce(msg); document.getElementById('visual-output').innerText = msg;
+                    window.updateDashboard();
+                } else {
+                    let distMsg = `${calculateDistanceToPin()} yards to the pin.`;
+                    window.announce(distMsg); document.getElementById('visual-output').innerText = distMsg;
+                }
+                return;
+            }
+            
+            if (e.code === 'BracketRight') { e.preventDefault(); aimAngle += 1; window.announce(`Aim ${aimAngle}° Right`); window.updateDashboard(); return; }
+            if (e.code === 'BracketLeft') { e.preventDefault(); aimAngle -= 1; window.announce(`Aim ${Math.abs(aimAngle)}° Left`); window.updateDashboard(); return; }
+            if (e.code === 'Equal') { e.preventDefault(); puttTargetDist += 1; window.announce(`Target ${puttTargetDist} yards`); window.updateDashboard(); return; }
+            if (e.code === 'Minus') { e.preventDefault(); puttTargetDist = Math.max(1, puttTargetDist - 1); window.announce(`Target ${puttTargetDist} yards`); window.updateDashboard(); return; }
+            
+            if (e.code === 'KeyC') { 
+                e.preventDefault(); 
+                document.getElementById('visual-output').innerText = lastShotReport; window.announce(lastShotReport);
+                return;
+            }
+        }
+    }
+    
+    // Block normal stance/aim controls if putting in swing mode
+    if (isPutting && puttState === 1 && (e.code === 'ArrowLeft' || e.code === 'ArrowRight' || e.code === 'Home' || e.code === 'End')) {
+        e.preventDefault(); return; 
+    }
 
     if (e.code === 'ArrowDown') {
         e.preventDefault();
@@ -442,6 +515,43 @@ window.addEventListener('keyup', (e) => {
         e.preventDefault(); startDownswing();
     }
 });
+
+function playGridAudio() {
+    let currentSlopeX = 0;
+    let currentSlopeY = 0;
+    let activeContours = [];
+    
+    // 1. Fetch Zones based on game mode
+    if (gameMode === 'course') {
+        const holeData = courses[currentCourseIndex].holes[hole - 1];
+        if (holeData.greenContours) activeContours = holeData.greenContours;
+    } else if (gameMode === 'putting') {
+        // v4.3.0 Practice green double-breaker
+        activeContours = [
+            { startY: 30, endY: 10, slopeX: 0.6, slopeY: 0.3 },
+            { startY: 10, endY: 0, slopeX: -0.5, slopeY: -0.2 }
+        ];
+    }
+
+    // 2. Find the exact zone the virtual finger (puttGridY) is currently touching
+    // puttGridY is distance from the ball. We need distance from the hole to match startY/endY.
+    let distToPin = calculateDistanceToPin();
+    let fingerDistFromHole = distToPin - puttGridY; 
+
+    let activeZone = activeContours.find(z => fingerDistFromHole <= z.startY && fingerDistFromHole > z.endY);
+    if (activeZone) {
+        currentSlopeX = activeZone.slopeX;
+        currentSlopeY = activeZone.slopeY;
+    }
+
+    // Calculate theoretical elevation of this specific 1-yard square relative to its zone
+    let elevation = (puttGridX * currentSlopeX) + (puttGridY * currentSlopeY); 
+    
+    window.playPuttTone(elevation);
+    
+    let latStr = puttGridX === 0 ? "Center" : `${Math.abs(puttGridX)}y ${puttGridX > 0 ? 'Right' : 'Left'}`;
+    document.getElementById('visual-output').innerText = `Grid: ${puttGridY}y ahead, ${latStr}`;
+}
 
 window.announceHazard = function(h) {
     if (!h) return;

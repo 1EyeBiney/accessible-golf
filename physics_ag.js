@@ -1,4 +1,19 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v3.82.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.1.0)
+
+window.initPutting = function() {
+    isPutting = true; puttState = 0; swingState = 0;
+    currentClubIndex = clubs.findIndex(c => c.name === "Putter");
+    if (currentClubIndex !== -1) club = clubs[currentClubIndex];
+    
+    let dist = Math.round(calculateDistanceToPin());
+    puttTargetDist = dist; puttGridX = 0; puttGridY = 0; aimAngle = 0;
+    
+    let locationStr = gameMode === 'putting' ? "Welcome to the Practice Putting Green." : "On the green!";
+    let msg = `${locationStr} ${dist} yards to the cup. Press P to enter Swing Mode when ready.`;
+    window.announce(msg);
+    document.getElementById('visual-output').innerText = msg;
+    window.updateDashboard();
+};
 
 function calculateDistanceToPin() {
     return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
@@ -79,6 +94,86 @@ function calculateZoneAccuracy(offsetMs, pressure) {
 
 function calculateShot(autoMiss = false) {
     swingState = 5; 
+    if (isPutting) {
+        stateTimeouts.forEach(clearTimeout);
+        strokes++;
+        let impactDiff = devImpact ? 0 : Math.round((performance.now() - impactStartTime) - dropDurationMs);
+        let hingeDiff = devHinge ? 0 : Math.round(hingeTimeDown - hingeTimeBack);
+        
+        // Touch Mechanic (Spacebar Hinge becomes Tempo)
+        let accuracyScore = Math.max(10, 100 - (Math.abs(impactDiff) / 2.5));
+        let tempoBonus = Math.abs(hingeDiff) < 50 ? 1.2 : 1.0; // Perfect tempo gives 20% wider cup capture
+        
+        let powerOvercharge = finalPower > 100 ? finalPower - 100 : 0;
+        let rollDistance = puttTargetDist * (finalPower / 100);
+        
+        // v4.0.0 Temporary flat roll physics
+        let distToPin = calculateDistanceToPin();
+        let passSpeed = rollDistance - distToPin; 
+        
+        // Cup Capture Logic (Jam it in)
+        let captureSpeedLimit = 1.5; // Yards past the hole it can travel and still drop
+        if (distToPin <= 2 && accuracyScore > 90) captureSpeedLimit *= 3.0; // "Jam it in" buff
+        captureSpeedLimit *= tempoBonus;
+        
+        let resultMsg = "";
+        let finalDist = 0;
+        
+        // Did we hit it hard enough to reach, and not too hard to lip out?
+        // (Assuming perfectly straight for v4.0 test)
+        if (Math.abs(aimAngle) < 2) {
+            if (passSpeed >= 0 && passSpeed <= captureSpeedLimit) {
+                playTone(440, 'sine', 0.2, 0.4); setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 200);
+                resultMsg = `IT'S IN THE HOLE!`;
+                isHoleComplete = true;
+            } else if (passSpeed > captureSpeedLimit) {
+                playTone(150, 'square', 0.1, 0.5);
+                resultMsg = `Lipped out! Hit it too hard.`;
+                finalDist = Math.round(passSpeed);
+                ballY += distToPin + passSpeed; // Move ball past hole
+            } else {
+                resultMsg = `Left it short.`;
+                finalDist = Math.round(Math.abs(passSpeed));
+                ballY += rollDistance;
+            }
+        } else {
+            resultMsg = `Missed laterally.`;
+            ballY += rollDistance;
+            ballX += Math.sin(aimAngle * Math.PI / 180) * rollDistance;
+            finalDist = calculateDistanceToPin();
+        }
+        
+        let broadcast = `Putt: ${finalPower}% Power. Target was ${puttTargetDist}y. ${resultMsg}`;
+        if (!isHoleComplete) broadcast += ` ${finalDist} yards left.`;
+        
+        lastShotReport = broadcast + `\nTelemetry: Impact ${impactDiff}ms, Tempo ${hingeDiff}ms.`;
+        holeTelemetry.push(lastShotReport);
+        window.announce(broadcast);
+        document.getElementById('visual-output').innerText = broadcast;
+        
+        setTimeout(() => {
+            if (gameMode === 'putting') {
+                // Infinite Retries: Teleport back to start
+                ballX = 0; ballY = 0; isHoleComplete = false;
+                puttState = 0; swingState = 0; strokes = 0;
+                puttTargetDist = Math.round(calculateDistanceToPin());
+                window.announce(`${broadcast} Resetting ball to ${puttTargetDist} yards. Try again, or press T for a new target.`);
+                window.updateDashboard();
+            } else if (isHoleComplete) {
+                let compMsg = `Hole complete in ${strokes} strokes.`;
+                window.announce(compMsg);
+                document.getElementById('caddy-panel').innerText = compMsg;
+                swingState = 6;
+            } else {
+                puttState = 0; swingState = 0;
+                puttTargetDist = Math.round(calculateDistanceToPin());
+                window.announce(`${puttTargetDist} yards left. Pre-Putt mode active.`);
+                window.updateDashboard();
+            }
+        }, 3000);
+        return; // EXIT SHOT CALCULATION
+    }
+
     stateTimeouts.forEach(clearTimeout);
     strokes++;
     lockedImpactTime = performance.now() - impactStartTime;
@@ -445,7 +540,10 @@ function calculateShot(autoMiss = false) {
                 driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
                 window.updateDashboard();
             } else {
-                if (gameMode === 'course' && distanceToPin <= 20 && !currentLie.toLowerCase().includes("water")) isHoleComplete = true;
+                if (gameMode === 'course' && distanceToPin <= 20 && currentLie === "Green") {
+                    window.initPutting();
+                    return;
+                }
 
                 if (isHoleComplete) {
                     playTone(440, 'sine', 0.2, 0.4); setTimeout(() => playTone(554, 'sine', 0.2, 0.4), 200); setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 400);

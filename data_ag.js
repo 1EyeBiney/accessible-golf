@@ -1,4 +1,4 @@
-// data_ag.js - Club Data, Wind Levels, and Course Layouts (v3.70.0)
+// data_ag.js - Course Data, Clubs, and Shot Styles (v4.3.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -40,7 +40,14 @@ const courses = [
         name: "The Holodeck Links",
         holes: [
             { 
-                number: 1, par: 4, distance: 420, pinX: 0, pinY: 420, fairwayWidth: 35, greenRadius: 15,
+                number: 1, par: 4, distance: 420, pinX: 0,
+                pinY: 420,
+                // v4.3.0 Contour Zones. startY is further away, endY is closer to the hole.
+                greenContours: [
+                    { startY: 30, endY: 10, slopeX: 0.5, slopeY: 0.2 },  // Front tier: Uphill, breaks Right-to-Left
+                    { startY: 10, endY: 0, slopeX: -0.4, slopeY: -0.1 }  // Back tier: Downhill, breaks Left-to-Right
+                ],
+                fairwayWidth: 35, greenRadius: 15,
                 pinLocation: "Middle-Center",
                 description: "A 420-yard par 4. Water runs down the entire left side, while an Oak and Maple tree pinch the landing zone on the right.",
                 fairwayDescription: "The fairway is 35 yards wide but effectively narrower. Water guards the entire left side, and tree clusters pinch the right side of the landing zone at 200 to 250 yards.",
