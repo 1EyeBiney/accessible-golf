@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.6.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.6.1)
 
 window.initPutting = function() {
     isPutting = true; swingState = 0; puttState = 0;
@@ -169,8 +169,8 @@ function calculateShot(autoMiss = false) {
             let panValue = (step.x - pinX) / 3.0; 
             if (window.playRollingBlip) window.playRollingBlip(step.speed, panValue);
 
-            // Dynamic Metronome: High speed = fast 40ms delay. Low speed = slow 600ms delay.
-            let delayMs = Math.max(40, 300 / Math.max(0.5, step.speed));
+            // v4.6.1 Dynamic Metronome: High speed = 100ms delay. Low speed stretches up to 1600ms.
+            let delayMs = Math.max(100, 800 / Math.max(0.5, step.speed));
 
             if (step.madeIt) {
                 setTimeout(finishPutt, delayMs + 100);
