@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.7.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.7.1)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -128,13 +128,17 @@ window.getCaddyAdvice = function() {
             advice += `Overall, it plays ${vertStr}, so adjust your target distance. It breaks ${breakStr}, so make sure to aim outside the cup.`;
             return advice;
         } else {
-            // Level 3 God Mode Math (v4.4.2 Ghost Simulator)
+            // Level 3 God Mode Math (v4.7.1 Center-Seeker)
             let bestAim = 0, bestTarget = dist;
             let found = false, smallestMiss = 9999;
+
+            // Generate angles radiating outward from 0 (0, 1, -1, 2, -2...) to find the center of the cup first
+            let testAngles = [0];
+            for (let i = 1; i <= 45; i++) { testAngles.push(i, -i); }
             
-            // Brute force over 4,000 combinations to find the perfect line
+            // Brute force combinations to find the perfect line
             for (let t = Math.max(1, dist - 15); t <= dist + 30; t++) {
-                for (let a = -45; a <= 45; a++) {
+                for (let a of testAngles) {
                     let speedRemaining = t;
                     let currentHeading = a * (Math.PI / 180);
                     let simX = ballX, simY = ballY;
@@ -145,7 +149,6 @@ window.getCaddyAdvice = function() {
                         let stepDist = Math.min(1.0, speedRemaining);
                         let currentDistToHole = Math.sqrt(Math.pow(pinX - simX, 2) + Math.pow(pinY - simY, 2));
                         
-                        // Assuming perfect >90% accuracy for the God Mode calculation
                         if (currentDistToHole <= 0.6 && speedRemaining <= 2.5) { madeIt = true; break; }
                         
                         let zone = activeContours.find(z => currentDistToHole <= z.startY && currentDistToHole > z.endY);
