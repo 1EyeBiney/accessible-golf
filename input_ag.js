@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v3.80.1)
+// input_ag.js - Keyboard Controls and Event Listeners (v3.81.0)
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
@@ -90,12 +90,13 @@ window.addEventListener('keydown', (e) => {
                         synthTreeX = 0;
                         
                         // Ghost Simulation for Threshold Math
-                        // Simulating a 110% power shot with perfect impact to find max apex at the tree
                         let currentStyle = shotStyles[shotStyleIndex];
                         let dynamicLoft = Math.max(0, club.loft + currentStyle.loftMod + ((2 - stanceIndex) * 5));
                         
-                        // Trajectory: apex = distance * tan(loft). We multiply by 1.1 to simulate the 110% power boost curve.
-                        let perfectApexFeet = (synthTreeDist * Math.tan(dynamicLoft * Math.PI / 180)) * 3 * 1.1;
+                        // v3.81.0 Parabolic Math (Simulating 110% power expected carry)
+                        let expectedCarry = club.baseDistance * currentStyle.distMod * (isChokedDown ? 0.9 : 1.0) * 1.1;
+                        let apexYards = (Math.tan(dynamicLoft * Math.PI / 180) / expectedCarry) * synthTreeDist * (expectedCarry - synthTreeDist);
+                        let perfectApexFeet = Math.max(0, apexYards * 3);
                         synthTreeHeight = perfectApexFeet;
                         
                         window.announce(`Synth Tree spawned Dead Center, ${synthTreeDist} yards away. Threshold height set to ${Math.round(synthTreeHeight)} feet based on a 110% power shot with your active club.`);

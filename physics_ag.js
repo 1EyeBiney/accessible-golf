@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v3.80.1)
+// physics_ag.js - Math, Wind, and Shot Calculation (v3.81.0)
 
 function calculateDistanceToPin() {
     return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
@@ -189,37 +189,53 @@ function calculateShot(autoMiss = false) {
     let carryDistance = Math.max(0, totalDistance - rollDistance);
     let lateralX = Math.round((physicsX + windXEffect + lateralKick) * 10) / 10;
 
+    const startX = ballX - moveX;
+    const startY = ballY - moveY;
+    const landX = startX + (Math.sin(finalRad) * carryDistance + Math.cos(finalRad) * (physicsX + windXEffect));
+    const landY = startY + (Math.cos(finalRad) * carryDistance - Math.sin(finalRad) * (physicsX + windXEffect));
+
+    const contactLabel = hingeDiff < -60 ? "Thin" : hingeDiff > 60 ? "Fat" : "Flushed";
+    const loftDiff = dynamicLoft - club.loft;
+    const trajectoryLabel = loftDiff < -8 ? "piercing" : loftDiff < -3 ? "low" : loftDiff > 8 ? "towering" : loftDiff > 3 ? "high" : "standard";
+    const shapeLabel = sideSpinRPM < -2500 ? "snap hook" : sideSpinRPM < -1000 ? "hook" : sideSpinRPM < -250 ? "draw" : sideSpinRPM > 2500 ? "banana slice" : sideSpinRPM > 1000 ? "slice" : sideSpinRPM > 250 ? "fade" : "straight shot";
+    const shotShapeNarrative = `A ${trajectoryLabel} ${shapeLabel}`;
+
     const currentHole = courses[currentCourseIndex].holes[hole - 1];
     let treeCollisionReport = "";
+    let flightPathNarrative = "";
     
     // 1. Synth Tree Collision (Holo Range / Pitching Green)
     if ((gameMode === 'range' || gameMode === 'chipping') && synthTreeActive) {
-        let treeRadius = 10; // 10 yard radius (20 yard wide canopy)
-        
-        // Did the ball carry far enough to reach the tree?
+        let treeRadius = 10;
         if (carryDistance > synthTreeDist) {
             let flightFraction = synthTreeDist / carryDistance;
-            // Calculate lateral position of the ball when it passed the tree's distance
-            let projectedX = Math.sin(finalRad) * synthTreeDist + (lateralTotal) * flightFraction;
+            let projectedX = startX + (landX - startX) * flightFraction;
+            let lateralDistFromCenter = Math.abs(projectedX - synthTreeX);
             
-            // Check if it passed through the canopy horizontally
-            if (Math.abs(projectedX - synthTreeX) < treeRadius) {
-                // Calculate height of the ball at the tree's exact distance
-                let ballHeightFeet = (synthTreeDist * Math.tan(dynamicLoft * Math.PI / 180)) * 3 * (finalPower / 100);
+            if (lateralDistFromCenter < treeRadius) {
+                // v3.81.0 Parabolic Math
+                let ballHeightYards = (Math.tan(dynamicLoft * Math.PI / 180) / carryDistance) * synthTreeDist * (carryDistance - synthTreeDist);
+                let ballHeightFeet = Math.max(0, ballHeightYards * 3);
+                let verticalMargin = Math.round(ballHeightFeet - synthTreeHeight);
                 
                 if (ballHeightFeet < synthTreeHeight) {
                     playTone(1200, 'square', 0.1, 0.5);
                     window.announce(`THWACK! You hit the Synth Tree!`);
-                    totalDistance = Math.round(synthTreeDist);
-                    rollDistance = 2;
-                    carryDistance = totalDistance - rollDistance;
-                    ballY = Math.cos(finalRad) * totalDistance;
-                    ballX = Math.sin(finalRad) * totalDistance;
-                    treeCollisionReport = `[Synth Tree: ${Math.round(synthTreeHeight)}ft. Ball Apex at Tree: ${Math.round(ballHeightFeet)}ft. Result: THWACK]`;
+                    totalDistance = Math.round(synthTreeDist); rollDistance = 2; carryDistance = totalDistance - rollDistance;
+                    ballY = startY + (landY - startY) * flightFraction; ballX = startX + (landX - startX) * flightFraction;
+                    flightPathNarrative = `${shotShapeNarrative} that crashed into the Synth Tree canopy, ${Math.abs(verticalMargin)} feet too low.`;
+                    treeCollisionReport = `[Synth Tree: ${Math.round(synthTreeHeight)}ft. Apex: ${Math.round(ballHeightFeet)}ft. Result: THWACK]`;
                 } else {
-                    window.announce(`Cleared the Synth Tree!`);
-                    treeCollisionReport = `[Synth Tree: ${Math.round(synthTreeHeight)}ft. Ball Apex at Tree: ${Math.round(ballHeightFeet)}ft. Result: CLEARED]`;
+                    window.announce(`Sailed over the Synth Tree!`);
+                    flightPathNarrative = `${shotShapeNarrative} that sailed safely over the Synth Tree, clearing the top branches by ${verticalMargin} feet.`;
+                    treeCollisionReport = `[Synth Tree: ${Math.round(synthTreeHeight)}ft. Apex: ${Math.round(ballHeightFeet)}ft. Margin: +${verticalMargin}ft. Result: CLEARED]`;
                 }
+            } else if (lateralDistFromCenter < treeRadius + 15) {
+                let lateralMargin = Math.round(lateralDistFromCenter - treeRadius);
+                let passSide = projectedX > synthTreeX ? "right" : "left";
+                window.announce(`Curved past the Synth Tree!`);
+                flightPathNarrative = `${shotShapeNarrative} that shaved the ${passSide} edge of the Synth Tree canopy by just ${lateralMargin} yards.`;
+                treeCollisionReport = `[Synth Tree bypassed laterally by ${lateralMargin} yards on the ${passSide}.]`;
             }
         }
     }
@@ -227,21 +243,35 @@ function calculateShot(autoMiss = false) {
     // 2. Natural Tree Collision (Course)
     if (currentHole && currentHole.trees && gameMode === 'course') {
         currentHole.trees.forEach(tree => {
-            let distToTree = Math.sqrt(Math.pow(tree.x - ballX, 2) + Math.pow(tree.y - ballY, 2));
-            if (distToTree < tree.radius) {
-                let ballHeightAtTree = (distToTree * Math.tan(dynamicLoft * Math.PI / 180));
-                
-                if (ballHeightAtTree < tree.height) {
-                    playTone(1200, 'square', 0.1, 0.5);
-                    window.announce(`Hit the ${tree.name}!`);
-                    ballX = tree.x + (Math.random() * 4 - 2);
-                    ballY = tree.y - 5;
-                    totalDistance *= 0.4;
-                    rollDistance = 2;
-                    treeCollisionReport = `[Tree Check: ${tree.height}y tall. Apex: ${Math.round(ballHeightAtTree)}y. Result: THWACK]`;
-                } else {
-                    window.announce(`Sailed right over the ${tree.name}!`);
-                    treeCollisionReport = `[Tree Check: ${tree.height}y tall. Apex: ${Math.round(ballHeightAtTree)}y. Result: CLEARED]`;
+            let distToTreeCenter = Math.sqrt(Math.pow(tree.x - startX, 2) + Math.pow(tree.y - startY, 2));
+            if (carryDistance > distToTreeCenter && tree.y > startY) {
+                let flightFraction = distToTreeCenter / carryDistance;
+                let projectedX = startX + (landX - startX) * flightFraction;
+                let projectedY = startY + (landY - startY) * flightFraction;
+                let actualDistToTree = Math.sqrt(Math.pow(tree.x - projectedX, 2) + Math.pow(tree.y - projectedY, 2));
+
+                if (actualDistToTree < tree.radius) {
+                    // v3.81.0 Parabolic Math
+                    let ballHeightAtTree = Math.max(0, (Math.tan(dynamicLoft * Math.PI / 180) / carryDistance) * distToTreeCenter * (carryDistance - distToTreeCenter));
+                    let verticalMarginYards = Math.round(ballHeightAtTree - tree.height);
+                    
+                    if (ballHeightAtTree < tree.height) {
+                        playTone(1200, 'square', 0.1, 0.5);
+                        window.announce(`Hit the ${tree.name}!`);
+                        ballX = tree.x + (Math.random() * 4 - 2); ballY = tree.y - 5;
+                        totalDistance *= 0.4; rollDistance = 2; carryDistance = totalDistance - rollDistance;
+                        flightPathNarrative = `${shotShapeNarrative} that crashed straight into the ${tree.name}.`;
+                        treeCollisionReport = `[${tree.name} Check: ${tree.height}y tall. Apex: ${Math.round(ballHeightAtTree)}y. Result: THWACK]`;
+                    } else {
+                        window.announce(`Sailed right over the ${tree.name}!`);
+                        flightPathNarrative = `${shotShapeNarrative} that sailed safely over the ${tree.name}, clearing the top by ${verticalMarginYards} yards.`;
+                        treeCollisionReport = `[${tree.name} Check: ${tree.height}y tall. Apex: ${Math.round(ballHeightAtTree)}y. Margin: +${verticalMarginYards}y. Result: CLEARED]`;
+                    }
+                } else if (actualDistToTree < tree.radius + 15) {
+                    let lateralMargin = Math.round(actualDistToTree - tree.radius);
+                    let passSide = projectedX > tree.x ? "right" : "left";
+                    flightPathNarrative = `${shotShapeNarrative} that wrapped past the ${tree.name}, shaving the ${passSide} edge by ${lateralMargin} yards.`;
+                    treeCollisionReport = `[${tree.name} bypassed laterally by ${lateralMargin} yards.]`;
                 }
             }
         });
@@ -349,11 +379,7 @@ function calculateShot(autoMiss = false) {
             }
         }
 
-        const contactLabel = hingeDiff < -60 ? "Thin" : hingeDiff > 60 ? "Fat" : "Flushed";
-        const loftDiff = dynamicLoft - club.loft;
-        const trajectoryLabel = loftDiff < -8 ? "piercing" : loftDiff < -3 ? "low" : loftDiff > 8 ? "towering" : loftDiff > 3 ? "high" : "standard";
-        const shapeLabel = sideSpinRPM < -2500 ? "snap hook" : sideSpinRPM < -1000 ? "hook" : sideSpinRPM < -250 ? "draw" : sideSpinRPM > 2500 ? "banana slice" : sideSpinRPM > 1000 ? "slice" : sideSpinRPM > 250 ? "fade" : "straight shot";
-        const shotDesc = `${contactLabel}. A ${trajectoryLabel} ${shapeLabel}.`;
+        const shotDesc = flightPathNarrative ? `${contactLabel}. ${flightPathNarrative}.` : `${contactLabel}. ${shotShapeNarrative}.`;
         const windDesc = `Wind pushed it ${Math.abs(windYEffect)} yds ${windYEffect > 0 ? 'long' : windYEffect < 0 ? 'short' : 'nowhere'}, and ${Math.abs(windXEffect)} yds ${windXEffect > 0 ? 'right' : windXEffect < 0 ? 'left' : 'nowhere'}.`;
 
         setTimeout(() => {

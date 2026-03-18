@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v3.80.1)
+// main_ag.js - Game State, Variables, and Swing Sequence (v3.81.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -97,7 +97,10 @@ window.getCaddyAdvice = function() {
         let currentStyle = shotStyles[shotStyleIndex];
         let dynamicLoft = Math.max(0, club.loft + currentStyle.loftMod + ((2 - stanceIndex) * 5));
         
-        let expectedApexFeet = Math.round((synthTreeDist * Math.tan(dynamicLoft * Math.PI / 180)) * 3);
+        // v3.81.0 Parabolic Math
+        let expectedCarry = club.baseDistance * currentStyle.distMod * (isChokedDown ? 0.9 : 1.0);
+        let apexYards = (Math.tan(dynamicLoft * Math.PI / 180) / expectedCarry) * synthTreeDist * (expectedCarry - synthTreeDist);
+        let expectedApexFeet = Math.max(0, Math.round(apexYards * 3));
         
         let latStr = synthTreeX === 0 ? 'Center' : `${Math.abs(synthTreeX)}y ${synthTreeX > 0 ? 'Right' : 'Left'}`;
         let msg = `Synth Tree is ${synthTreeDist} yards out, ${latStr}, and ${Math.round(synthTreeHeight)} feet tall. `;
