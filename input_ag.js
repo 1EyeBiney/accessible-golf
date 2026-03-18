@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.4.1)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.5.0)
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
@@ -42,7 +42,7 @@ window.addEventListener('keydown', (e) => {
         if (e.code === 'KeyY' || e.code === 'Enter') {
             e.preventDefault();
             gameMode = 'putting'; confirmingPutting = false; strokes = 0; holeTelemetry = []; isHoleComplete = false;
-            ballX = 0; ballY = 0; pinX = 0; pinY = Math.floor(Math.random() * 26) + 5; // 5 to 30 yards
+            ballX = 0; ballY = 0; pinX = 0; pinY = Math.floor(Math.random() * 41) + 5; // 5 to 45 yards
             window.initPutting();
         } else {
             confirmingPutting = false; window.announce("Putting Green travel cancelled.");
@@ -264,7 +264,7 @@ window.addEventListener('keydown', (e) => {
         if (e.code === 'KeyT') {
             e.preventDefault();
             if (gameMode === 'putting') {
-                ballX = 0; ballY = 0; pinX = 0; pinY = Math.floor(Math.random() * 26) + 5;
+                ballX = 0; ballY = 0; pinX = 0; pinY = Math.floor(Math.random() * 41) + 5; // 5 to 45 yards
                 let dist = calculateDistanceToPin();
                 puttTargetDist = dist; aimAngle = 0; puttState = 0;
                 let msg = `New target flag set at ${dist} yards. Targeting Mode active.`;

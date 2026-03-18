@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.4.2)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.5.0)
 
 window.initPutting = function() {
     isPutting = true; swingState = 0; puttState = 0;
@@ -112,7 +112,11 @@ function calculateShot(autoMiss = false) {
 
         // v4.4.0 Gravity Engine (Step Simulation)
         let activeContours = gameMode === 'course' ? (courses[currentCourseIndex].holes[hole - 1].greenContours || []) : 
-            [{ startY: 30, endY: 10, slopeX: 0.6, slopeY: 0.3 }, { startY: 10, endY: 0, slopeX: -0.5, slopeY: -0.2 }];
+            [
+                { startY: 45, endY: 25, slopeX: 0.8, slopeY: 0.4 },  // The False Front
+                { startY: 25, endY: 10, slopeX: -0.3, slopeY: 0.0 }, // The Plateau
+                { startY: 10, endY: 0, slopeX: 0.6, slopeY: -0.3 }   // The Bowl
+            ];
 
         let distTraveled = 0;
         let simX = ballX;

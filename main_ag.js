@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.4.2)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.5.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -96,7 +96,11 @@ window.getCaddyAdvice = function() {
     if (isPutting) {
         let dist = calculateDistanceToPin();
         let activeContours = gameMode === 'course' ? (courses[currentCourseIndex].holes[hole - 1].greenContours || []) : 
-            [{ startY: 30, endY: 10, slopeX: 0.6, slopeY: 0.3 }, { startY: 10, endY: 0, slopeX: -0.5, slopeY: -0.2 }];
+            [
+                { startY: 45, endY: 25, slopeX: 0.8, slopeY: 0.4 },  // The False Front: Steep uphill, breaks hard Right-to-Left
+                { startY: 25, endY: 10, slopeX: -0.3, slopeY: 0.0 }, // The Plateau: Flat, subtle Left-to-Right
+                { startY: 10, endY: 0, slopeX: 0.6, slopeY: -0.3 }   // The Bowl: Downhill, fast Right-to-Left
+            ];
 
         if (activeContours.length === 0) return "This green is perfectly flat. Aim dead center and hit it " + dist + " yards.";
 
