@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v3.70.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v3.80.1)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -9,7 +9,7 @@ let hingeTimeBack = 0, hingeTimeDown = 0;
 let finalPower = 0, dropDurationMs = 0;
 let lockedImpactTime = 0;
 let windX = 0, windY = 0, windLevelIndex = 3; 
-let aimAngle = 0, stanceIndex = 2, stanceAlignment = 0;
+let aimAngle = 0, stanceIndex = 2, stanceAlignment = 0, isChokedDown = false;
 let hole = 1, par = 4, strokes = 0;
 let ballX = 0, ballY = 0, pinX = 0, pinY = 420;
 let targetX = 0, targetY = 0, currentZoneIndex = -1;
@@ -18,6 +18,10 @@ let isHoleComplete = false, gameMode = 'course';
 let viewingHazards = false, hazardIndex = 0;
 let viewingHelp = false, helpIndex = 0;
 let rangeLie = 'Fairway', confirmingRange = false;
+let synthTreeActive = false;
+let synthTreeX = 0;
+let synthTreeDist = 0;
+let synthTreeHeight = 0; // In feet
 let shotStyleIndex = 0, chippingRange = 'short', confirmingGreen = false;
 let caddyLevel = 3; // 1: Rookie, 2: Veteran, 3: Tour Pro
 let currentClubIndex = 0;
@@ -87,43 +91,61 @@ window.updateTargetZone = function() {
 };
 
 window.getCaddyAdvice = function() {
+    if (gameMode === 'range' || (gameMode === 'chipping' && chippingRange === 'long')) {
+        if (!synthTreeActive) return "The practice area is clear. Fire away.";
+        
+        let currentStyle = shotStyles[shotStyleIndex];
+        let dynamicLoft = Math.max(0, club.loft + currentStyle.loftMod + ((2 - stanceIndex) * 5));
+        
+        let expectedApexFeet = Math.round((synthTreeDist * Math.tan(dynamicLoft * Math.PI / 180)) * 3);
+        
+        let latStr = synthTreeX === 0 ? 'Center' : `${Math.abs(synthTreeX)}y ${synthTreeX > 0 ? 'Right' : 'Left'}`;
+        let msg = `Synth Tree is ${synthTreeDist} yards out, ${latStr}, and ${Math.round(synthTreeHeight)} feet tall. `;
+        msg += `With a ${club.name} and ${stanceNames[stanceIndex]} stance, your expected apex at that distance is ${expectedApexFeet} feet. `;
+        
+        // Caddy Edge Finder Math
+        let distToTreeCenter = Math.sqrt(Math.pow(synthTreeX, 2) + Math.pow(synthTreeDist, 2));
+        let angleToCenter = Math.atan2(synthTreeX, synthTreeDist) * (180 / Math.PI);
+        let angleOffset = Math.asin(10 / distToTreeCenter) * (180 / Math.PI); // 10 is the tree radius
+        
+        let leftEdge = Math.round(angleToCenter - angleOffset);
+        let rightEdge = Math.round(angleToCenter + angleOffset);
+        let leftStr = leftEdge < 0 ? `${Math.abs(leftEdge)}° Left` : `${leftEdge}° Right`;
+        let rightStr = rightEdge < 0 ? `${Math.abs(rightEdge)}° Left` : `${rightEdge}° Right`;
+        
+        msg += `To bypass the canopy edges, aim past ${leftStr} or ${rightStr}. `;
+        
+        if (Math.abs(synthTreeX - (aimAngle * (synthTreeDist/60))) < 10) {
+            if (expectedApexFeet < synthTreeHeight + 3) msg += "Warning: You do not have the height. Move the ball forward or shape it around.";
+            else msg += "You have the height to clear it safely.";
+        } else {
+            msg += "Your current aim line appears to bypass the tree laterally.";
+        }
+        return msg;
+    }
+    
     if (gameMode !== 'course') return "Caddy advice is only available on the course.";
     const holeData = courses[currentCourseIndex].holes[hole - 1];
     if (!holeData.caddyNotes) return "I don't have any notes for this hole.";
 
     let distToPin = Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
-    
-    // Determine Advanced Semantic Trigger Zone (Priority Order)
     let currentTrigger = 'Approach_Long'; 
 
-    if (strokes === 0) {
-        currentTrigger = 'Tee';
-    } else if (distToPin <= 50) {
-        currentTrigger = 'Greenside';
-    } else if (currentLie === 'Sand') {
-        currentTrigger = 'Bunker_Fairway';
-    } else if (ballX < -20) {
-        currentTrigger = 'Trouble_Left';
-    } else if (ballX > 20) {
-        currentTrigger = 'Trouble_Right';
-    } else if (currentLie === 'Light Rough') {
-        currentTrigger = 'Rough_Deep';
-    } else if (currentLie === 'Fairway' && distToPin <= 120) {
-        currentTrigger = 'Approach_Scoring';
-    } else if (currentLie === 'Fairway' && distToPin > 120) {
-        currentTrigger = 'Approach_Long';
-    }
+    if (strokes === 0) currentTrigger = 'Tee';
+    else if (distToPin <= 50) currentTrigger = 'Greenside';
+    else if (currentLie === 'Sand') currentTrigger = 'Bunker_Fairway';
+    else if (ballX < -20) currentTrigger = 'Trouble_Left';
+    else if (ballX > 20) currentTrigger = 'Trouble_Right';
+    else if (currentLie === 'Light Rough') currentTrigger = 'Rough_Deep';
+    else if (currentLie === 'Fairway' && distToPin <= 120) currentTrigger = 'Approach_Scoring';
+    else if (currentLie === 'Fairway' && distToPin > 120) currentTrigger = 'Approach_Long';
 
-    // Find all notes for this zone that the current Caddy Level is smart enough to know
     let availableNotes = holeData.caddyNotes.filter(n => n.trigger === currentTrigger && n.level <= caddyLevel);
-    
     if (availableNotes.length === 0) {
-        // Fallback to legacy 'Approach' or 'Always' if specific granular data isn't written yet
         availableNotes = holeData.caddyNotes.filter(n => (n.trigger === 'Approach' || n.trigger === 'Always') && n.level <= caddyLevel);
         if (availableNotes.length === 0) return "Just hit a good golf shot here. I don't have specific advice.";
     }
 
-    // Sort to get the highest level advice available (index 0)
     availableNotes.sort((a, b) => b.level - a.level);
     return `[Level ${caddyLevel} Caddy]: ${availableNotes[0].text}`;
 };
@@ -149,6 +171,10 @@ window.updateDashboard = function() {
     // 1. Hole / Target Info
     let holeStr = gameMode === 'course' ? `Hole ${hole} (Par ${par})\n${calculateDistanceToPin()}y to Pin` :
                   gameMode === 'range' ? `Driving Range\n${pinY}y Target` : `Chipping Green\n${calculateDistanceToPin()}y Target`;
+    if ((gameMode === 'range' || (gameMode === 'chipping' && chippingRange === 'long')) && synthTreeActive) {
+        let latStr = synthTreeX === 0 ? 'Center' : `${Math.abs(synthTreeX)}y ${synthTreeX > 0 ? 'R' : 'L'}`;
+        holeStr += `\nSynth Tree: ${synthTreeDist}y out, ${latStr} (${Math.round(synthTreeHeight)}ft)`;
+    }
     document.getElementById('dash-hole').innerText = holeStr;
     
     // 2. Environment Info
@@ -158,7 +184,8 @@ window.updateDashboard = function() {
     
     // 3. Equipment Info
     let style = shotStyles[shotStyleIndex];
-    document.getElementById('dash-club').innerText = `${club.name}\n${style.name} Swing`;
+    let gripStr = isChokedDown ? "(Choked 90%)" : "(Full Grip)";
+    document.getElementById('dash-club').innerText = `${club.name} ${gripStr}\n${style.name} Swing`;
     
     // 4. Setup Info
     let aimStr = aimAngle === 0 ? "Center" : `${Math.abs(aimAngle)}° ${aimAngle < 0 ? 'Left' : 'Right'}`;

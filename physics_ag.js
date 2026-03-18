@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v3.62.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v3.80.1)
 
 function calculateDistanceToPin() {
     return Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
@@ -46,19 +46,21 @@ function getStanceReport() {
 
 function getSetupReport() {
     const style = shotStyles[shotStyleIndex];
-    const baseCarry = club.baseDistance * style.distMod;
+    const chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
+    const baseCarry = club.baseDistance * style.distMod * chokeMod;
     const baseTotal = baseCarry + (baseCarry * (club.rollPct * style.rollMod));
+    let gripReport = typeof isChokedDown !== 'undefined' && isChokedDown ? "Choked down. " : "";
     
     if (gameMode === 'course' && currentLie === 'Sand') {
         const minTotal = Math.round(baseTotal * 0.60);
         const maxTotal = Math.round(baseTotal * 0.80);
-        return `${club.name}. 100% power hits ${minTotal} to ${maxTotal} yards. In the sand. Style: ${style.name}.`;
+        return `${club.name}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. In the sand. Style: ${style.name}.`;
     } else if ((gameMode === 'course' && currentLie === 'Light Rough') || (gameMode === 'range' && rangeLie === 'Rough')) {
         const minTotal = Math.round(baseTotal * 0.85);
         const maxTotal = Math.round(baseTotal * 0.95);
-        return `${club.name}. 100% power hits ${minTotal} to ${maxTotal} yards. In the rough. Style: ${style.name}.`;
+        return `${club.name}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. In the rough. Style: ${style.name}.`;
     } else {
-        return `${club.name}. 100% power hits ${Math.round(baseTotal)} yards. Style: ${style.name}.`;
+        return `${club.name}. ${gripReport}100% power hits ${Math.round(baseTotal)} yards. Style: ${style.name}.`;
     }
 }
 
@@ -92,7 +94,7 @@ function calculateShot(autoMiss = false) {
 
     let powerOvercharge = finalPower > 100 ? finalPower - 100 : 0;
     let pressureDispersion = 1 + (powerOvercharge * 0.04); 
-    const hingeAcc = Math.max(10, 100 - (Math.abs(hingeDiff) / 4));
+    const hingeAcc = Math.max(10, 100 - (Math.abs(hingeDiff) / (typeof isChokedDown !== 'undefined' && isChokedDown ? 4.8 : 4)));
     
     const activeFairwayWidth = gameMode === 'course' ? courses[currentCourseIndex].holes[hole - 1].fairwayWidth : fairwayWidth;
     const isStartingInRough = gameMode === 'range' ? (rangeLie === 'Rough') : (currentLie === 'Light Rough' || currentLie === 'Sand');
@@ -112,7 +114,7 @@ function calculateShot(autoMiss = false) {
     }
 
     let forgiveness = finalPower <= 100 ? 1 + ((100 - finalPower) * 0.01) : Math.max(0.6, 1 - (powerOvercharge * 0.015));
-    forgiveness *= lieForgivenessMod; 
+    forgiveness *= lieForgivenessMod * (typeof isChokedDown !== 'undefined' && isChokedDown ? 1.2 : 1.0);
 
     let absImpact = Math.abs(impactDiff);
     let adjustedImpact = absImpact / forgiveness;
@@ -132,9 +134,9 @@ function calculateShot(autoMiss = false) {
     let backspinRPM = Math.max(400, Math.round((club.loft * 150) + (finalPower * 10) + (impactAcc * 7) + ((stanceIndex - 2) * 500) + currentStyle.spinMod));
     let sideSpinRPM = Math.round((impactDiff / 20) * 100 * spinPenalty * pressureDispersion * styleSideSpinMod) + (stanceAlignment * 800 * styleSideSpinMod);
     
-    // Loft-based distance modifier: lower loft = more forward energy
-    let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005); 
-    let potentialDist = club.baseDistance * (finalPower / 100) * (1 + (hingeTimeBack / 2000 * 0.15)) * currentStyle.distMod * lieMod * loftDistMod;
+    let chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
+    let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
+    let potentialDist = club.baseDistance * (finalPower / 100) * (1 + (hingeTimeBack / 2000 * 0.15)) * currentStyle.distMod * lieMod * loftDistMod * chokeMod;
     let totalDistance = Math.round(potentialDist * dampening * Math.max(0.2, 1 - Math.pow(Math.abs(hingeDiff) / 400, 2)));
 
     let activeRollMod = currentStyle.rollMod;
@@ -189,26 +191,57 @@ function calculateShot(autoMiss = false) {
 
     const currentHole = courses[currentCourseIndex].holes[hole - 1];
     let treeCollisionReport = "";
-    if (currentHole.trees) {
+    
+    // 1. Synth Tree Collision (Holo Range / Pitching Green)
+    if ((gameMode === 'range' || gameMode === 'chipping') && synthTreeActive) {
+        let treeRadius = 10; // 10 yard radius (20 yard wide canopy)
+        
+        // Did the ball carry far enough to reach the tree?
+        if (carryDistance > synthTreeDist) {
+            let flightFraction = synthTreeDist / carryDistance;
+            // Calculate lateral position of the ball when it passed the tree's distance
+            let projectedX = Math.sin(finalRad) * synthTreeDist + (lateralTotal) * flightFraction;
+            
+            // Check if it passed through the canopy horizontally
+            if (Math.abs(projectedX - synthTreeX) < treeRadius) {
+                // Calculate height of the ball at the tree's exact distance
+                let ballHeightFeet = (synthTreeDist * Math.tan(dynamicLoft * Math.PI / 180)) * 3 * (finalPower / 100);
+                
+                if (ballHeightFeet < synthTreeHeight) {
+                    playTone(1200, 'square', 0.1, 0.5);
+                    window.announce(`THWACK! You hit the Synth Tree!`);
+                    totalDistance = Math.round(synthTreeDist);
+                    rollDistance = 2;
+                    carryDistance = totalDistance - rollDistance;
+                    ballY = Math.cos(finalRad) * totalDistance;
+                    ballX = Math.sin(finalRad) * totalDistance;
+                    treeCollisionReport = `[Synth Tree: ${Math.round(synthTreeHeight)}ft. Ball Apex at Tree: ${Math.round(ballHeightFeet)}ft. Result: THWACK]`;
+                } else {
+                    window.announce(`Cleared the Synth Tree!`);
+                    treeCollisionReport = `[Synth Tree: ${Math.round(synthTreeHeight)}ft. Ball Apex at Tree: ${Math.round(ballHeightFeet)}ft. Result: CLEARED]`;
+                }
+            }
+        }
+    }
+
+    // 2. Natural Tree Collision (Course)
+    if (currentHole && currentHole.trees && gameMode === 'course') {
         currentHole.trees.forEach(tree => {
-            // Check if ball path (from 0,0 to ballX,ballY) intersects the tree radius
-            // Simplified check: if the ball lands within or passes very close to the tree
             let distToTree = Math.sqrt(Math.pow(tree.x - ballX, 2) + Math.pow(tree.y - ballY, 2));
             if (distToTree < tree.radius) {
-                let treeDistFromBall = Math.sqrt(Math.pow(tree.x - ballX, 2) + Math.pow(tree.y - ballY, 2));
-                let ballHeightAtTree = (treeDistFromBall * Math.tan(dynamicLoft * Math.PI / 180));
+                let ballHeightAtTree = (distToTree * Math.tan(dynamicLoft * Math.PI / 180));
                 
                 if (ballHeightAtTree < tree.height) {
-                    playTone(1200, 'square', 0.1, 0.5); 
+                    playTone(1200, 'square', 0.1, 0.5);
                     window.announce(`Hit the ${tree.name}!`);
                     ballX = tree.x + (Math.random() * 4 - 2);
-                    ballY = tree.y - 5; 
+                    ballY = tree.y - 5;
                     totalDistance *= 0.4;
                     rollDistance = 2;
-                    treeCollisionReport = `[Tree Check: ${tree.name} is ${tree.height}y tall. Ball height was ${Math.round(ballHeightAtTree)}y. Result: THWACK]`;
+                    treeCollisionReport = `[Tree Check: ${tree.height}y tall. Apex: ${Math.round(ballHeightAtTree)}y. Result: THWACK]`;
                 } else {
                     window.announce(`Sailed right over the ${tree.name}!`);
-                    treeCollisionReport = `[Tree Check: ${tree.name} is ${tree.height}y tall. Ball height was ${Math.round(ballHeightAtTree)}y. Result: CLEARED]`;
+                    treeCollisionReport = `[Tree Check: ${tree.height}y tall. Apex: ${Math.round(ballHeightAtTree)}y. Result: CLEARED]`;
                 }
             }
         });

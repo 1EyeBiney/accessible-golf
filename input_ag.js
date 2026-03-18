@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v3.70.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v3.80.1)
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
@@ -73,6 +73,43 @@ window.addEventListener('keydown', (e) => {
             helpIndex = 0;
             window.announceHelp();
             return;
+        }
+        if ((gameMode === 'range' || (gameMode === 'chipping' && chippingRange === 'long'))) {
+            if (e.code === 'KeyY') {
+                e.preventDefault();
+                if (e.shiftKey && synthTreeActive) {
+                    synthTreeHeight += 10;
+                    if (synthTreeHeight > 100) synthTreeHeight = 20;
+                    window.announce(`Synth Tree height manually adjusted to ${synthTreeHeight} feet.`);
+                } else if (!e.shiftKey) {
+                    synthTreeActive = !synthTreeActive;
+                    if (!synthTreeActive) {
+                        window.announce("Synth Tree removed. Practice area is clear.");
+                    } else {
+                        synthTreeDist = Math.round(calculateDistanceToPin() * 0.70);
+                        synthTreeX = 0;
+                        
+                        // Ghost Simulation for Threshold Math
+                        // Simulating a 110% power shot with perfect impact to find max apex at the tree
+                        let currentStyle = shotStyles[shotStyleIndex];
+                        let dynamicLoft = Math.max(0, club.loft + currentStyle.loftMod + ((2 - stanceIndex) * 5));
+                        
+                        // Trajectory: apex = distance * tan(loft). We multiply by 1.1 to simulate the 110% power boost curve.
+                        let perfectApexFeet = (synthTreeDist * Math.tan(dynamicLoft * Math.PI / 180)) * 3 * 1.1;
+                        synthTreeHeight = perfectApexFeet;
+                        
+                        window.announce(`Synth Tree spawned Dead Center, ${synthTreeDist} yards away. Threshold height set to ${Math.round(synthTreeHeight)} feet based on a 110% power shot with your active club.`);
+                    }
+                }
+                window.updateDashboard();
+                return;
+            }
+            if (synthTreeActive) {
+                if (e.code === 'BracketRight') { e.preventDefault(); synthTreeX += 5; window.announce(`Synth Tree moved to ${synthTreeX} yards Right.`); window.updateDashboard(); return; }
+                if (e.code === 'BracketLeft') { e.preventDefault(); synthTreeX -= 5; window.announce(`Synth Tree moved to ${Math.abs(synthTreeX)} yards Left.`); window.updateDashboard(); return; }
+                if (e.code === 'Equal') { e.preventDefault(); synthTreeDist += 5; window.announce(`Synth Tree moved back to ${synthTreeDist} yards.`); window.updateDashboard(); return; }
+                if (e.code === 'Minus') { e.preventDefault(); synthTreeDist = Math.max(5, synthTreeDist - 5); window.announce(`Synth Tree moved closer to ${synthTreeDist} yards.`); window.updateDashboard(); return; }
+            }
         }
         if (e.code === 'KeyC') {
             e.preventDefault();
@@ -303,6 +340,15 @@ window.addEventListener('keydown', (e) => {
             document.getElementById('visual-output').innerText = typeMsg; 
             window.announce(typeMsg);
             window.updateDashboard();
+        }
+        if (e.code === 'KeyV') {
+            e.preventDefault();
+            isChokedDown = !isChokedDown;
+            const gripMsg = isChokedDown ? "Choked down grip. Distance capped at 90 percent. Control increased." : "Full grip. 100 percent distance.";
+            document.getElementById('visual-output').innerText = gripMsg;
+            window.announce(gripMsg);
+            window.updateDashboard();
+            return;
         }
         if (e.code === 'KeyX') {
             e.preventDefault();
