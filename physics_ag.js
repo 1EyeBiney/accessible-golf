@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.7.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.7.2)
 
 window.initPutting = function() {
     isPutting = true; swingState = 0; puttState = 0;
@@ -125,10 +125,14 @@ function calculateShot(autoMiss = false) {
             ];
         }
 
+        // v4.7.2 Find the actual angle to the pin!
+        let baseHeading = Math.atan2(pinX - ballX, pinY - ballY);
+
         let distTraveled = 0;
         let simX = ballX, simY = ballY;
         let speedRemaining = puttTargetDist * (finalPower / 100);
-        let currentHeading = aimAngle * (Math.PI / 180);
+        // v4.7.2 Apply the aim angle relative to the pin
+        let currentHeading = baseHeading + (aimAngle * (Math.PI / 180));
         
         let madeIt = false, lipOut = false;
         let captureRadius = accuracyScore > 90 ? 0.6 : 0.4; 

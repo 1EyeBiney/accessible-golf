@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.7.1)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.7.2)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -128,19 +128,23 @@ window.getCaddyAdvice = function() {
             advice += `Overall, it plays ${vertStr}, so adjust your target distance. It breaks ${breakStr}, so make sure to aim outside the cup.`;
             return advice;
         } else {
-            // Level 3 God Mode Math (v4.7.1 Center-Seeker)
+            // Level 3 God Mode Math (v4.7.2 True North Fix)
             let bestAim = 0, bestTarget = dist;
             let found = false, smallestMiss = 9999;
 
-            // Generate angles radiating outward from 0 (0, 1, -1, 2, -2...) to find the center of the cup first
+            // Generate angles radiating outward from 0
             let testAngles = [0];
             for (let i = 1; i <= 45; i++) { testAngles.push(i, -i); }
+
+            // v4.7.2 Find the actual angle to the pin!
+            let baseHeading = Math.atan2(pinX - ballX, pinY - ballY);
             
             // Brute force combinations to find the perfect line
             for (let t = Math.max(1, dist - 15); t <= dist + 30; t++) {
                 for (let a of testAngles) {
                     let speedRemaining = t;
-                    let currentHeading = a * (Math.PI / 180);
+                    // v4.7.2 Apply the aim angle relative to the pin
+                    let currentHeading = baseHeading + (a * (Math.PI / 180));
                     let simX = ballX, simY = ballY;
                     let distTraveled = 0;
                     let madeIt = false;
