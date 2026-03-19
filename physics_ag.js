@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.19.3)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.19.5)
 
 window.initPutting = function() {
     isPutting = true; swingState = 0; puttState = 0;
@@ -187,10 +187,10 @@ function calculateShot(autoMiss = false) {
             let delayMs = Math.max(100, 800 / Math.max(0.5, step.speed));
 
             if (step.madeIt) {
-                setTimeout(finishPutt, delayMs + 100);
+                stateTimeouts.push(setTimeout(finishPutt, delayMs + 100));
             } else {
                 stepIndex++;
-                setTimeout(playNextPuttStep, delayMs);
+                stateTimeouts.push(setTimeout(playNextPuttStep, delayMs));
             }
         }
 
@@ -225,7 +225,7 @@ function calculateShot(autoMiss = false) {
             window.announce(broadcast);
             document.getElementById('visual-output').innerText = broadcast;
             
-            setTimeout(() => {
+            stateTimeouts.push(setTimeout(() => {
                 if (gameMode === 'putting') {
                     ballX = 0; ballY = 0; isHoleComplete = false;
                     swingState = 0; strokes = 0; puttState = 0;
@@ -245,7 +245,7 @@ function calculateShot(autoMiss = false) {
                     window.updateDashboard();
                 }
                 if (typeof window.saveGame === 'function') window.saveGame();
-            }, 3000);
+            }, 3000));
         }
 
         // v4.8.0 Putter Strike Sound
@@ -524,7 +524,8 @@ function calculateShot(autoMiss = false) {
     playTone(800, 'triangle', 0.1, 0.6);
     playNoise(hangTimeSecs + 0.3, 0.3, false);
 
-    setTimeout(() => {
+    // v4.19.4 Track flight timeout
+    stateTimeouts.push(setTimeout(() => {
         const loftPenalty = dynamicLoft >= 50 ? 2 : dynamicLoft >= 38 ? 1 : 0;
         const baseBounceCount = rollDistance <= 0 ? 1 : Math.min(6, 1 + Math.floor(rollDistance / 7));
         const bounceCount = Math.max(1, baseBounceCount - loftPenalty);
@@ -551,24 +552,24 @@ function calculateShot(autoMiss = false) {
         } else {
             // Only bounce and roll if NOT in water
             bounceOffsets.forEach((bounceOffsetMs, bounceIndex) => {
-                setTimeout(() => {
+                stateTimeouts.push(setTimeout(() => {
                     const bounceVolume = Math.max(0.12, 1.0 * Math.pow(0.8, bounceIndex));
                     playTone(180, 'sine', 0.12, bounceVolume);
-                }, bounceOffsetMs);
+                }, bounceOffsetMs));
             });
 
             if (rollTimeSecs > 0 && currentLie !== "Sand") {
-                setTimeout(() => {
+                stateTimeouts.push(setTimeout(() => {
                     document.getElementById('visual-output').innerText = "Ball is bouncing and rolling...";
                     playNoise(rollTimeSecs, 0.4, true); 
-                }, bounceSequenceMs);
+                }, bounceSequenceMs));
             }
         }
 
         const shotDesc = flightPathNarrative ? `${contactLabel}. ${flightPathNarrative}.` : `${contactLabel}. ${shotShapeNarrative}.`;
         const windDesc = `Wind pushed it ${Math.abs(windYEffect)} yds ${windYEffect > 0 ? 'long' : windYEffect < 0 ? 'short' : 'nowhere'}, and ${Math.abs(windXEffect)} yds ${windXEffect > 0 ? 'right' : windXEffect < 0 ? 'left' : 'nowhere'}.`;
 
-        setTimeout(() => {
+        stateTimeouts.push(setTimeout(() => {
             let displayX = Math.round(ballX * 10) / 10;
             let dirStr = displayX === 0 ? "dead center" : `${Math.abs(displayX)} yards ${displayX < 0 ? 'left' : 'right'} of center`;
             const sideSpinShape = sideSpinRPM === 0 ? "Straight" : sideSpinRPM > 0 ? "Slice" : "Hook";
@@ -628,7 +629,9 @@ function calculateShot(autoMiss = false) {
                 window.updateDashboard();
             } else {
                 if (isHoleComplete) {
-                    playTone(440, 'sine', 0.2, 0.4); setTimeout(() => playTone(554, 'sine', 0.2, 0.4), 200); setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 400);
+                    playTone(440, 'sine', 0.2, 0.4);
+                    stateTimeouts.push(setTimeout(() => playTone(554, 'sine', 0.2, 0.4), 200));
+                    stateTimeouts.push(setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 400));
                     const completionMessage = `Hole complete! ${shotBroadcast} You reached the green in ${strokes} strokes.`;
                     window.announce(completionMessage);
                     lastShotReport = completionMessage + "\n\nTelemetry:\n" + metrics;
@@ -662,7 +665,8 @@ function calculateShot(autoMiss = false) {
                         }
                         const broadcast = `Stroke ${strokes + 1}${penaltyStr} ${distanceToPin} yards to the pin. ${shotBroadcast}`;
                         
-                        setTimeout(() => {
+                        // Track the Caddy/Transition sequence
+                        stateTimeouts.push(setTimeout(() => {
                             window.announce(broadcast);
                             lastShotReport = broadcast + "\n\nTelemetry:\n" + metrics;
                             holeTelemetry.push(lastShotReport);
@@ -671,23 +675,27 @@ function calculateShot(autoMiss = false) {
 
                             // v4.8.0 Green Transition & Victory Arpeggio
                             if (gameMode === 'course' && currentLie === "Green") {
-                                playTone(440, 'sine', 0.1, 0.5); setTimeout(() => playTone(554, 'sine', 0.1, 0.5), 150); setTimeout(() => playTone(659, 'sine', 0.2, 0.5), 300);
-                                setTimeout(() => { window.initPutting(); }, 3500); // Wait for Caddy to finish reading approach shot
+                                playTone(440, 'sine', 0.1, 0.5);
+                                stateTimeouts.push(setTimeout(() => playTone(554, 'sine', 0.1, 0.5), 150));
+                                stateTimeouts.push(setTimeout(() => playTone(659, 'sine', 0.2, 0.5), 300));
+                                // Track transition delay
+                                stateTimeouts.push(setTimeout(() => { window.initPutting(); }, 3500)); // Wait for Caddy to finish reading approach shot
                             } else {
                                 if (gameMode === 'course') window.updateTargetZone();
                                 driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
                                 window.updateDashboard();
                             }
-                        }, typeof isPutting !== 'undefined' && isPutting && club.name === "Putter" && strokes > 1 ? 1500 : 0);
+                        }, typeof isPutting !== 'undefined' && isPutting && club.name === "Putter" && strokes > 1 ? 1500 : 0));
 
                         // Wait for the timeout to finish, then save
-                        setTimeout(() => { if (typeof window.saveGame === 'function') window.saveGame(); }, 2000);
+                        // Track the Auto-Save delay
+                        stateTimeouts.push(setTimeout(() => { if (typeof window.saveGame === 'function') window.saveGame(); }, 2000));
                     }
                 }
             }
-        }, bounceSequenceMs + (rollTimeSecs * 1000) + 500);
+        }, bounceSequenceMs + (rollTimeSecs * 1000) + 500));
 
-    }, hangTimeSecs * 1000);
+    }, hangTimeSecs * 1000));
 }
 
 window.formatProximity = function(yards) {

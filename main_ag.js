@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.19.3)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.19.5)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -45,6 +45,13 @@ let lastShotReport = "No caddy report available yet.";
 let holeTelemetry = [];
 
 function loadHole(holeNumber) {
+    // v4.19.4 Critical State Clearing (Kill all ghost timers)
+    stateTimeouts.forEach(clearTimeout);
+    stateTimeouts = [];
+    if (typeof powerOscillator !== 'undefined' && powerOscillator) {
+        try { powerOscillator.stop(); } catch (e) {}
+    }
+
     window.initAudio(); // Ensure context is alive
     // v4.18.2 Audio Priming (Sound 37: Bouncing Confirm)
     if (typeof window.playEcho === 'function') {

@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.19.3)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.19.5)
 
 window.addEventListener('keydown', (e) => {
     // v4.11.0 Custom Grid Interceptor
