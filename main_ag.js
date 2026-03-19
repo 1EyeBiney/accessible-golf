@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.18.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.18.2)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -45,6 +45,12 @@ let lastShotReport = "No caddy report available yet.";
 let holeTelemetry = [];
 
 function loadHole(holeNumber) {
+    window.initAudio(); // Ensure context is alive
+    // v4.18.2 Audio Priming (Sound 37: Bouncing Confirm)
+    if (typeof window.playEcho === 'function') {
+        window.playEcho('sine', 600, 800, 0.2, 0.3, 0.2);
+    }
+
     const course = courses[currentCourseIndex];
     if (holeNumber > course.holes.length) holeNumber = 1; 
     const holeData = course.holes[holeNumber - 1];
@@ -508,6 +514,10 @@ window.initGame = function() {
     document.getElementById('game-container').focus();
 
     gameMode = 'clubhouse';
+    // v4.18.2 Prime before Clubhouse announcement path
+    if (typeof window.playEcho === 'function') {
+        window.playEcho('sine', 600, 800, 0.2, 0.3, 0.2);
+    }
     window.buildClubhouseMenu();
 };
 
@@ -519,6 +529,10 @@ window.buildClubhouseMenu = function() {
         clubhouseMenu.push({ text: "Resume Saved Session", action: () => {
             let success = window.loadGame();
             if (success) {
+                // v4.18.2 Prime before restored-session announcement
+                if (typeof window.playEcho === 'function') {
+                    window.playEcho('sine', 600, 800, 0.2, 0.3, 0.2);
+                }
                 document.getElementById('dashboard-panel').style.display = 'grid';
                 document.getElementById('swing-meter').style.display = 'block';
                 window.updateDashboard();
@@ -538,6 +552,10 @@ window.buildClubhouseMenu = function() {
         document.getElementById('dashboard-panel').style.display = 'grid';
         document.getElementById('swing-meter').style.display = 'block';
         document.getElementById('caddy-panel').style.display = 'none';
+        // v4.18.2 Prime before starting a new session flow
+        if (typeof window.playEcho === 'function') {
+            window.playEcho('sine', 600, 800, 0.2, 0.3, 0.2);
+        }
         generateWind(); loadHole(1);
         let targetDist = calculateDistanceToPin();
         let msg = `New Round Started. Hole 1. Par ${par}. ${targetDist} yards. Ready.`;
@@ -600,13 +618,11 @@ function startBackswing(isPractice = false) {
     swingState = 1; hingeTimeBack = 0; hingeTimeDown = 0; lockedImpactTime = 0;
     document.getElementById('visual-output').innerText = isPractice ? `Practice Swing... Addressing...` : `Addressing ball...`;
 
-    // v4.18.0 The Takeaway Buffer (400ms) to prevent audio stutter
-    setTimeout(() => {
-        backswingStartTime = performance.now();
-        document.getElementById('visual-output').innerText = isPractice ? `Practice Backswing...` : `Backswing...`;
-        for (let i = 1; i <= 4; i++) { stateTimeouts.push(setTimeout(() => playTone(600, 'triangle', 0.15, 0.25), i * 500)); }
-        stateTimeouts.push(setTimeout(startPowerPhase, 2000));
-    }, 400);
+    // v4.18.1 Restored instant-start to fix performance.now() desync
+    backswingStartTime = performance.now();
+    document.getElementById('visual-output').innerText = isPractice ? `Practice Backswing...` : `Backswing...`;
+    for (let i = 1; i <= 4; i++) { stateTimeouts.push(setTimeout(() => playTone(600, 'triangle', 0.15, 0.25), i * 500)); }
+    stateTimeouts.push(setTimeout(startPowerPhase, 2000));
 }
 
 function startPowerPhase() {

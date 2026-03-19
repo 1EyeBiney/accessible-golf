@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.18.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.18.1)
 
 window.addEventListener('keydown', (e) => {
     // v4.11.0 Custom Grid Interceptor
@@ -521,6 +521,9 @@ window.addEventListener('keydown', (e) => {
     if (e.code === 'ArrowUp') {
         e.preventDefault();
         if (swingState === 0) startBackswing(true);
+        else if (swingState === 4) {
+            lockedImpactTime = performance.now() - impactStartTime;
+        }
     }
 
     if (e.code === 'Space') {
@@ -767,7 +770,8 @@ window.addEventListener('keydown', (e) => {
 });
 
 window.addEventListener('keyup', (e) => {
-    if (e.code === 'ArrowDown' && (swingState === 1 || swingState === 2)) {
+    // v4.18.1 Allow ArrowUp to release and start downswing during practice
+    if ((e.code === 'ArrowDown' || e.code === 'ArrowUp') && (swingState === 1 || swingState === 2)) {
         e.preventDefault(); startDownswing();
     }
 });
