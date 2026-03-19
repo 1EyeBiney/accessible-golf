@@ -1,6 +1,18 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.9.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.10.0)
 
 window.addEventListener('keydown', (e) => {
+    // v4.10.0 Scorecard Interceptor
+    if (viewingScorecard) {
+        if (e.code === 'Escape' || e.code === 'Enter') {
+            e.preventDefault(); viewingScorecard = false;
+            document.getElementById('scorecard-container').style.display = 'none';
+            document.getElementById('visual-output').style.display = 'block';
+            window.announce("Exited Scorecard.");
+            document.getElementById('visual-output').innerText = getSetupReport();
+        }
+        return; // Let native screen reader table commands pass through
+    }
+
     if (e.code === 'F1') {
         e.preventDefault(); devPower = !devPower; window.announce(`Dev Power 100% ${devPower ? 'On' : 'Off'}`);
     }
@@ -79,6 +91,18 @@ window.addEventListener('keydown', (e) => {
     }
 
     if (swingState === 0 || isHoleComplete) {
+        if (e.code === 'KeyS') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                viewingScorecard = true; window.showScorecard();
+                window.announce("Full Scorecard open. Use your screen reader's native table navigation commands to read. Press Escape to close.");
+            } else {
+                let quick = window.getQuickScore();
+                document.getElementById('visual-output').innerText = quick; window.announce(quick);
+            }
+            return;
+        }
+
         if (e.key === '?') {
             e.preventDefault();
             viewingHelp = true;
@@ -246,7 +270,26 @@ window.addEventListener('keydown', (e) => {
         }
     }
 
-    if (isHoleComplete || e.repeat) return;
+    if (e.repeat) return;
+
+    // v4.10.0 Next Hole Progression
+    if (isHoleComplete && gameMode === 'course') {
+        if (e.code === 'Enter') {
+            e.preventDefault();
+            const course = courses[currentCourseIndex];
+            if (hole < course.holes.length) {
+                loadHole(hole + 1);
+                let targetDist = calculateDistanceToPin();
+                let msg = `Hole ${hole}. Par ${par}. ${targetDist} yards.`;
+                window.announce(msg); document.getElementById('visual-output').innerText = msg;
+            } else {
+                window.announce("Round Complete! Press Shift S to view your final scorecard.");
+            }
+        }
+        return;
+    }
+
+    if (isHoleComplete) return;
     if (swingState === 5) return;
 
     // --- v4.4.1 PUTTING CONTROLS (Mode Toggle) ---
@@ -404,15 +447,6 @@ window.addEventListener('keydown', (e) => {
                 const setupReport = getSetupReport();
                 window.announce(setupReport); document.getElementById('visual-output').innerText = setupReport;
             }
-            window.updateDashboard();
-        }
-        if (e.code === 'KeyS') {
-            e.preventDefault(); 
-            shotStyleIndex = (shotStyleIndex + 1) % shotStyles.length;
-            const style = shotStyles[shotStyleIndex];
-            const typeMsg = `Style: ${style.name}`;
-            document.getElementById('visual-output').innerText = typeMsg; 
-            window.announce(typeMsg);
             window.updateDashboard();
         }
         if (e.code === 'KeyV') {

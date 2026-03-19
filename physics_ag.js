@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.9.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.10.0)
 
 window.initPutting = function() {
     isPutting = true; swingState = 0; puttState = 0;
@@ -98,6 +98,7 @@ function calculateShot(autoMiss = false) {
     if (isPutting) {
         stateTimeouts.forEach(clearTimeout);
         strokes++;
+        puttsThisHole++;
         if (devPower) finalPower = 100; // v4.4.2 FIX: Enforce dev power for putts
         let impactDiff = devImpact ? 0 : Math.round((performance.now() - impactStartTime) - dropDurationMs);
         let hingeDiff = devHinge ? 0 : Math.round(hingeTimeDown - hingeTimeBack);
@@ -198,6 +199,14 @@ function calculateShot(autoMiss = false) {
                 playTone(440, 'sine', 0.2, 0.4); setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 200);
                 resultMsg = "IT'S IN THE HOLE!";
                 isHoleComplete = true;
+
+                // v4.10.0 Push Hole Data
+                if (gameMode === 'course') {
+                    roundData.push({
+                        hole: hole, par: par, distance: courses[currentCourseIndex].holes[hole - 1].distance,
+                        strokes: strokes, putts: puttsThisHole, fir: currentHoleStats.fir, gir: currentHoleStats.gir
+                    });
+                }
             } else {
                 let finalDist = calculateDistanceToPin();
                 if (lipOut) { playTone(150, 'square', 0.1, 0.5); resultMsg = `Lipped out! Hit it too hard.`; } 
@@ -223,7 +232,9 @@ function calculateShot(autoMiss = false) {
                     window.announce(`${broadcast} Resetting ball to ${puttTargetDist} yards. Targeting Mode active. Press T for a new target.`);
                     window.updateDashboard();
                 } else if (isHoleComplete) {
-                    let compMsg = `Hole complete in ${strokes} strokes.`;
+                    let totalRel = 0; roundData.forEach(r => totalRel += (r.strokes - r.par));
+                    let relStr = totalRel === 0 ? "Even Par" : totalRel > 0 ? `+${totalRel}` : `${totalRel}`;
+                    let compMsg = `Hole complete in ${strokes} strokes. You are ${relStr}. Press Enter to proceed to the next hole, or Shift + S for your scorecard.`;
                     window.announce(compMsg); document.getElementById('caddy-panel').innerText = compMsg;
                     swingState = 6;
                 } else {
@@ -500,6 +511,12 @@ function calculateShot(autoMiss = false) {
         ballX = 0; 
     } else if (gameMode === 'course' && distanceToPin <= greenSize) {
         currentLie = "Green";
+    }
+
+    // v4.10.0 Stat Tracking
+    if (gameMode === 'course') {
+        if (strokes === 1 && par > 3 && currentLie === "Fairway") currentHoleStats.fir = true;
+        if (currentLie === "Green" && strokes <= par - 2) currentHoleStats.gir = true;
     }
 
     document.getElementById('visual-output').innerText = "Ball is in the air...";

@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.9.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.10.1)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -14,7 +14,12 @@ let hole = 1, par = 4, strokes = 0;
 let ballX = 0, ballY = 0, pinX = 0, pinY = 420;
 let targetX = 0, targetY = 0, currentZoneIndex = -1;
 let currentLie = "Tee";
-let isHoleComplete = false, gameMode = 'course';
+let isHoleComplete = false;
+let roundData = [];
+let puttsThisHole = 0;
+let currentHoleStats = { fir: null, gir: false };
+let viewingScorecard = false;
+let gameMode = 'course';
 let isPutting = false, puttState = 0, puttTargetDist = 0;
 let viewingHazards = false, hazardIndex = 0;
 let viewingHelp = false, helpIndex = 0;
@@ -41,9 +46,17 @@ function loadHole(holeNumber) {
     pinY = holeData.pinY;
     
     ballX = 0; ballY = 0; strokes = 0; isHoleComplete = false;
+    puttsThisHole = 0;
+    currentHoleStats = { fir: holeData.par > 3 ? false : null, gir: false };
     currentLie = "Tee";
     aimAngle = 0; stanceIndex = 2; stanceAlignment = 0;
     swingState = 0; // FIX: Added state reset
+
+    // v4.10.1 Explicitly wipe short-game states for the new hole
+    isPutting = false;
+    puttState = 0;
+    isChokedDown = false;
+
     holeTelemetry = [];
     window.updateTargetZone();
     viewingHazards = false;
@@ -356,6 +369,38 @@ window.updateDashboard = function() {
     document.getElementById('dash-setup').innerText = `Aim: ${aimStr}\n${stanceNames[stanceIndex]}`;
 };
 
+// v4.10.0 Scorecard System
+window.getQuickScore = function() {
+    if (roundData.length === 0) return "No scores recorded yet. You are Even Par.";
+    let totalStrokes = 0, totalPar = 0;
+    roundData.forEach(r => { totalStrokes += r.strokes; totalPar += r.par; });
+    let rel = totalStrokes - totalPar;
+    let relStr = rel === 0 ? "Even Par" : rel > 0 ? `${rel} Over Par` : `${Math.abs(rel)} Under Par`;
+    return `Through ${roundData.length} holes, you are ${relStr}. Total strokes: ${totalStrokes}.`;
+};
+
+window.showScorecard = function() {
+    let html = `<table id="scorecard-table" tabindex="-1" style="width:100%; border-collapse: collapse; text-align: center; color: white;" border="1" aria-label="Golf Scorecard">
+        <caption>Round Scorecard</caption>
+        <thead><tr><th scope="col">Hole</th><th scope="col">Par</th><th scope="col">Score</th><th scope="col">Putts</th><th scope="col">FIR</th><th scope="col">GIR</th></tr></thead>
+        <tbody>`;
+    let tStrokes = 0, tPar = 0, tPutts = 0;
+    roundData.forEach(r => {
+        tStrokes += r.strokes; tPar += r.par; tPutts += r.putts;
+        let firStr = r.fir === null ? "-" : r.fir ? "Yes" : "No";
+        let girStr = r.gir ? "Yes" : "No";
+        html += `<tr><td>${r.hole}</td><td>${r.par}</td><td>${r.strokes}</td><td>${r.putts}</td><td>${firStr}</td><td>${girStr}</td></tr>`;
+    });
+    let rel = tStrokes - tPar;
+    let relStr = rel === 0 ? "E" : rel > 0 ? `+${rel}` : `${rel}`;
+    html += `</tbody><tfoot><tr><th scope="row" colspan="2">TOTAL (${relStr})</th><td>${tStrokes}</td><td>${tPutts}</td><td>-</td><td>-</td></tr></tfoot></table>`;
+
+    document.getElementById('scorecard-container').innerHTML = html;
+    document.getElementById('scorecard-container').style.display = 'block';
+    document.getElementById('visual-output').style.display = 'none';
+    document.getElementById('scorecard-table').focus();
+};
+
 // v4.9.0 Autosave & Persistence System
 window.saveGame = function() {
     const state = {
@@ -364,7 +409,8 @@ window.saveGame = function() {
         currentLie, isHoleComplete, isPutting, puttState, puttTargetDist,
         windX, windY, windLevelIndex,
         holeTelemetry, lastShotReport,
-        currentClubIndex, shotStyleIndex
+        currentClubIndex, shotStyleIndex,
+        roundData, puttsThisHole, currentHoleStats
     };
     try { localStorage.setItem('ag_save_state', JSON.stringify(state)); } catch(e) {}
 };
@@ -384,6 +430,9 @@ window.loadGame = function() {
         windX = state.windX; windY = state.windY; windLevelIndex = state.windLevelIndex;
         holeTelemetry = state.holeTelemetry || []; lastShotReport = state.lastShotReport || "Game loaded.";
         currentClubIndex = state.currentClubIndex || 0; shotStyleIndex = state.shotStyleIndex || 0;
+        roundData = state.roundData || [];
+        puttsThisHole = state.puttsThisHole || 0;
+        currentHoleStats = state.currentHoleStats || { fir: null, gir: false };
 
         club = clubs[currentClubIndex];
         return true;
