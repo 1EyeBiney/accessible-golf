@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.14.5)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.16.0)
 
 window.addEventListener('keydown', (e) => {
     // v4.11.0 Custom Grid Interceptor
@@ -464,11 +464,24 @@ window.addEventListener('keydown', (e) => {
         }
 
         if (puttState === 0) {
-            // Targeting Mode
-            if (e.code === 'ArrowUp') { e.preventDefault(); puttTargetDist += 1; window.announce(`Target ${puttTargetDist} yards`); window.updateDashboard(); return; }
-            if (e.code === 'ArrowDown') { e.preventDefault(); puttTargetDist = Math.max(1, puttTargetDist - 1); window.announce(`Target ${puttTargetDist} yards`); window.updateDashboard(); return; }
-            if (e.code === 'ArrowRight') { e.preventDefault(); aimAngle += 1; window.announce(`Aim ${Math.abs(aimAngle)}° ${aimAngle < 0 ? 'Left' : 'Right'}`); window.updateDashboard(); return; }
-            if (e.code === 'ArrowLeft') { e.preventDefault(); aimAngle -= 1; window.announce(`Aim ${Math.abs(aimAngle)}° ${aimAngle < 0 ? 'Left' : 'Right'}`); window.updateDashboard(); return; }
+            // v4.16.0 The Cup Locator
+            let updatePuttTarget = () => {
+                let distToPin = 0;
+                if (typeof calculateDistanceToPin === 'function') distToPin = Math.round(calculateDistanceToPin());
+                else distToPin = Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
+                
+                let isCup = (puttTargetDist === distToPin && aimAngle === 0);
+                let locStr = isCup ? " (The Cup)" : "";
+                let aimStr = aimAngle === 0 ? "Center" : `${Math.abs(aimAngle)}° ${aimAngle < 0 ? 'Left' : 'Right'}`;
+                let msg = `Target: ${puttTargetDist} yards, Aim: ${aimStr}${locStr}`;
+                window.announce(msg);
+                window.updateDashboard();
+            };
+            
+            if (e.code === 'ArrowUp') { e.preventDefault(); puttTargetDist += 1; updatePuttTarget(); return; }
+            if (e.code === 'ArrowDown') { e.preventDefault(); puttTargetDist = Math.max(1, puttTargetDist - 1); updatePuttTarget(); return; }
+            if (e.code === 'ArrowRight') { e.preventDefault(); aimAngle += 1; updatePuttTarget(); return; }
+            if (e.code === 'ArrowLeft') { e.preventDefault(); aimAngle -= 1; updatePuttTarget(); return; }
         } else if (puttState === 1) {
             // Swing Mode: Block other arrows, let ArrowDown pass to the swing initiator
             if (e.code === 'ArrowUp' || e.code === 'ArrowLeft' || e.code === 'ArrowRight') {

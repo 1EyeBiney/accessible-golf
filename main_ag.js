@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.14.4)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.16.1)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -69,6 +69,7 @@ function loadHole(holeNumber) {
     activeTargetType = 'pin';
     gridX = 0; gridY = 0;
     targetZoneIndex = 0;
+    isGridNavigating = false; // v4.16.1 Grid Warp Safety Lock
 
     holeTelemetry = [];
     window.updateTargetZone();
@@ -121,6 +122,53 @@ window.updateTargetZone = function() {
 window.getCaddyAdvice = function() {
     if (gameMode !== 'course') return "Oracle mode is available on the course only.";
 
+    // v4.16.0 Restored Putting Caddy
+    if (typeof isPutting !== 'undefined' && isPutting) {
+        let distToPin = 0;
+        if (typeof calculateDistanceToPin === 'function') distToPin = Math.round(calculateDistanceToPin());
+        else distToPin = Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
+
+        const holeData = courses[currentCourseIndex].holes[hole - 1];
+        
+        let contourMsg = "The green is flat.";
+        let pwrAdj = 0;
+        let aimAdj = 0;
+        
+        if (holeData.greenType && typeof greenDictionary !== 'undefined') {
+            let activeContours = greenDictionary[holeData.greenType] || [];
+            let descriptions = [];
+            
+            activeContours.forEach(z => {
+                if (distToPin >= z.endY) {
+                    let vert = z.slopeY > 0 ? "uphill" : z.slopeY < 0 ? "downhill" : "";
+                    let horiz = z.slopeX > 0 ? "right" : z.slopeX < 0 ? "left" : "";
+                    let breakStr = "";
+                    if (vert && horiz) breakStr = `${vert} and breaks ${horiz}`;
+                    else if (vert) breakStr = vert;
+                    else if (horiz) breakStr = `breaks ${horiz}`;
+                    
+                    let start = Math.min(distToPin, z.startY);
+                    if (start > z.endY && breakStr) {
+                        descriptions.push(`From ${start} to ${z.endY} yards, it plays ${breakStr}.`);
+                    }
+                    
+                    let distInZone = start - z.endY;
+                    aimAdj += (z.slopeX * distInZone * 1.5);
+                    pwrAdj += (z.slopeY * distInZone * 2.0);
+                }
+            });
+            if (descriptions.length > 0) contourMsg = descriptions.join(" ");
+        }
+        
+        if (caddyLevel === 1) return `[Rookie]: ${distToPin} yards to the cup. It's on the green.`;
+        if (caddyLevel === 2) return `[Veteran]: ${distToPin} yards out. ${contourMsg}`;
+        
+        let playDist = Math.max(1, Math.round(distToPin + pwrAdj));
+        let aimStr = Math.abs(aimAdj) < 1 ? "Dead Center" : `${Math.abs(Math.round(aimAdj))} degrees ${aimAdj < 0 ? 'Left' : 'Right'}`;
+        return `[Oracle Putting]: ${distToPin} yards. ${contourMsg} To sink it, aim ${aimStr} and hit it with ${playDist} yards of pace.`;
+    }
+
+    // --- v4.14.1 Fairway Oracle Below ---
     const holeData = courses[currentCourseIndex].holes[hole - 1];
     let targetPoint = { x: pinX, y: pinY, label: "Pin" };
 
@@ -139,42 +187,34 @@ window.getCaddyAdvice = function() {
     const baseHeading = Math.atan2(dx, dy);
     const targetDist = Math.round(Math.sqrt((dx * dx) + (dy * dy)));
 
-    const style = shotStyles[0]; // Full swing baseline for Oracle simulation
-    
-    // v4.14.1 Apply the Physics Engine Lie Penalties
+    const style = shotStyles[0]; 
     let lieMultiplier = currentLie === 'Sand' ? 0.70 : (currentLie === 'Light Rough' || currentLie === 'Rough') ? 0.90 : 1.0;
 
     const simulatedClubs = [];
     for (let i = 0; i < 14; i++) simulatedClubs.push(clubs[i % clubs.length]);
 
     let best = null;
-    let sims = 0;
 
     simulatedClubs.forEach(simClub => {
-        if (simClub.name === "Putter") return; // Skip putter
+        if (simClub.name === "Putter") return; 
         
         for (let simStance = 0; simStance < 5; simStance++) {
-            sims++;
-
             let dynamicLoft = Math.max(0, simClub.loft + style.loftMod + ((2 - simStance) * 5));
             let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
             let totalDist = simClub.baseDistance * style.distMod * loftDistMod * lieMultiplier;
             
-            // v4.14.1 Advanced Spin-Roll Math
             let backspinRPM = Math.max(400, Math.round((simClub.loft * 150) + 1000 + ((simStance - 2) * 500) + style.spinMod));
             let spinRollMod = Math.max(0.1, 1 - ((backspinRPM - 4000) / 10000));
             let rollDist = totalDist * simClub.rollPct * style.rollMod * spinRollMod;
             let carryDist = Math.max(1, totalDist - rollDist);
 
             let hangTime = Math.min(6, Math.max(0.5, (totalDist / 60) + (dynamicLoft / 15)));
-            
-            // v4.14.1 Synchronized Wind Math (hangTime / 2.5)
             let windForward = windY * (hangTime / 2.5) * style.windMod;
             let windCross = windX * (hangTime / 2.5) * style.windMod;
 
             let desiredHeading = Math.atan2((targetPoint.x - ballX) - windCross, (targetPoint.y - ballY) - windForward);
             let aimDeg = Math.round((desiredHeading - baseHeading) * (180 / Math.PI));
-            aimDeg = Math.max(-45, Math.min(45, aimDeg)); // Realistic aim limits
+            aimDeg = Math.max(-45, Math.min(45, aimDeg)); 
 
             let heading = baseHeading + (aimDeg * Math.PI / 180);
             let effectiveCarry = carryDist + windForward;
@@ -190,8 +230,7 @@ window.getCaddyAdvice = function() {
                     clubName: simClub.name,
                     stanceName: stanceNames[simStance],
                     aimDeg,
-                    miss,
-                    totalDist: Math.round(totalDist + windForward)
+                    miss
                 };
             }
         }
@@ -200,7 +239,9 @@ window.getCaddyAdvice = function() {
     if (!best) return "Oracle unavailable. Unable to compute tactical targeting right now.";
 
     const aimStr = best.aimDeg === 0 ? "Center" : `${Math.abs(best.aimDeg)} degrees ${best.aimDeg < 0 ? 'Left' : 'Right'}`;
-    return `[Oracle v4.14.1] Target: ${targetPoint.label} (${targetDist}y). Evaluated ${sims} parameters. Best line: ${best.clubName}, ${best.stanceName}, aim ${aimStr}. Predicted miss: ${Math.round(best.miss)} yards.`;
+    
+    // v4.16.0 Concise Fairway Oracle
+    return `[Oracle]: To hit ${targetPoint.label} (${targetDist}y), equip ${best.clubName}, ${best.stanceName} stance, aim ${aimStr}.`;
 };
 
 window.announceGridPosition = function(initElevation = "") {
