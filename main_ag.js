@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.14.3)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.14.4)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -16,6 +16,7 @@ let targetX = 0, targetY = 0, currentZoneIndex = -1;
 let activeTargetType = 'pin'; // 'pin', 'zone', or 'grid'
 let gridX = 0, gridY = 0; // Relative to the pin
 let targetZoneIndex = 0;
+let isGridNavigating = false;
 let currentLie = "Tee";
 let isHoleComplete = false;
 let roundData = [];
@@ -202,11 +203,11 @@ window.getCaddyAdvice = function() {
     return `[Oracle v4.14.1] Target: ${targetPoint.label} (${targetDist}y). Evaluated ${sims} parameters. Best line: ${best.clubName}, ${best.stanceName}, aim ${aimStr}. Predicted miss: ${Math.round(best.miss)} yards.`;
 };
 
-window.announceGridPosition = function() {
+window.announceGridPosition = function(initElevation = "") {
     targetX = pinX + gridX;
     targetY = pinY + gridY;
     let distToTarget = calculateDistanceToTarget();
-    let distToPin = Math.sqrt(Math.pow(gridX, 2) + Math.pow(gridY, 2));
+    let distToPin = Math.sqrt(Math.pow(gridX, 2) + Math.pow(gridY, 2)); 
     
     // v4.14.3 Predictive Topography (Effect Translator)
     let effectStr = "Plays flat";
@@ -225,8 +226,15 @@ window.announceGridPosition = function() {
             }
         }
     }
+
+    // v4.14.4 Clean Coordinate Formatting
+    let squareStr = (gridX === 0 && gridY === 0)
+        ? "The Pin"
+        : `${Math.abs(gridY)} yards ${gridY < 0 ? 'Short' : 'Past'}, ${Math.abs(gridX)} yards ${gridX < 0 ? 'Left' : 'Right'} of pin`;
+
+    let elevStr = initElevation ? ` ${initElevation}` : "";
     
-    let msg = `Target Square: ${Math.abs(gridY)} yards ${gridY < 0 ? 'Short' : 'Past'}, ${Math.abs(gridX)} yards ${gridX < 0 ? 'Left' : 'Right'} of pin. Effect: ${effectStr}. Distance: ${distToTarget} yards.`;
+    let msg = `Target Square: ${squareStr}.${elevStr} Effect: ${effectStr}. Distance: ${distToTarget} yards.`;
     window.announce(msg);
     document.getElementById('visual-output').innerText = msg;
 };

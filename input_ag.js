@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.14.3)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.14.5)
 
 window.addEventListener('keydown', (e) => {
     // v4.11.0 Custom Grid Interceptor
@@ -31,7 +31,7 @@ window.addEventListener('keydown', (e) => {
     }
 
     // v4.14.0 Grid Target Navigation Interceptor
-    if (activeTargetType === 'grid') {
+    if (activeTargetType === 'grid' && isGridNavigating) {
         e.preventDefault();
 
         if (e.code === 'ArrowUp') {
@@ -49,9 +49,39 @@ window.addEventListener('keydown', (e) => {
         } else if (e.code === 'Escape' || e.code === 'Enter') {
             targetX = pinX + gridX;
             targetY = pinY + gridY;
-            activeTargetType = 'grid'; // v4.14.1 FIX: Keep it locked to the grid!
-            window.announce("Grid target locked. Returning to swing mode.");
-            document.getElementById('visual-output').innerText = getSetupReport();
+            isGridNavigating = false; 
+            activeTargetType = 'grid'; 
+
+            // v4.14.5 Pin Finder Auto-Equip
+            let distToTarget = Math.round(Math.sqrt(Math.pow(targetX - ballX, 2) + Math.pow(targetY - ballY, 2)));
+            let lieMultiplier = currentLie === 'Sand' ? 0.70 : (currentLie === 'Light Rough' || currentLie === 'Rough') ? 0.90 : 1.0;
+            let currentStyle = shotStyles[shotStyleIndex];
+            let chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
+            let bestClubIndex = currentClubIndex;
+            let smallestDiff = 9999;
+
+            for (let i = 0; i < clubs.length; i++) {
+                if (clubs[i].name === "Putter") continue;
+                
+                // Evaluate using the CURRENT stance, do not change it
+                let dynamicLoft = Math.max(0, clubs[i].loft + currentStyle.loftMod + ((2 - stanceIndex) * 5));
+                let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
+                let expectedDist = clubs[i].baseDistance * lieMultiplier * loftDistMod * chokeMod;
+                
+                let diff = Math.abs(expectedDist - distToTarget);
+                if (diff < smallestDiff) { 
+                    smallestDiff = diff; 
+                    bestClubIndex = i; 
+                }
+            }
+            
+            currentClubIndex = bestClubIndex; 
+            club = clubs[currentClubIndex];
+            aimAngle = 0; // Reset aim directly at the new target
+
+            let msg = `Pin Finder target locked at ${distToTarget} yards. Auto-equipped ${club.name}. Returning to swing mode.`;
+            window.announce(msg);
+            document.getElementById('visual-output').innerText = msg;
             window.updateDashboard();
         }
         return;
@@ -638,7 +668,8 @@ window.addEventListener('keydown', (e) => {
         if (e.code === 'KeyT') {
             e.preventDefault(); 
             if (e.shiftKey) {
-                if (activeTargetType === 'grid') {
+                if (isGridNavigating) {
+                    isGridNavigating = false;
                     activeTargetType = 'pin';
                     targetX = pinX;
                     targetY = pinY;
@@ -646,10 +677,26 @@ window.addEventListener('keydown', (e) => {
                     window.announce(msg);
                     document.getElementById('visual-output').innerText = msg;
                 } else {
+                    isGridNavigating = true;
                     activeTargetType = 'grid';
                     gridX = 0;
                     gridY = 0;
-                    window.announceGridPosition();
+
+                    // v4.14.4 Calculate initial elevation to pin
+                    let initElevation = "Plays flat.";
+                    let distToPin = calculateDistanceToPin();
+                    if (gameMode === 'course') {
+                        const holeData = courses[currentCourseIndex].holes[hole - 1];
+                        if (distToPin <= 50 && holeData.greenType && typeof greenDictionary !== 'undefined') {
+                            let activeContours = greenDictionary[holeData.greenType] || [];
+                            let zone = activeContours.find(z => distToPin <= z.startY && distToPin > z.endY);
+                            if (zone) {
+                                if (zone.slopeY > 0) initElevation = "Plays Uphill.";
+                                if (zone.slopeY < 0) initElevation = "Plays Downhill.";
+                            }
+                        }
+                    }
+                    window.announceGridPosition(initElevation);
                 }
                 window.updateDashboard();
                 return;
