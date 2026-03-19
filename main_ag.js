@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.18.3)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.19.2)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -54,6 +54,13 @@ function loadHole(holeNumber) {
     const course = courses[currentCourseIndex];
     if (holeNumber > course.holes.length) holeNumber = 1; 
     const holeData = course.holes[holeNumber - 1];
+
+    // v4.19.2 Dynamic Landing Zone Fallback (Par 3 Safety)
+    if (!holeData.landingZones || holeData.landingZones.length === 0) {
+        holeData.landingZones = [
+            { name: "Green Approach", x: holeData.pinX, y: holeData.pinY - 15 }
+        ];
+    }
     
     hole = holeData.number;
     par = holeData.par;
@@ -616,11 +623,10 @@ function startBackswing(isPractice = false) {
     window.initAudio();
     isPracticeSwing = isPractice;
     swingState = 1; hingeTimeBack = 0; hingeTimeDown = 0; lockedImpactTime = 0;
-    document.getElementById('visual-output').innerText = isPractice ? `Practice Swing... Addressing...` : `Addressing ball...`;
+    document.getElementById('visual-output').innerText = isPractice ? "Practice Swing... Addressing..." : "Addressing ball...";
 
-    // v4.18.1 Restored instant-start to fix performance.now() desync
     backswingStartTime = performance.now();
-    document.getElementById('visual-output').innerText = isPractice ? `Practice Backswing...` : `Backswing...`;
+    document.getElementById('visual-output').innerText = isPractice ? "Practice Backswing..." : "Backswing...";
     for (let i = 1; i <= 4; i++) { stateTimeouts.push(setTimeout(() => playTone(600, 'triangle', 0.15, 0.25), i * 500)); }
     stateTimeouts.push(setTimeout(startPowerPhase, 2000));
 }
@@ -633,7 +639,7 @@ function startPowerPhase() {
     powerOscillator.type = 'sine';
     powerOscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
     powerOscillator.frequency.linearRampToValueAtTime(1050, audioCtx.currentTime + 2.5);
-    powerGain.gain.setValueAtTime(Math.min(1, 0.4 * CONTINUOUS_GAIN_BOOST), audioCtx.currentTime);
+    powerGain.gain.setValueAtTime(Math.min(1, 0.4 * (typeof CONTINUOUS_GAIN_BOOST !== 'undefined' ? CONTINUOUS_GAIN_BOOST : 1.0)), audioCtx.currentTime);
     powerOscillator.connect(powerGain); powerGain.connect(audioCtx.destination);
     powerOscillator.start();
 
@@ -650,7 +656,7 @@ function startDownswing() {
     finalPower = Math.min(120, Math.round(25 + ((elapsed / 2000) * 75)));
     if (powerOscillator) { powerOscillator.stop(); }
     downswingStartTime = performance.now();
-    document.getElementById('visual-output').innerText = `Downswing...`;
+    document.getElementById('visual-output').innerText = isPracticeSwing ? "Practice Downswing..." : "Downswing...";
     for (let i = 1; i <= 4; i++) { stateTimeouts.push(setTimeout(() => playTone(600, 'triangle', 0.15, 0.25), i * 500)); }
     stateTimeouts.push(setTimeout(startImpactPhase, 2000));
 }
@@ -665,19 +671,18 @@ function startImpactPhase() {
     osc.type = 'sine';
     osc.frequency.setValueAtTime(100 + (finalPower * 8), audioCtx.currentTime);
     osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + (dropDurationMs / 1000));
-    gain.gain.setValueAtTime(Math.min(1, 0.4 * CONTINUOUS_GAIN_BOOST), audioCtx.currentTime);
+    gain.gain.setValueAtTime(Math.min(1, 0.4 * (typeof CONTINUOUS_GAIN_BOOST !== 'undefined' ? CONTINUOUS_GAIN_BOOST : 1.0)), audioCtx.currentTime);
     gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + (dropDurationMs / 1000));
     osc.connect(gain); gain.connect(audioCtx.destination);
     osc.start(); osc.stop(audioCtx.currentTime + (dropDurationMs / 1000) + 0.1);
 
     [75, 50, 25].forEach(m => { if (finalPower > m) stateTimeouts.push(setTimeout(() => triggerMilestone(m), (finalPower - m) * 15)); });
+    
+    // v4.19.0 Restoration: Timeout only triggers the Whiff (calculateShot true)
     stateTimeouts.push(setTimeout(() => { 
         if (swingState === 4) {
-            if (isPracticeSwing && typeof window.evaluatePracticeSwing === 'function') {
-                window.evaluatePracticeSwing();
-            } else if (typeof calculateShot === 'function') {
-                calculateShot(true);
-            }
+            if (isPracticeSwing) window.evaluatePracticeSwing();
+            else if (typeof calculateShot === 'function') calculateShot(true);
         } 
     }, dropDurationMs + 400));
 }
@@ -707,27 +712,6 @@ window.evaluatePracticeSwing = function() {
     swingState = 0;
     isPracticeSwing = false;
     window.updateDashboard();
-};
-
-window.finalizeImpact = function() {
-    if (swingState !== 4) return;
-    
-    // 1. Lock the time if it hasn't been set yet
-    if (lockedImpactTime === 0) lockedImpactTime = performance.now() - impactStartTime;
-    
-    // 2. Stop all pending timeouts (milestone pings and auto-whiff timer)
-    stateTimeouts.forEach(clearTimeout);
-    stateTimeouts = [];
-    
-    // 3. Advance state to Flight/Complete
-    swingState = 5;
-    
-    // 4. Fire the appropriate logic
-    if (isPracticeSwing) {
-        window.evaluatePracticeSwing();
-    } else if (typeof calculateShot === 'function') {
-        calculateShot(true);
-    }
 };
 
 window.drawMeter = function() {

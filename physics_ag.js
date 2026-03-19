@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.10.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.19.2)
 
 window.initPutting = function() {
     isPutting = true; swingState = 0; puttState = 0;
@@ -9,7 +9,8 @@ window.initPutting = function() {
     puttTargetDist = dist; aimAngle = 0;
     
     let locationStr = gameMode === 'putting' ? "Welcome to the Practice Putting Green." : "On the green!";
-    let msg = `${locationStr} ${dist} yards to the cup. Targeting Mode. Use Arrows to aim and set target. Press P to Swing.`;
+    // v4.19.2 Updated Unified Control Instructions
+    let msg = `${locationStr} ${dist} yards to the cup. Targeting Mode active. Use arrows to adjust aim and distance, then press Enter to lock.`;
     window.announce(msg);
     document.getElementById('visual-output').innerText = msg;
     window.updateDashboard();

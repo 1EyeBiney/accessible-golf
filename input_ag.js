@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.18.3)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.19.2)
 
 window.addEventListener('keydown', (e) => {
     // v4.11.0 Custom Grid Interceptor
@@ -514,8 +514,7 @@ window.addEventListener('keydown', (e) => {
         e.preventDefault();
         if (swingState === 0) startBackswing(false);
         else if (swingState === 4) {
-            lockedImpactTime = performance.now() - impactStartTime;
-            window.finalizeImpact(); // v4.18.3 Instant Feedback
+            if (typeof calculateShot === 'function') calculateShot(false); // Success!
         }
     }
 
@@ -524,7 +523,7 @@ window.addEventListener('keydown', (e) => {
         if (swingState === 0) startBackswing(true);
         else if (swingState === 4) {
             lockedImpactTime = performance.now() - impactStartTime;
-            window.finalizeImpact(); // v4.18.3 Instant Feedback
+            if (typeof window.evaluatePracticeSwing === 'function') window.evaluatePracticeSwing();
         }
     }
 
@@ -546,11 +545,16 @@ window.addEventListener('keydown', (e) => {
         }
         if (e.code === 'KeyS') {
             e.preventDefault();
-            if (e.shiftKey) stanceIndex = Math.min(4, stanceIndex + 1);
-            else stanceIndex = Math.max(0, stanceIndex - 1);
-            const stanceReport = getStanceReport();
-            document.getElementById('visual-output').innerText = stanceReport;
-            window.announce(stanceReport);
+            // v4.19.1 Cycle Swing Styles
+            if (e.shiftKey) {
+                shotStyleIndex = (shotStyleIndex + 1) % shotStyles.length;
+            } else {
+                shotStyleIndex = (shotStyleIndex - 1 + shotStyles.length) % shotStyles.length;
+            }
+            const style = shotStyles[shotStyleIndex];
+            const msg = `Swing Style: ${style.name}.`;
+            document.getElementById('visual-output').innerText = msg;
+            window.announce(msg);
             window.updateDashboard();
             return;
         }
@@ -772,7 +776,6 @@ window.addEventListener('keydown', (e) => {
 });
 
 window.addEventListener('keyup', (e) => {
-    // v4.18.1 Allow ArrowUp to release and start downswing during practice
     if ((e.code === 'ArrowDown' || e.code === 'ArrowUp') && (swingState === 1 || swingState === 2)) {
         e.preventDefault(); startDownswing();
     }
