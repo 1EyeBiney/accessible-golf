@@ -1,4 +1,4 @@
-// data_ag.js - Course Data, Clubs, and Shot Styles (v4.7.0)
+// data_ag.js - Course Data, Clubs, and Shot Styles (v4.14.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -85,6 +85,11 @@ const courses = [
                     { level: 3, trigger: 'Trouble_Right', text: 'You are blocked by the trees on the right. Pitch out to the fairway.' }
                 ],
                 hazards: [{ type: "Water", distance: 100, depth: 250, side: "Left", offset: -45, width: 40 }],
+                landingZones: [
+                    { name: "First Landing Zone", x: 0, y: 240 },
+                    { name: "Layup Area", x: -20, y: 380 },
+                    { name: "Aggressive Approach", x: 15, y: 410 }
+                ],
                 zones: [{ name: "Safe Drive", x: 0, y: 250 }],
                 trees: [
                     { x: 15, y: 200, radius: 5, height: 25, name: "Oak Tree" },

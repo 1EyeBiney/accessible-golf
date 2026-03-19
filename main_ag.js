@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.12.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.14.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -8,11 +8,14 @@ let backswingStartTime = 0, downswingStartTime = 0, impactStartTime = 0, powerSt
 let hingeTimeBack = 0, hingeTimeDown = 0;
 let finalPower = 0, dropDurationMs = 0;
 let lockedImpactTime = 0;
-let windX = 0, windY = 0, windLevelIndex = 3; 
+let windX = 0, windY = 0, windLevelIndex = 0; // v4.13.0 Calm Default
 let aimAngle = 0, stanceIndex = 2, stanceAlignment = 0, isChokedDown = false;
 let hole = 1, par = 4, strokes = 0;
 let ballX = 0, ballY = 0, pinX = 0, pinY = 420;
 let targetX = 0, targetY = 0, currentZoneIndex = -1;
+let activeTargetType = 'pin'; // 'pin', 'zone', or 'grid'
+let gridX = 0, gridY = 0; // Relative to the pin
+let targetZoneIndex = 0;
 let currentLie = "Tee";
 let isHoleComplete = false;
 let roundData = [];
@@ -27,7 +30,7 @@ let clubhouseIndex = 0;
 let isPutting = false, puttState = 0, puttTargetDist = 0;
 let viewingHazards = false, hazardIndex = 0;
 let viewingHelp = false, helpIndex = 0;
-let rangeLie = 'Fairway', confirmingRange = false;
+let rangeLie = 'Fairway', confirmingRange = false, confirmingQuit = false;
 let synthTreeActive = false;
 let synthTreeX = 0;
 let synthTreeDist = 0;
@@ -110,212 +113,84 @@ window.updateTargetZone = function() {
 };
 
 window.getCaddyAdvice = function() {
-    // v4.4.0 Narrative Caddy
-    if (isPutting) {
-        let dist = calculateDistanceToPin();
-        let activeContours = [];
-        if (gameMode === 'course') {
-            const holeData = courses[currentCourseIndex].holes[hole - 1];
-            if (holeData.greenType && typeof greenDictionary !== 'undefined') {
-                activeContours = greenDictionary[holeData.greenType] || [];
-            }
-        } else if (gameMode === 'putting') {
-            activeContours = [
-                { startY: 45, endY: 25, slopeX: 0.8, slopeY: 0.4 },
-                { startY: 25, endY: 10, slopeX: -0.3, slopeY: 0.0 },
-                { startY: 10, endY: 0, slopeX: 0.6, slopeY: -0.3 }
-            ];
-        }
+    if (gameMode !== 'course') return "Oracle mode is available on the course only.";
 
-        if (activeContours.length === 0) return "This green is perfectly flat. Aim dead center and hit it " + dist + " yards.";
-
-        let relevantZones = activeContours.filter(z => z.endY < dist);
-        if (relevantZones.length === 0) return "This putt looks straight and flat from here.";
-
-        let netSlopeX = 0, netSlopeY = 0;
-        relevantZones.forEach(z => { netSlopeX += z.slopeX; netSlopeY += z.slopeY; });
-
-        let vertStr = netSlopeY > 0 ? "uphill" : netSlopeY < 0 ? "downhill" : "flat";
-        let breakStr = netSlopeX > 0 ? "right-to-left" : netSlopeX < 0 ? "left-to-right" : "straight";
-
-        if (caddyLevel === 1) {
-            return `You have ${dist} yards left. Looks like it plays ${vertStr} and breaks ${breakStr}.`;
-        } else if (caddyLevel === 2) {
-            let advice = `It's a ${dist} yard putt. `;
-            if (relevantZones.length > 1) advice += "It's a tricky multi-tier putt. ";
-            advice += `Overall, it plays ${vertStr}, so adjust your target distance. It breaks ${breakStr}, so make sure to aim outside the cup.`;
-            return advice;
-        } else {
-            // Level 3 God Mode Math (v4.7.2 True North Fix)
-            let bestAim = 0, bestTarget = dist;
-            let found = false, smallestMiss = 9999;
-
-            // Generate angles radiating outward from 0
-            let testAngles = [0];
-            for (let i = 1; i <= 45; i++) { testAngles.push(i, -i); }
-
-            // v4.7.2 Find the actual angle to the pin!
-            let baseHeading = Math.atan2(pinX - ballX, pinY - ballY);
-            
-            // Brute force combinations to find the perfect line
-            for (let t = Math.max(1, dist - 15); t <= dist + 30; t++) {
-                for (let a of testAngles) {
-                    let speedRemaining = t;
-                    // v4.7.2 Apply the aim angle relative to the pin
-                    let currentHeading = baseHeading + (a * (Math.PI / 180));
-                    let simX = ballX, simY = ballY;
-                    let distTraveled = 0;
-                    let madeIt = false;
-                    
-                    while (speedRemaining > 0 && distTraveled < 100) {
-                        let stepDist = Math.min(1.0, speedRemaining);
-                        let currentDistToHole = Math.sqrt(Math.pow(pinX - simX, 2) + Math.pow(pinY - simY, 2));
-                        
-                        if (currentDistToHole <= 0.6 && speedRemaining <= 2.5) { madeIt = true; break; }
-                        
-                        let zone = activeContours.find(z => currentDistToHole <= z.startY && currentDistToHole > z.endY);
-                        let sx = zone ? zone.slopeX : 0;
-                        let sy = zone ? zone.slopeY : 0; 
-                        
-                        currentHeading -= (sx * 0.05);
-                        simX += Math.sin(currentHeading) * stepDist;
-                        simY += Math.cos(currentHeading) * stepDist;
-                        distTraveled += stepDist;
-                        speedRemaining -= (1.0 + (sy * 0.15));
-                    }
-                    
-                    let missDist = Math.sqrt(Math.pow(pinX - simX, 2) + Math.pow(pinY - simY, 2));
-                    if (madeIt) { bestAim = a; bestTarget = t; found = true; break; }
-                    if (missDist < smallestMiss) { smallestMiss = missDist; bestAim = a; bestTarget = t; }
-                }
-                if (found) break;
-            }
-
-            let aimDir = bestAim < 0 ? "Left" : bestAim > 0 ? "Right" : "Center";
-            let msg = `[God Mode Read]: ${dist} yards out. `;
-            relevantZones.forEach(zone => {
-                let segmentLength = Math.min(dist, zone.startY) - zone.endY;
-                let zVert = zone.slopeY > 0 ? "uphill" : zone.slopeY < 0 ? "downhill" : "flat";
-                let zBreak = zone.slopeX > 0 ? "Right-to-Left" : zone.slopeX < 0 ? "Left-to-Right" : "straight";
-                msg += `For ${Math.round(segmentLength)}y, it's ${zVert} and breaks ${zBreak}. `;
-            });
-            msg += `To sink this at 100% power, set your target to ${bestTarget} yards and aim ${Math.abs(bestAim)}° ${aimDir}.`;
-            return msg;
-        }
-    }
-
-    if (gameMode === 'range' || (gameMode === 'chipping' && chippingRange === 'long')) {
-        if (!synthTreeActive) return "The practice area is clear. Fire away.";
-        
-        let currentStyle = shotStyles[shotStyleIndex];
-        let dynamicLoft = Math.max(0, club.loft + currentStyle.loftMod + ((2 - stanceIndex) * 5));
-        
-        // v3.81.1 Parabolic Math with True Carry Simulation
-        let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
-        let chokeMod = isChokedDown ? 0.9 : 1.0;
-        let expectedTotal = club.baseDistance * currentStyle.distMod * loftDistMod * chokeMod;
-
-        // Approximate backspin for a 100% flushed shot to find expected roll
-        let backspinRPM = Math.max(400, Math.round((club.loft * 150) + 1000 + 700 + ((stanceIndex - 2) * 500) + currentStyle.spinMod));
-        let spinRollMod = Math.max(0.1, 1 - ((backspinRPM - 4000) / 10000));
-        let expectedRoll = expectedTotal * club.rollPct * currentStyle.rollMod * spinRollMod;
-        if (shotStyleIndex > 0 && shotStyleIndex < 5 && expectedRoll < (expectedTotal * 0.1)) expectedRoll = expectedTotal * 0.15 * spinRollMod;
-
-        let expectedCarry = Math.max(1, expectedTotal - expectedRoll);
-        let apexYards = (Math.tan(dynamicLoft * Math.PI / 180) / expectedCarry) * synthTreeDist * (expectedCarry - synthTreeDist);
-        let expectedApexFeet = Math.max(0, Math.round(apexYards * 3));
-        
-        let latStr = synthTreeX === 0 ? 'Center' : `${Math.abs(synthTreeX)}y ${synthTreeX > 0 ? 'Right' : 'Left'}`;
-        let msg = `Synth Tree is ${synthTreeDist} yards out, ${latStr}, and ${Math.round(synthTreeHeight)} feet tall. `;
-        msg += `With a ${club.name} and ${stanceNames[stanceIndex]} stance, your expected apex at that distance is ${expectedApexFeet} feet. `;
-        
-        // Caddy Edge Finder Math
-        let distToTreeCenter = Math.sqrt(Math.pow(synthTreeX, 2) + Math.pow(synthTreeDist, 2));
-        let angleToCenter = Math.atan2(synthTreeX, synthTreeDist) * (180 / Math.PI);
-        let angleOffset = Math.asin(10 / distToTreeCenter) * (180 / Math.PI);
-
-        let leftEdge = Math.round(angleToCenter - angleOffset);
-        let rightEdge = Math.round(angleToCenter + angleOffset);
-        let leftStr = leftEdge < 0 ? `${Math.abs(leftEdge)}° Left` : `${leftEdge}° Right`;
-        let rightStr = rightEdge < 0 ? `${Math.abs(rightEdge)}° Left` : `${rightEdge}° Right`;
-
-        msg += `To bypass the canopy edges, aim past ${leftStr} or ${rightStr}. `;
-
-        // v3.83.0 Predictive Shape Simulation
-        let userAimRad = aimAngle * (Math.PI / 180);
-
-        // 1. Calculate Expected Spin & Wind Drift
-        let styleSideSpinMod = currentStyle.name === "Full" ? 1.0 : (currentStyle.distMod * 0.4);
-        let expectedSideSpinRPM = stanceAlignment * 800 * styleSideSpinMod;
-        let expectedPhysicsX = (expectedSideSpinRPM / 2400) * club.maxDispersion;
-
-        let expectedHangTime = Math.min(6, Math.max(0.5, (expectedTotal / 60) + (dynamicLoft / 15)));
-        let baseWindX = windX * (expectedHangTime / 2.5) * currentStyle.windMod;
-        let gyroMod = Math.max(0.6, Math.min(1.3, 1 - ((backspinRPM - 4000) / 10000)));
-        let spinWindInteraction = (windX * expectedSideSpinRPM) / 10000;
-        let expectedWindXEffect = Math.round((baseWindX * gyroMod) + spinWindInteraction);
-
-        let expectedLateralTotal = expectedPhysicsX + expectedWindXEffect;
-
-        // 2. Project Lateral Position at the Tree's Distance
-        let flightFraction = synthTreeDist / expectedCarry;
-        let expectedLandX = Math.sin(userAimRad) * expectedCarry + Math.cos(userAimRad) * expectedLateralTotal;
-        let expectedProjectedX = expectedLandX * flightFraction;
-        let straightAimProjectedX = Math.sin(userAimRad) * synthTreeDist;
-
-        // 3. Evaluate Clearance and generate Narrative
-        let willHitVertically = expectedApexFeet < synthTreeHeight + 3;
-
-        if (Math.abs(expectedProjectedX - synthTreeX) < 10) {
-            // The ball WILL hit the canopy laterally based on the curve/wind
-            if (willHitVertically) {
-                if (Math.abs(straightAimProjectedX - synthTreeX) >= 10) {
-                    let shapeName = expectedSideSpinRPM > 0 ? "slice" : expectedSideSpinRPM < 0 ? "hook" : "wind drift";
-                    let alignName = stanceAlignment !== 0 ? alignmentNames[stanceAlignment + 2].toLowerCase() : "neutral";
-                    msg += `Warning: Your aim clears the tree, but your ${alignName} alignment creates a ${shapeName} that curves right back into the branches!`;
-                } else {
-                    msg += "Warning: Your current line and shape will hit the tree. You do not have the height to clear it.";
-                }
-            } else {
-                msg += "Your shot shape will carry you safely over the top of the tree.";
-            }
-        } else {
-            // The ball WILL bypass the canopy laterally
-            if (Math.abs(straightAimProjectedX - synthTreeX) < 10 && willHitVertically) {
-                 let shapeName = expectedSideSpinRPM > 0 ? "slice" : expectedSideSpinRPM < 0 ? "hook" : "wind drift";
-                 let alignName = stanceAlignment !== 0 ? alignmentNames[stanceAlignment + 2].toLowerCase() : "neutral";
-                 msg += `Your initial line is blocked, but your ${alignName} alignment will ${shapeName} the ball beautifully around the edge.`;
-            } else {
-                msg += "Your current aim and shot shape will safely bypass the tree.";
-            }
-        }
-        return msg;
-    }
-    
-    if (gameMode !== 'course') return "Caddy advice is only available on the course.";
     const holeData = courses[currentCourseIndex].holes[hole - 1];
-    if (!holeData.caddyNotes) return "I don't have any notes for this hole.";
+    let targetPoint = { x: pinX, y: pinY, label: "Pin" };
 
-    let distToPin = Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
-    let currentTrigger = 'Approach_Long'; 
-
-    if (strokes === 0) currentTrigger = 'Tee';
-    else if (distToPin <= 50) currentTrigger = 'Greenside';
-    else if (currentLie === 'Sand') currentTrigger = 'Bunker_Fairway';
-    else if (ballX < -20) currentTrigger = 'Trouble_Left';
-    else if (ballX > 20) currentTrigger = 'Trouble_Right';
-    else if (currentLie === 'Light Rough') currentTrigger = 'Rough_Deep';
-    else if (currentLie === 'Fairway' && distToPin <= 120) currentTrigger = 'Approach_Scoring';
-    else if (currentLie === 'Fairway' && distToPin > 120) currentTrigger = 'Approach_Long';
-
-    let availableNotes = holeData.caddyNotes.filter(n => n.trigger === currentTrigger && n.level <= caddyLevel);
-    if (availableNotes.length === 0) {
-        availableNotes = holeData.caddyNotes.filter(n => (n.trigger === 'Approach' || n.trigger === 'Always') && n.level <= caddyLevel);
-        if (availableNotes.length === 0) return "Just hit a good golf shot here. I don't have specific advice.";
+    if (activeTargetType === 'grid') {
+        targetPoint = { x: pinX + gridX, y: pinY + gridY, label: "Grid Target" };
+    } else if (activeTargetType === 'zone') {
+        const landingZones = holeData.landingZones || [];
+        if (landingZones.length === 0) return "No landing zones are configured on this hole.";
+        if (targetZoneIndex < 0 || targetZoneIndex >= landingZones.length) targetZoneIndex = 0;
+        const z = landingZones[targetZoneIndex];
+        targetPoint = { x: z.x, y: z.y, label: z.name };
     }
 
-    availableNotes.sort((a, b) => b.level - a.level);
-    return `[Level ${caddyLevel} Caddy]: ${availableNotes[0].text}`;
+    const dx = targetPoint.x - ballX;
+    const dy = targetPoint.y - ballY;
+    const baseHeading = Math.atan2(dx, dy);
+    const targetDist = Math.round(Math.sqrt((dx * dx) + (dy * dy)));
+
+    const style = shotStyles[0]; // Full swing baseline for Oracle simulation
+    const simulatedClubs = [];
+    for (let i = 0; i < 14; i++) simulatedClubs.push(clubs[i % clubs.length]);
+
+    let best = null;
+    let sims = 0;
+
+    simulatedClubs.forEach(simClub => {
+        for (let simStance = 0; simStance < 5; simStance++) {
+            sims++;
+
+            let dynamicLoft = Math.max(0, simClub.loft + style.loftMod + ((2 - simStance) * 5));
+            let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
+            let totalDist = simClub.baseDistance * style.distMod * loftDistMod;
+            let rollDist = totalDist * simClub.rollPct * style.rollMod;
+            let carryDist = Math.max(1, totalDist - rollDist);
+
+            let hangTime = Math.min(6, Math.max(0.5, (totalDist / 60) + (dynamicLoft / 15)));
+            let windForward = windY * (hangTime / 1.5);
+            let windCross = windX * (hangTime / 1.2);
+
+            let desiredHeading = Math.atan2((targetPoint.x - ballX) - windCross, (targetPoint.y - ballY) - windForward);
+            let aimDeg = Math.round((desiredHeading - baseHeading) * (180 / Math.PI));
+            aimDeg = Math.max(-45, Math.min(45, aimDeg));
+
+            let heading = baseHeading + (aimDeg * Math.PI / 180);
+            let effectiveCarry = carryDist + windForward;
+
+            let landX = Math.sin(heading) * effectiveCarry + Math.cos(heading) * windCross;
+            let landY = Math.cos(heading) * effectiveCarry - Math.sin(heading) * windCross;
+            let finalX = ballX + landX + (Math.sin(heading) * rollDist * 0.8);
+            let finalY = ballY + landY + (Math.cos(heading) * rollDist * 0.8);
+
+            let miss = Math.sqrt(Math.pow(targetPoint.x - finalX, 2) + Math.pow(targetPoint.y - finalY, 2));
+            if (!best || miss < best.miss || (miss === best.miss && Math.abs(aimDeg) < Math.abs(best.aimDeg))) {
+                best = {
+                    clubName: simClub.name,
+                    stanceName: stanceNames[simStance],
+                    aimDeg,
+                    miss,
+                    totalDist: Math.round(totalDist + windForward)
+                };
+            }
+        }
+    });
+
+    if (!best) return "Oracle unavailable. Unable to compute tactical targeting right now.";
+
+    const aimStr = best.aimDeg === 0 ? "Center" : `${Math.abs(best.aimDeg)} degrees ${best.aimDeg < 0 ? 'Left' : 'Right'}`;
+    return `[Oracle v4.14.0] Target: ${targetPoint.label} (${targetDist}y). Simulated ${sims} shots (14 clubs x 5 stances). Best line: ${best.clubName}, ${best.stanceName}, aim ${aimStr}. Predicted miss: ${Math.round(best.miss)} yards. Estimated total: ${best.totalDist} yards.`;
+};
+
+window.announceGridPosition = function() {
+    targetX = pinX + gridX;
+    targetY = pinY + gridY;
+    let msg = `Target Square: ${Math.abs(gridY)} yards ${gridY < 0 ? 'Short' : 'Past'}, ${Math.abs(gridX)} yards ${gridX < 0 ? 'Left' : 'Right'} of pin. Distance: ${calculateDistanceToTarget()} yards.`;
+    window.announce(msg);
+    document.getElementById('visual-output').innerText = msg;
 };
 
 window.announce = function(msg) {
@@ -617,12 +492,15 @@ window.buildClubhouseMenu = function() {
     }});
 
     clubhouseIndex = 0;
-    window.announceClubhouse();
+    window.announceClubhouse(true);
 };
 
-window.announceClubhouse = function() {
+window.announceClubhouse = function(isInit = false) {
     let item = clubhouseMenu[clubhouseIndex];
-    let msg = `Clubhouse Menu. ${item.text}. Item ${clubhouseIndex + 1} of ${clubhouseMenu.length}. Press Enter to select, or Up and Down arrows to navigate.`;
+    let prefix = isInit ? "Clubhouse Menu. " : "";
+    let instruct = isInit ? " Press Enter to select, or Up and Down arrows to navigate." : "";
+    let msg = `${prefix}${item.text}. Item ${clubhouseIndex + 1} of ${clubhouseMenu.length}.${instruct}`;
+    
     window.announce(msg);
     document.getElementById('visual-output').innerText = msg;
 };

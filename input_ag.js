@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.12.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.14.0)
 
 window.addEventListener('keydown', (e) => {
     // v4.11.0 Custom Grid Interceptor
@@ -30,6 +30,33 @@ window.addEventListener('keydown', (e) => {
         return; 
     }
 
+    // v4.14.0 Grid Target Navigation Interceptor
+    if (activeTargetType === 'grid') {
+        e.preventDefault();
+
+        if (e.code === 'ArrowUp') {
+            gridY += 1;
+            window.announceGridPosition();
+        } else if (e.code === 'ArrowDown') {
+            gridY -= 1;
+            window.announceGridPosition();
+        } else if (e.code === 'ArrowLeft') {
+            gridX -= 1;
+            window.announceGridPosition();
+        } else if (e.code === 'ArrowRight') {
+            gridX += 1;
+            window.announceGridPosition();
+        } else if (e.code === 'Escape' || e.code === 'Enter') {
+            targetX = pinX + gridX;
+            targetY = pinY + gridY;
+            activeTargetType = 'pin';
+            window.announce("Grid target locked. Returning to swing mode.");
+            document.getElementById('visual-output').innerText = getSetupReport();
+            window.updateDashboard();
+        }
+        return;
+    }
+
     // v4.12.0 Clubhouse Interceptor
     if (gameMode === 'clubhouse') {
         e.preventDefault();
@@ -46,10 +73,10 @@ window.addEventListener('keydown', (e) => {
 
         if (e.code === 'ArrowDown') {
             if (clubhouseIndex < clubhouseMenu.length - 1) clubhouseIndex++;
-            window.announceClubhouse();
+            window.announceClubhouse(false);
         } else if (e.code === 'ArrowUp') {
             if (clubhouseIndex > 0) clubhouseIndex--;
-            window.announceClubhouse();
+            window.announceClubhouse(false);
         } else if (e.code === 'Enter') {
             clubhouseMenu[clubhouseIndex].action();
         }
@@ -105,6 +132,33 @@ window.addEventListener('keydown', (e) => {
         return;
     }
 
+    // v4.13.0 Context-Sensitive Quit Confirmation
+    if (confirmingQuit) {
+        e.preventDefault();
+        if (e.code === 'KeyS') {
+            confirmingQuit = false;
+            if (typeof window.saveGame === 'function') window.saveGame();
+            gameMode = 'clubhouse';
+            document.getElementById('dashboard-panel').style.display = 'none';
+            document.getElementById('swing-meter').style.display = 'none';
+            window.announce("Round saved.");
+            window.buildClubhouseMenu();
+        } else if (e.code === 'KeyA') {
+            confirmingQuit = false;
+            window.clearSave(); // Wipe the save state
+            gameMode = 'clubhouse';
+            document.getElementById('dashboard-panel').style.display = 'none';
+            document.getElementById('swing-meter').style.display = 'none';
+            window.announce("Round abandoned.");
+            window.buildClubhouseMenu();
+        } else if (e.code === 'Escape') {
+            confirmingQuit = false;
+            window.announce("Quit cancelled.");
+            document.getElementById('visual-output').innerText = getSetupReport();
+        }
+        return;
+    }
+
     // --- v3.70.0 Help Menu Interceptor ---
     if (viewingHelp) {
         e.preventDefault();
@@ -135,17 +189,25 @@ window.addEventListener('keydown', (e) => {
     }
 
     if (swingState === 0 || isHoleComplete) {
-        // v4.12.0 Quit to Menu
-        if (e.code === 'KeyQ' && e.shiftKey) {
+        // v4.13.0 Context-Sensitive Quit Trigger
+        if (e.code === 'KeyQ') {
             e.preventDefault();
-            gameMode = 'clubhouse';
-            document.getElementById('dashboard-panel').style.display = 'none';
-            document.getElementById('swing-meter').style.display = 'none';
-            window.buildClubhouseMenu();
+            if (gameMode === 'course') {
+                confirmingQuit = true;
+                let msg = "Quit Menu. Press S to Save and Exit, A to Abandon Round, or Escape to cancel.";
+                window.announce(msg);
+                document.getElementById('visual-output').innerText = msg;
+            } else {
+                gameMode = 'clubhouse';
+                document.getElementById('dashboard-panel').style.display = 'none';
+                document.getElementById('swing-meter').style.display = 'none';
+                window.announce("Exited practice area.");
+                window.buildClubhouseMenu();
+            }
             return;
         }
 
-        if (e.code === 'KeyS') {
+        if (e.code === 'KeyE') {
             e.preventDefault();
             if (e.shiftKey) {
                 viewingScorecard = true; window.showScorecard();
@@ -337,7 +399,7 @@ window.addEventListener('keydown', (e) => {
                 let msg = `Hole ${hole}. Par ${par}. ${targetDist} yards.`;
                 window.announce(msg); document.getElementById('visual-output').innerText = msg;
             } else {
-                window.announce("Round Complete! Press Shift S to view your final scorecard.");
+                window.announce("Round Complete! Press Shift E to view your final scorecard.");
             }
         }
         return;
@@ -415,6 +477,16 @@ window.addEventListener('keydown', (e) => {
             const stanceReport = getStanceReport();
             document.getElementById('visual-output').innerText = stanceReport; window.announce(stanceReport);
             window.updateDashboard();
+        }
+        if (e.code === 'KeyS') {
+            e.preventDefault();
+            if (e.shiftKey) stanceIndex = Math.min(4, stanceIndex + 1);
+            else stanceIndex = Math.max(0, stanceIndex - 1);
+            const stanceReport = getStanceReport();
+            document.getElementById('visual-output').innerText = stanceReport;
+            window.announce(stanceReport);
+            window.updateDashboard();
+            return;
         }
         if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
             e.preventDefault();
@@ -536,38 +608,53 @@ window.addEventListener('keydown', (e) => {
         if (e.code === 'KeyZ' && gameMode === 'course') {
             e.preventDefault();
             const holeData = courses[currentCourseIndex].holes[hole - 1];
-            let validTargets = [];
-            if (holeData.zones) validTargets = holeData.zones.filter(z => z.y > ballY + 15);
-            validTargets.push({ name: "The Pin", x: holeData.pinX, y: holeData.pinY });
-            
-            currentZoneIndex = (currentZoneIndex + 1) % validTargets.length;
-            let selectedTarget = validTargets[currentZoneIndex];
-            targetX = selectedTarget.x;
-            targetY = selectedTarget.y;
-            aimAngle = 0; // Reset aim when shifting targets
-            
-            let dist = Math.round(Math.sqrt(Math.pow(targetX - ballX, 2) + Math.pow(targetY - ballY, 2)));
-            
-            let lieMultiplier = 1.0;
-            if (currentLie === 'Sand') lieMultiplier = 0.70;
-            else if (currentLie === 'Light Rough' || (gameMode === 'range' && rangeLie === 'Rough')) lieMultiplier = 0.90;
-
-            let bestClubIndex = 0; let smallestDiff = 9999;
-            for (let i = 0; i < clubs.length; i++) {
-                if (clubs[i].name === "Putter") continue;
-                let expectedDist = clubs[i].baseDistance * lieMultiplier;
-                let diff = Math.abs(expectedDist - dist);
-                if (diff < smallestDiff) { smallestDiff = diff; bestClubIndex = i; }
+            if (activeTargetType === 'zone') {
+                activeTargetType = 'pin';
+                targetX = holeData.pinX;
+                targetY = holeData.pinY;
+                let msg = `Target mode set to Pin. ${calculateDistanceToTarget()} yards to target.`;
+                window.announce(msg);
+                document.getElementById('visual-output').innerText = msg;
+                window.updateDashboard();
+                return;
             }
-            currentClubIndex = bestClubIndex; club = clubs[currentClubIndex];
-            
-            let msg = `Target shifted to ${selectedTarget.name}, ${dist} yards away. Auto-equipped ${club.name}.`;
+
+            const landingZones = holeData.landingZones || [];
+            if (landingZones.length === 0) {
+                window.announce("No landing zones are configured for this hole.");
+                return;
+            }
+
+            activeTargetType = 'zone';
+            if (targetZoneIndex < 0 || targetZoneIndex >= landingZones.length) targetZoneIndex = 0;
+            const selectedZone = landingZones[targetZoneIndex];
+            targetX = selectedZone.x;
+            targetY = selectedZone.y;
+            let msg = `Target mode set to Zone: ${selectedZone.name}. ${calculateDistanceToTarget()} yards to target.`;
             window.announce(msg); document.getElementById('visual-output').innerText = msg;
             window.updateDashboard();
             return;
         }
         if (e.code === 'KeyT') {
             e.preventDefault(); 
+            if (e.shiftKey) {
+                if (activeTargetType === 'grid') {
+                    activeTargetType = 'pin';
+                    targetX = pinX;
+                    targetY = pinY;
+                    let msg = "Grid targeting disabled. Target mode set to Pin.";
+                    window.announce(msg);
+                    document.getElementById('visual-output').innerText = msg;
+                } else {
+                    activeTargetType = 'grid';
+                    gridX = 0;
+                    gridY = 0;
+                    window.announceGridPosition();
+                }
+                window.updateDashboard();
+                return;
+            }
+
             let distToPin = calculateDistanceToPin();
             let distMsg = "";
             if (gameMode === 'course') {

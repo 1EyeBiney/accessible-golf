@@ -234,7 +234,7 @@ function calculateShot(autoMiss = false) {
                 } else if (isHoleComplete) {
                     let totalRel = 0; roundData.forEach(r => totalRel += (r.strokes - r.par));
                     let relStr = totalRel === 0 ? "Even Par" : totalRel > 0 ? `+${totalRel}` : `${totalRel}`;
-                    let compMsg = `Hole complete in ${strokes} strokes. You are ${relStr}. Press Enter to proceed to the next hole, or Shift + S for your scorecard.`;
+                    let compMsg = `Hole complete in ${strokes} strokes. You are ${relStr}. Press Enter to proceed to the next hole, or Shift + E for your scorecard.`;
                     window.announce(compMsg); document.getElementById('caddy-panel').innerText = compMsg;
                     swingState = 6;
                 } else {
