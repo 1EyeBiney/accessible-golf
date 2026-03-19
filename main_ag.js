@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.8.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.9.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -54,6 +54,7 @@ function loadHole(holeNumber) {
     club = clubs[currentClubIndex];
     shotStyleIndex = 0;
     window.updateDashboard();
+    if (typeof window.saveGame === 'function') window.saveGame(); // Save when starting new hole
 }
 
 function getSightReport() {
@@ -355,6 +356,44 @@ window.updateDashboard = function() {
     document.getElementById('dash-setup').innerText = `Aim: ${aimStr}\n${stanceNames[stanceIndex]}`;
 };
 
+// v4.9.0 Autosave & Persistence System
+window.saveGame = function() {
+    const state = {
+        gameMode, currentCourseIndex, hole, par, strokes,
+        ballX, ballY, pinX, pinY, targetX, targetY, currentZoneIndex,
+        currentLie, isHoleComplete, isPutting, puttState, puttTargetDist,
+        windX, windY, windLevelIndex,
+        holeTelemetry, lastShotReport,
+        currentClubIndex, shotStyleIndex
+    };
+    try { localStorage.setItem('ag_save_state', JSON.stringify(state)); } catch(e) {}
+};
+
+window.loadGame = function() {
+    try {
+        const saved = localStorage.getItem('ag_save_state');
+        if (!saved) return false;
+        const state = JSON.parse(saved);
+
+        gameMode = state.gameMode; currentCourseIndex = state.currentCourseIndex;
+        hole = state.hole; par = state.par; strokes = state.strokes;
+        ballX = state.ballX; ballY = state.ballY; pinX = state.pinX; pinY = state.pinY;
+        targetX = state.targetX; targetY = state.targetY; currentZoneIndex = state.currentZoneIndex;
+        currentLie = state.currentLie; isHoleComplete = state.isHoleComplete;
+        isPutting = state.isPutting; puttState = state.puttState || 0; puttTargetDist = state.puttTargetDist || 0;
+        windX = state.windX; windY = state.windY; windLevelIndex = state.windLevelIndex;
+        holeTelemetry = state.holeTelemetry || []; lastShotReport = state.lastShotReport || "Game loaded.";
+        currentClubIndex = state.currentClubIndex || 0; shotStyleIndex = state.shotStyleIndex || 0;
+
+        club = clubs[currentClubIndex];
+        return true;
+    } catch (e) { return false; }
+};
+
+window.clearSave = function() {
+    try { localStorage.removeItem('ag_save_state'); } catch(e) {}
+};
+
 // v4.6.0 Spatial Audio Metronome
 window.playRollingBlip = function(speed, panValue) {
     if (!audioCtx) return;
@@ -381,22 +420,24 @@ window.playRollingBlip = function(speed, panValue) {
 window.initGame = function() {
     window.initAudio();
 
-    // v4.8.0 Global Volume Overdrive (Boosts all Web Audio API sounds by 2.5x)
     if (typeof window.originalPlayTone === 'undefined' && typeof window.playTone === 'function') {
         window.originalPlayTone = window.playTone;
-        window.playTone = function(freq, type, duration, vol) {
-            window.originalPlayTone(freq, type, duration, Math.min(2.0, vol * 2.5)); 
-        };
+        window.playTone = function(freq, type, duration, vol) { window.originalPlayTone(freq, type, duration, Math.min(2.0, vol * 2.5)); };
     }
     if (typeof window.originalPlayNoise === 'undefined' && typeof window.playNoise === 'function') {
         window.originalPlayNoise = window.playNoise;
-        window.playNoise = function(duration, vol, isBrown) {
-            window.originalPlayNoise(duration, Math.min(2.0, vol * 2.5), isBrown); 
-        };
+        window.playNoise = function(duration, vol, isBrown) { window.originalPlayNoise(duration, Math.min(2.0, vol * 2.5), isBrown); };
     }
 
-    generateWind();
-    loadHole(1);
+    // v4.9.0 Boot Sequence
+    let isResume = window.loadGame();
+    if (!isResume) {
+        generateWind(); loadHole(1);
+    } else {
+        document.getElementById('caddy-panel-text').innerText = lastShotReport;
+        if (lastShotReport !== "Game loaded.") document.getElementById('caddy-panel').style.display = 'block';
+    }
+
     document.getElementById('initBtn').style.display = 'none';
     document.getElementById('game-container').style.display = 'flex';
     document.getElementById('hud-top').style.display = 'block';
@@ -405,11 +446,12 @@ window.initGame = function() {
     document.getElementById('swing-meter').style.display = 'block';
     requestAnimationFrame(window.drawMeter);
     document.getElementById('game-container').focus();
-    let setupReport = getSetupReport();
-    if (gameMode === 'course') setupReport += getSightReport();
     let targetDist = calculateDistanceToPin();
-    window.announce(`Hole ${hole}. Par ${par}. ${targetDist} yards. Ready. ${setupReport} Use Page Up or Down to change clubs.`);
-    document.getElementById('visual-output').innerText = `Hole ${hole}. Par ${par}. ${targetDist} yards. Ready. ${setupReport}`;
+    let msg = isResume ? `Session Restored. Hole ${hole}. Stroke ${strokes + 1}. ${targetDist} yards to the pin. Lie is ${currentLie}.` : `Hole ${hole}. Par ${par}. ${targetDist} yards. Ready. Use Page Up or Down to change clubs.`;
+    if (isPutting && isResume) msg = `Session Restored. On the Green. ${puttTargetDist} yards to the cup.`;
+
+    window.announce(msg);
+    document.getElementById('visual-output').innerText = msg;
 };
 
 function startBackswing() {

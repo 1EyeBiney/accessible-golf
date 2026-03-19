@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.5.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.9.0)
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
@@ -237,7 +237,7 @@ window.addEventListener('keydown', (e) => {
                 if (hazardIndex > 0) hazardIndex--;
                 window.announceHazard(allObstacles[hazardIndex]);
             }
-            if (e.code === 'Escape') {
+            if (e.code === 'Escape' || e.code === 'Enter') {
                 viewingHazards = false; 
                 window.announce("Exited Obstacle List.");
                 document.getElementById('visual-output').innerText = getSetupReport();

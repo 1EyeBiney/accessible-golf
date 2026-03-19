@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.8.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.9.0)
 
 window.initPutting = function() {
     isPutting = true; swingState = 0; puttState = 0;
@@ -13,6 +13,7 @@ window.initPutting = function() {
     window.announce(msg);
     document.getElementById('visual-output').innerText = msg;
     window.updateDashboard();
+    if (typeof window.saveGame === 'function') window.saveGame();
 };
 
 function calculateDistanceToPin() {
@@ -231,6 +232,7 @@ function calculateShot(autoMiss = false) {
                     window.announce(`${puttTargetDist} yards left. Targeting Mode active.`);
                     window.updateDashboard();
                 }
+                if (typeof window.saveGame === 'function') window.saveGame();
             }, 3000);
         }
 
@@ -659,6 +661,9 @@ function calculateShot(autoMiss = false) {
                                 window.updateDashboard();
                             }
                         }, typeof isPutting !== 'undefined' && isPutting && club.name === "Putter" && strokes > 1 ? 1500 : 0);
+
+                        // Wait for the timeout to finish, then save
+                        setTimeout(() => { if (typeof window.saveGame === 'function') window.saveGame(); }, 2000);
                     }
                 }
             }
