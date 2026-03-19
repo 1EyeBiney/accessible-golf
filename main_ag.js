@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.18.2)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.18.3)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -707,6 +707,27 @@ window.evaluatePracticeSwing = function() {
     swingState = 0;
     isPracticeSwing = false;
     window.updateDashboard();
+};
+
+window.finalizeImpact = function() {
+    if (swingState !== 4) return;
+    
+    // 1. Lock the time if it hasn't been set yet
+    if (lockedImpactTime === 0) lockedImpactTime = performance.now() - impactStartTime;
+    
+    // 2. Stop all pending timeouts (milestone pings and auto-whiff timer)
+    stateTimeouts.forEach(clearTimeout);
+    stateTimeouts = [];
+    
+    // 3. Advance state to Flight/Complete
+    swingState = 5;
+    
+    // 4. Fire the appropriate logic
+    if (isPracticeSwing) {
+        window.evaluatePracticeSwing();
+    } else if (typeof calculateShot === 'function') {
+        calculateShot(true);
+    }
 };
 
 window.drawMeter = function() {

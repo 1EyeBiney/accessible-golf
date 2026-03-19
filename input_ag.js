@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.18.1)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.18.3)
 
 window.addEventListener('keydown', (e) => {
     // v4.11.0 Custom Grid Interceptor
@@ -515,6 +515,7 @@ window.addEventListener('keydown', (e) => {
         if (swingState === 0) startBackswing(false);
         else if (swingState === 4) {
             lockedImpactTime = performance.now() - impactStartTime;
+            window.finalizeImpact(); // v4.18.3 Instant Feedback
         }
     }
 
@@ -523,6 +524,7 @@ window.addEventListener('keydown', (e) => {
         if (swingState === 0) startBackswing(true);
         else if (swingState === 4) {
             lockedImpactTime = performance.now() - impactStartTime;
+            window.finalizeImpact(); // v4.18.3 Instant Feedback
         }
     }
 
