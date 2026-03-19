@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.11.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.12.0)
 
 window.addEventListener('keydown', (e) => {
     // v4.11.0 Custom Grid Interceptor
@@ -26,6 +26,32 @@ window.addEventListener('keydown', (e) => {
         } else if (e.code === 'ArrowUp') {
             if (scRow > 0) { scRow--; window.announceScorecardCell(); }
             else { window.announce("Top edge."); }
+        }
+        return; 
+    }
+
+    // v4.12.0 Clubhouse Interceptor
+    if (gameMode === 'clubhouse') {
+        e.preventDefault();
+        
+        // Pass Escape out of the Help Menu back to the Clubhouse
+        if (viewingHelp) {
+            if (e.code === 'ArrowDown') { if (helpIndex < helpMenuText.length - 1) helpIndex++; window.announceHelp(); }
+            else if (e.code === 'ArrowUp') { if (helpIndex > 0) helpIndex--; window.announceHelp(); }
+            else if (e.code === 'Escape' || e.code === 'Enter') {
+                viewingHelp = false; window.announce("Exited Help Menu."); window.announceClubhouse();
+            }
+            return;
+        }
+
+        if (e.code === 'ArrowDown') {
+            if (clubhouseIndex < clubhouseMenu.length - 1) clubhouseIndex++;
+            window.announceClubhouse();
+        } else if (e.code === 'ArrowUp') {
+            if (clubhouseIndex > 0) clubhouseIndex--;
+            window.announceClubhouse();
+        } else if (e.code === 'Enter') {
+            clubhouseMenu[clubhouseIndex].action();
         }
         return; 
     }
@@ -102,12 +128,23 @@ window.addEventListener('keydown', (e) => {
         } else if (e.code === 'Escape' || e.code === 'Enter') {
             viewingHelp = false;
             window.announce("Exited Help Menu.");
-            document.getElementById('visual-output').innerText = getSetupReport();
+            if (gameMode === 'clubhouse') window.announceClubhouse(); 
+            else document.getElementById('visual-output').innerText = getSetupReport();
         }
         return; // Block all other inputs while viewing help
     }
 
     if (swingState === 0 || isHoleComplete) {
+        // v4.12.0 Quit to Menu
+        if (e.code === 'KeyQ' && e.shiftKey) {
+            e.preventDefault();
+            gameMode = 'clubhouse';
+            document.getElementById('dashboard-panel').style.display = 'none';
+            document.getElementById('swing-meter').style.display = 'none';
+            window.buildClubhouseMenu();
+            return;
+        }
+
         if (e.code === 'KeyS') {
             e.preventDefault();
             if (e.shiftKey) {

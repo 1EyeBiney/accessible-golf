@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.11.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.12.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -22,6 +22,8 @@ let viewingScorecard = false;
 let scorecardGrid = [];
 let scRow = 0, scCol = 0;
 let gameMode = 'course';
+let clubhouseMenu = [];
+let clubhouseIndex = 0;
 let isPutting = false, puttState = 0, puttTargetDist = 0;
 let viewingHazards = false, hazardIndex = 0;
 let viewingHelp = false, helpIndex = 0;
@@ -531,27 +533,96 @@ window.initGame = function() {
         window.playNoise = function(duration, vol, isBrown) { window.originalPlayNoise(duration, Math.min(2.0, vol * 2.5), isBrown); };
     }
 
-    // v4.9.0 Boot Sequence
-    let isResume = window.loadGame();
-    if (!isResume) {
-        generateWind(); loadHole(1);
-    } else {
-        document.getElementById('caddy-panel-text').innerText = lastShotReport;
-        if (lastShotReport !== "Game loaded.") document.getElementById('caddy-panel').style.display = 'block';
-    }
-
+    // v4.12.0 Clubhouse Boot Sequence
     document.getElementById('initBtn').style.display = 'none';
     document.getElementById('game-container').style.display = 'flex';
     document.getElementById('hud-top').style.display = 'block';
-    document.getElementById('dashboard-panel').style.display = 'grid';
-    window.updateDashboard();
-    document.getElementById('swing-meter').style.display = 'block';
-    requestAnimationFrame(window.drawMeter);
-    document.getElementById('game-container').focus();
-    let targetDist = calculateDistanceToPin();
-    let msg = isResume ? `Session Restored. Hole ${hole}. Stroke ${strokes + 1}. ${targetDist} yards to the pin. Lie is ${currentLie}.` : `Hole ${hole}. Par ${par}. ${targetDist} yards. Ready. Use Page Up or Down to change clubs.`;
-    if (isPutting && isResume) msg = `Session Restored. On the Green. ${puttTargetDist} yards to the cup.`;
 
+    // Hide gameplay panels while in menu
+    document.getElementById('dashboard-panel').style.display = 'none';
+    document.getElementById('swing-meter').style.display = 'none';
+    document.getElementById('caddy-panel').style.display = 'none';
+    document.getElementById('game-container').focus();
+
+    gameMode = 'clubhouse';
+    window.buildClubhouseMenu();
+};
+
+window.buildClubhouseMenu = function() {
+    clubhouseMenu = [];
+    const saved = localStorage.getItem('ag_save_state');
+    
+    if (saved) {
+        clubhouseMenu.push({ text: "Resume Saved Session", action: () => {
+            let success = window.loadGame();
+            if (success) {
+                document.getElementById('dashboard-panel').style.display = 'grid';
+                document.getElementById('swing-meter').style.display = 'block';
+                window.updateDashboard();
+                let targetDist = calculateDistanceToPin();
+                let msg = `Session Restored. Hole ${hole}. Stroke ${strokes + 1}. ${targetDist} yards to the pin. Lie is ${currentLie}.`;
+                if (isPutting) msg = `Session Restored. On the Green. ${puttTargetDist} yards to the cup.`;
+                window.announce(msg);
+                document.getElementById('visual-output').innerText = msg;
+                if (lastShotReport !== "Game loaded.") document.getElementById('caddy-panel').style.display = 'block';
+            }
+        }});
+    }
+    
+    clubhouseMenu.push({ text: "Start New Round", action: () => {
+        window.clearSave(); roundData = []; puttsThisHole = 0; holeTelemetry = [];
+        gameMode = 'course'; currentCourseIndex = 0; strokes = 0;
+        document.getElementById('dashboard-panel').style.display = 'grid';
+        document.getElementById('swing-meter').style.display = 'block';
+        document.getElementById('caddy-panel').style.display = 'none';
+        generateWind(); loadHole(1);
+        let targetDist = calculateDistanceToPin();
+        let msg = `New Round Started. Hole 1. Par ${par}. ${targetDist} yards. Ready.`;
+        window.announce(msg); document.getElementById('visual-output').innerText = msg;
+    }});
+
+    clubhouseMenu.push({ text: "Driving Range", action: () => {
+        gameMode = 'range'; strokes = 0; holeTelemetry = []; ballX = 0; ballY = 0; pinX = 0; pinY = club.baseDistance; rangeLie = 'Fairway'; isHoleComplete = false; swingState = 0; if (typeof isPutting !== 'undefined') isPutting = false;
+        document.getElementById('dashboard-panel').style.display = 'grid';
+        document.getElementById('swing-meter').style.display = 'block';
+        document.getElementById('caddy-panel').style.display = 'none';
+        window.updateDashboard();
+        let msg = `Welcome to the Driving Range. Target set to ${pinY} yards. Lie is ${rangeLie}.`;
+        window.announce(msg); document.getElementById('visual-output').innerText = msg;
+    }});
+    
+    clubhouseMenu.push({ text: "Chipping Green", action: () => {
+        gameMode = 'chipping'; strokes = 0; holeTelemetry = []; isHoleComplete = false; swingState = 0;
+        ballX = 0; ballY = 0; pinX = 0; pinY = chippingRange === 'short' ? Math.floor(Math.random() * 16) + 5 : Math.floor(Math.random() * 61) + 20;
+        document.getElementById('dashboard-panel').style.display = 'grid';
+        document.getElementById('swing-meter').style.display = 'block';
+        document.getElementById('caddy-panel').style.display = 'none';
+        window.updateDashboard();
+        let targetDist = calculateDistanceToPin();
+        let msg = `Welcome to the Chipping Green. Target is ${targetDist} yards.`;
+        window.announce(msg); document.getElementById('visual-output').innerText = msg;
+    }});
+
+    clubhouseMenu.push({ text: "Practice Putting Green", action: () => {
+        gameMode = 'putting'; strokes = 0; holeTelemetry = []; isHoleComplete = false;
+        ballX = 0; ballY = 0; pinX = 0; pinY = Math.floor(Math.random() * 41) + 5; 
+        document.getElementById('dashboard-panel').style.display = 'grid';
+        document.getElementById('swing-meter').style.display = 'block';
+        document.getElementById('caddy-panel').style.display = 'none';
+        window.initPutting();
+    }});
+
+    clubhouseMenu.push({ text: "Help and Controls", action: () => {
+        viewingHelp = true; helpIndex = 0; window.announceHelp();
+    }});
+
+    clubhouseIndex = 0;
+    window.announceClubhouse();
+};
+
+window.announceClubhouse = function() {
+    let item = clubhouseMenu[clubhouseIndex];
+    let msg = `Clubhouse Menu. ${item.text}. Item ${clubhouseIndex + 1} of ${clubhouseMenu.length}. Press Enter to select, or Up and Down arrows to navigate.`;
     window.announce(msg);
     document.getElementById('visual-output').innerText = msg;
 };
