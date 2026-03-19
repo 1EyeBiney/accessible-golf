@@ -1,6 +1,7 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.16.1)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.18.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
+let isPracticeSwing = false;
 let devPower = false, devHinge = false, devImpact = false;
 let stateTimeouts = [];
 
@@ -592,14 +593,20 @@ window.announceClubhouse = function(isInit = false) {
     document.getElementById('visual-output').innerText = msg;
 };
 
-function startBackswing() {
+function startBackswing(isPractice = false) {
     if (swingState !== 0) return;
     window.initAudio();
-    swingState = 1; hingeTimeBack = 0; hingeTimeDown = 0;
-    backswingStartTime = performance.now();
-    document.getElementById('visual-output').innerText = `Backswing...`;
-    for (let i = 1; i <= 4; i++) { stateTimeouts.push(setTimeout(() => playTone(600, 'triangle', 0.15, 0.25), i * 500)); }
-    stateTimeouts.push(setTimeout(startPowerPhase, 2000));
+    isPracticeSwing = isPractice;
+    swingState = 1; hingeTimeBack = 0; hingeTimeDown = 0; lockedImpactTime = 0;
+    document.getElementById('visual-output').innerText = isPractice ? `Practice Swing... Addressing...` : `Addressing ball...`;
+
+    // v4.18.0 The Takeaway Buffer (400ms) to prevent audio stutter
+    setTimeout(() => {
+        backswingStartTime = performance.now();
+        document.getElementById('visual-output').innerText = isPractice ? `Practice Backswing...` : `Backswing...`;
+        for (let i = 1; i <= 4; i++) { stateTimeouts.push(setTimeout(() => playTone(600, 'triangle', 0.15, 0.25), i * 500)); }
+        stateTimeouts.push(setTimeout(startPowerPhase, 2000));
+    }, 400);
 }
 
 function startPowerPhase() {
@@ -648,8 +655,43 @@ function startImpactPhase() {
     osc.start(); osc.stop(audioCtx.currentTime + (dropDurationMs / 1000) + 0.1);
 
     [75, 50, 25].forEach(m => { if (finalPower > m) stateTimeouts.push(setTimeout(() => triggerMilestone(m), (finalPower - m) * 15)); });
-    stateTimeouts.push(setTimeout(() => { if (swingState === 4) calculateShot(true); }, dropDurationMs + 400));
+    stateTimeouts.push(setTimeout(() => { 
+        if (swingState === 4) {
+            if (isPracticeSwing && typeof window.evaluatePracticeSwing === 'function') {
+                window.evaluatePracticeSwing();
+            } else if (typeof calculateShot === 'function') {
+                calculateShot(true);
+            }
+        } 
+    }, dropDurationMs + 400));
 }
+
+window.evaluatePracticeSwing = function() {
+    let impactDiff = lockedImpactTime > 0 ? lockedImpactTime - dropDurationMs : 400; // 400ms default miss if no swing
+    let hingeDiff = (hingeTimeBack > 0 && hingeTimeDown > 0) ? hingeTimeDown - hingeTimeBack : 0;
+    let usedHinge = hingeTimeBack > 0 && hingeTimeDown > 0;
+
+    let impactStr = Math.abs(impactDiff) <= 60 ? "Perfect impact!" :
+                    impactDiff < 0 ? `A bit early on impact (${Math.abs(Math.round(impactDiff))}ms).` :
+                    `A bit late on impact (${Math.abs(Math.round(impactDiff))}ms).`;
+
+    let powerStr = `Hit ${finalPower} percent power.`;
+
+    let hingeStr = "";
+    if (usedHinge) {
+        hingeStr = Math.abs(hingeDiff) <= 50 ? "Excellent tempo." :
+                   hingeDiff < 0 ? "You rushed the downswing transition." :
+                   "You hesitated on the downswing.";
+    }
+
+    let msg = `[Practice] ${powerStr} ${hingeStr} ${impactStr}`;
+    window.announce(msg);
+    document.getElementById('visual-output').innerText = msg;
+
+    swingState = 0;
+    isPracticeSwing = false;
+    window.updateDashboard();
+};
 
 window.drawMeter = function() {
     requestAnimationFrame(window.drawMeter);

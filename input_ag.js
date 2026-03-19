@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.16.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.18.0)
 
 window.addEventListener('keydown', (e) => {
     // v4.11.0 Custom Grid Interceptor
@@ -440,7 +440,7 @@ window.addEventListener('keydown', (e) => {
 
     // --- v4.4.1 PUTTING CONTROLS (Mode Toggle) ---
     if (isPutting && (swingState === 0 || isHoleComplete)) {
-        if (e.code === 'KeyP') {
+        if (e.code === 'KeyZ' && e.shiftKey) { // v4.18.0 Unified Putting Grid toggle
             e.preventDefault();
             puttState = puttState === 0 ? 1 : 0;
             let msg = puttState === 1 ? `Swing Mode. Target is ${puttTargetDist} yards. Press Down Arrow to start stroke.` : `Targeting Mode. Use arrows to adjust aim and distance.`;
@@ -482,6 +482,17 @@ window.addEventListener('keydown', (e) => {
             if (e.code === 'ArrowDown') { e.preventDefault(); puttTargetDist = Math.max(1, puttTargetDist - 1); updatePuttTarget(); return; }
             if (e.code === 'ArrowRight') { e.preventDefault(); aimAngle += 1; updatePuttTarget(); return; }
             if (e.code === 'ArrowLeft') { e.preventDefault(); aimAngle -= 1; updatePuttTarget(); return; }
+            
+            // v4.17.0 Putting Enter-to-Lock Consistency
+            if (e.code === 'Enter' || e.code === 'Escape') {
+                e.preventDefault();
+                puttState = 1; // Switch to Swing Mode
+                let msg = `Putt target locked at ${puttTargetDist} yards. Swing Mode active. Press Down Arrow to start stroke.`;
+                window.announce(msg);
+                document.getElementById('visual-output').innerText = msg;
+                window.updateDashboard();
+                return;
+            }
         } else if (puttState === 1) {
             // Swing Mode: Block other arrows, let ArrowDown pass to the swing initiator
             if (e.code === 'ArrowUp' || e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
@@ -501,8 +512,15 @@ window.addEventListener('keydown', (e) => {
 
     if (e.code === 'ArrowDown') {
         e.preventDefault();
-        if (swingState === 0) startBackswing();
-        else if (swingState === 4) calculateShot(false);
+        if (swingState === 0) startBackswing(false);
+        else if (swingState === 4) {
+            lockedImpactTime = performance.now() - impactStartTime;
+        }
+    }
+
+    if (e.code === 'ArrowUp') {
+        e.preventDefault();
+        if (swingState === 0) startBackswing(true);
     }
 
     if (e.code === 'Space') {
@@ -650,6 +668,40 @@ window.addEventListener('keydown', (e) => {
         }
         if (e.code === 'KeyZ' && gameMode === 'course') {
             e.preventDefault();
+
+            // v4.18.0 Unified Fairway Pin Finder
+            if (e.shiftKey) {
+                if (isGridNavigating) {
+                    isGridNavigating = false;
+                    activeTargetType = 'pin';
+                    targetX = pinX;
+                    targetY = pinY;
+                    let msg = "Grid targeting disabled. Target mode set to Pin.";
+                    window.announce(msg);
+                    document.getElementById('visual-output').innerText = msg;
+                } else {
+                    isGridNavigating = true;
+                    activeTargetType = 'grid';
+                    gridX = 0;
+                    gridY = 0;
+                    let initElevation = "Plays flat.";
+                    let distToPin = calculateDistanceToPin();
+                    const holeData = courses[currentCourseIndex].holes[hole - 1];
+                    if (distToPin <= 50 && holeData.greenType && typeof greenDictionary !== 'undefined') {
+                        let activeContours = greenDictionary[holeData.greenType] || [];
+                        let zone = activeContours.find(z => distToPin <= z.startY && distToPin > z.endY);
+                        if (zone) {
+                            if (zone.slopeY > 0) initElevation = "Plays Uphill.";
+                            if (zone.slopeY < 0) initElevation = "Plays Downhill.";
+                        }
+                    }
+                    window.announceGridPosition(initElevation);
+                }
+                window.updateDashboard();
+                return;
+            }
+
+            // Standard Z (Landing Zones) logic continues here...
             const holeData = courses[currentCourseIndex].holes[hole - 1];
             if (activeTargetType === 'zone') {
                 activeTargetType = 'pin';
@@ -680,41 +732,6 @@ window.addEventListener('keydown', (e) => {
         }
         if (e.code === 'KeyT') {
             e.preventDefault(); 
-            if (e.shiftKey) {
-                if (isGridNavigating) {
-                    isGridNavigating = false;
-                    activeTargetType = 'pin';
-                    targetX = pinX;
-                    targetY = pinY;
-                    let msg = "Grid targeting disabled. Target mode set to Pin.";
-                    window.announce(msg);
-                    document.getElementById('visual-output').innerText = msg;
-                } else {
-                    isGridNavigating = true;
-                    activeTargetType = 'grid';
-                    gridX = 0;
-                    gridY = 0;
-
-                    // v4.14.4 Calculate initial elevation to pin
-                    let initElevation = "Plays flat.";
-                    let distToPin = calculateDistanceToPin();
-                    if (gameMode === 'course') {
-                        const holeData = courses[currentCourseIndex].holes[hole - 1];
-                        if (distToPin <= 50 && holeData.greenType && typeof greenDictionary !== 'undefined') {
-                            let activeContours = greenDictionary[holeData.greenType] || [];
-                            let zone = activeContours.find(z => distToPin <= z.startY && distToPin > z.endY);
-                            if (zone) {
-                                if (zone.slopeY > 0) initElevation = "Plays Uphill.";
-                                if (zone.slopeY < 0) initElevation = "Plays Downhill.";
-                            }
-                        }
-                    }
-                    window.announceGridPosition(initElevation);
-                }
-                window.updateDashboard();
-                return;
-            }
-
             let distToPin = calculateDistanceToPin();
             let distMsg = "";
             if (gameMode === 'course') {
