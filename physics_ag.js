@@ -1,4 +1,27 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.19.5)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.19.6)
+
+const SHOT_RECOVERY_TIMEOUT_MS = 20000;
+
+window.setCaddyPanelText = function(msg) {
+    const panel = document.getElementById('caddy-panel');
+    if (!panel) return;
+
+    panel.style.display = 'block';
+    let textEl = document.getElementById('caddy-panel-text');
+
+    // Self-heal if a previous write replaced the panel subtree.
+    if (!textEl) {
+        const heading = document.createElement('h3');
+        heading.innerText = 'Post-Shot Caddy Report';
+        textEl = document.createElement('p');
+        textEl.id = 'caddy-panel-text';
+        panel.innerHTML = '';
+        panel.appendChild(heading);
+        panel.appendChild(textEl);
+    }
+
+    textEl.innerText = msg;
+};
 
 window.initPutting = function() {
     isPutting = true; swingState = 0; puttState = 0;
@@ -236,7 +259,8 @@ function calculateShot(autoMiss = false) {
                     let totalRel = 0; roundData.forEach(r => totalRel += (r.strokes - r.par));
                     let relStr = totalRel === 0 ? "Even Par" : totalRel > 0 ? `+${totalRel}` : `${totalRel}`;
                     let compMsg = `Hole complete in ${strokes} strokes. You are ${relStr}. Press Enter to proceed to the next hole, or Shift + E for your scorecard.`;
-                    window.announce(compMsg); document.getElementById('caddy-panel').innerText = compMsg;
+                    window.announce(compMsg);
+                    window.setCaddyPanelText(compMsg);
                     swingState = 6;
                 } else {
                     swingState = 0; puttState = 0;
@@ -257,6 +281,19 @@ function calculateShot(autoMiss = false) {
 
     stateTimeouts.forEach(clearTimeout);
     strokes++;
+
+    // v4.19.6 Hard failsafe: never allow flight state to deadlock input.
+    stateTimeouts.push(setTimeout(() => {
+        if (swingState !== 5) return;
+        swingState = 0;
+        isPutting = false;
+        if (typeof puttState !== 'undefined') puttState = 0;
+        const recoverMsg = "Shot recovery triggered. Input restored.";
+        window.announce(recoverMsg);
+        document.getElementById('visual-output').innerText = recoverMsg;
+        window.updateDashboard();
+    }, SHOT_RECOVERY_TIMEOUT_MS));
+
     lockedImpactTime = performance.now() - impactStartTime;
     if (autoMiss) {
         playTone(150, 'sine', 0.5, 0.5);
@@ -526,6 +563,7 @@ function calculateShot(autoMiss = false) {
 
     // v4.19.4 Track flight timeout
     stateTimeouts.push(setTimeout(() => {
+        try {
         const loftPenalty = dynamicLoft >= 50 ? 2 : dynamicLoft >= 38 ? 1 : 0;
         const baseBounceCount = rollDistance <= 0 ? 1 : Math.min(6, 1 + Math.floor(rollDistance / 7));
         const bounceCount = Math.max(1, baseBounceCount - loftPenalty);
@@ -623,8 +661,7 @@ function calculateShot(autoMiss = false) {
                 window.announce(chippingMsg);
                 lastShotReport = chippingMsg + "\n\nTelemetry:\n" + metrics;
                 holeTelemetry.push(lastShotReport);
-                document.getElementById('caddy-panel').style.display = 'block';
-                document.getElementById('caddy-panel-text').innerText = lastShotReport;
+                window.setCaddyPanelText(lastShotReport);
                 driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
                 window.updateDashboard();
             } else {
@@ -636,8 +673,7 @@ function calculateShot(autoMiss = false) {
                     window.announce(completionMessage);
                     lastShotReport = completionMessage + "\n\nTelemetry:\n" + metrics;
                     holeTelemetry.push(lastShotReport);
-                    document.getElementById('caddy-panel').style.display = 'block';
-                    document.getElementById('caddy-panel-text').innerText = lastShotReport;
+                    window.setCaddyPanelText(lastShotReport);
                     swingState = 6;
                 } else {
                     if (gameMode === 'range') {
@@ -652,8 +688,7 @@ function calculateShot(autoMiss = false) {
                         
                         ballX = 0; ballY = 0; 
                         window.announce(rangeMsg);
-                        document.getElementById('caddy-panel').style.display = 'block';
-                        document.getElementById('caddy-panel-text').innerText = lastShotReport;
+                        window.setCaddyPanelText(lastShotReport);
 
                         if (gameMode === 'course') window.updateTargetZone();
                         driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0;
@@ -670,8 +705,7 @@ function calculateShot(autoMiss = false) {
                             window.announce(broadcast);
                             lastShotReport = broadcast + "\n\nTelemetry:\n" + metrics;
                             holeTelemetry.push(lastShotReport);
-                            document.getElementById('caddy-panel').style.display = 'block';
-                            document.getElementById('caddy-panel-text').innerText = lastShotReport;
+                            window.setCaddyPanelText(lastShotReport);
 
                             // v4.8.0 Green Transition & Victory Arpeggio
                             if (gameMode === 'course' && currentLie === "Green") {
@@ -694,6 +728,17 @@ function calculateShot(autoMiss = false) {
                 }
             }
         }, bounceSequenceMs + (rollTimeSecs * 1000) + 500));
+
+        } catch (err) {
+            console.error('Shot resolution failed', err);
+            swingState = 0;
+            isPutting = false;
+            if (typeof puttState !== 'undefined') puttState = 0;
+            const fallbackMsg = "Shot resolution recovered from an error. Input restored.";
+            window.announce(fallbackMsg);
+            document.getElementById('visual-output').innerText = fallbackMsg;
+            window.updateDashboard();
+        }
 
     }, hangTimeSecs * 1000));
 }
