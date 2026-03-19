@@ -1,16 +1,33 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.10.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.11.0)
 
 window.addEventListener('keydown', (e) => {
-    // v4.10.0 Scorecard Interceptor
+    // v4.11.0 Custom Grid Interceptor
     if (viewingScorecard) {
+        e.preventDefault(); // Lock ALL inputs
+        
         if (e.code === 'Escape' || e.code === 'Enter') {
-            e.preventDefault(); viewingScorecard = false;
+            viewingScorecard = false;
             document.getElementById('scorecard-container').style.display = 'none';
             document.getElementById('visual-output').style.display = 'block';
             window.announce("Exited Scorecard.");
             document.getElementById('visual-output').innerText = getSetupReport();
+            return;
         }
-        return; // Let native screen reader table commands pass through
+        
+        if (e.code === 'ArrowRight') {
+            if (scCol < scorecardGrid[0].length - 1) { scCol++; window.announceScorecardCell(); }
+            else { window.announce("Right edge."); }
+        } else if (e.code === 'ArrowLeft') {
+            if (scCol > 0) { scCol--; window.announceScorecardCell(); }
+            else { window.announce("Left edge."); }
+        } else if (e.code === 'ArrowDown') {
+            if (scRow < scorecardGrid.length - 1) { scRow++; window.announceScorecardCell(); }
+            else { window.announce("Bottom edge."); }
+        } else if (e.code === 'ArrowUp') {
+            if (scRow > 0) { scRow--; window.announceScorecardCell(); }
+            else { window.announce("Top edge."); }
+        }
+        return; 
     }
 
     if (e.code === 'F1') {
