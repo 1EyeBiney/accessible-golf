@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.19.6)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.19.7)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -723,7 +723,10 @@ function calculateShot(autoMiss = false) {
 
                         // Wait for the timeout to finish, then save
                         // Track the Auto-Save delay
-                        stateTimeouts.push(setTimeout(() => { if (typeof window.saveGame === 'function') window.saveGame(); }, 2000));
+                        stateTimeouts.push(setTimeout(() => {
+                            shotStyleIndex = 0; // v4.19.7 Reset style to Normal after shot completion
+                            if (typeof window.saveGame === 'function') window.saveGame();
+                        }, 2000));
                     }
                 }
             }

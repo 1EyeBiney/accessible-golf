@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.19.6)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.20.0)
 
 window.addEventListener('keydown', (e) => {
     // v4.11.0 Custom Grid Interceptor
@@ -545,14 +545,29 @@ window.addEventListener('keydown', (e) => {
         }
         if (e.code === 'KeyS') {
             e.preventDefault();
-            // v4.19.1 Cycle Swing Styles
+            // v4.19.7 Advanced Style Cycling: S = Forward (+1), Shift+S = Backward (-1)
             if (e.shiftKey) {
-                shotStyleIndex = (shotStyleIndex + 1) % shotStyles.length;
-            } else {
                 shotStyleIndex = (shotStyleIndex - 1 + shotStyles.length) % shotStyles.length;
+            } else {
+                shotStyleIndex = (shotStyleIndex + 1) % shotStyles.length;
             }
+            
             const style = shotStyles[shotStyleIndex];
-            const msg = `Swing Style: ${style.name}.`;
+            const chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
+            let dynamicLoft = Math.max(0, club.loft + style.loftMod + ((2 - stanceIndex) * 5));
+            let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
+            const baseTotal = club.baseDistance * style.distMod * chokeMod * loftDistMod;
+            
+            let distMsg = "";
+            if (gameMode === 'course' && currentLie === 'Sand') {
+                distMsg = ` Expect ${Math.round(baseTotal * 0.60)} to ${Math.round(baseTotal * 0.80)} yards in sand.`;
+            } else if ((gameMode === 'course' && currentLie === 'Light Rough') || (gameMode === 'range' && rangeLie === 'Rough')) {
+                distMsg = ` Expect ${Math.round(baseTotal * 0.85)} to ${Math.round(baseTotal * 0.95)} yards in rough.`;
+            } else {
+                distMsg = ` Expect ${Math.round(baseTotal)} yards.`;
+            }
+
+            const msg = `Swing Style: ${style.name}.${distMsg}`;
             document.getElementById('visual-output').innerText = msg;
             window.announce(msg);
             window.updateDashboard();
@@ -710,34 +725,36 @@ window.addEventListener('keydown', (e) => {
                 return;
             }
 
-            // Standard Z (Landing Zones) logic continues here...
             const holeData = courses[currentCourseIndex].holes[hole - 1];
-            if (activeTargetType === 'zone') {
-                activeTargetType = 'pin';
-                targetX = holeData.pinX;
-                targetY = holeData.pinY;
-                window.autoEquipBestClub(); // v4.19.3
-                let msg = `Target mode set to Pin. ${calculateDistanceToTarget()} yards. Auto-equipped ${club.name}.`;
-                window.announce(msg);
-                document.getElementById('visual-output').innerText = msg;
-                return;
-            }
-
             const landingZones = holeData.landingZones || [];
-            if (landingZones.length === 0) {
-                window.announce("No landing zones are configured for this hole.");
-                return;
+
+            if (activeTargetType === 'pin') {
+                if (landingZones.length > 0) {
+                    activeTargetType = 'zone';
+                    targetZoneIndex = 0;
+                    const z = landingZones[targetZoneIndex];
+                    targetX = z.x; targetY = z.y;
+                } else {
+                    window.announce("No landing zones defined for this hole.");
+                    return;
+                }
+            } else {
+                targetZoneIndex++;
+                if (targetZoneIndex >= landingZones.length) {
+                    activeTargetType = 'pin';
+                    targetX = holeData.pinX; targetY = holeData.pinY;
+                } else {
+                    const z = landingZones[targetZoneIndex];
+                    targetX = z.x; targetY = z.y;
+                }
             }
 
-            activeTargetType = 'zone';
-            if (targetZoneIndex < 0 || targetZoneIndex >= landingZones.length) targetZoneIndex = 0;
-            const selectedZone = landingZones[targetZoneIndex];
-            targetX = selectedZone.x;
-            targetY = selectedZone.y;
-            window.autoEquipBestClub(); // v4.19.3
-            let msg = `Target mode: ${selectedZone.name}. ${calculateDistanceToTarget()} yards. Auto-equipped ${club.name}.`;
+            window.autoEquipBestClub();
+            let label = activeTargetType === 'pin' ? "The Pin" : landingZones[targetZoneIndex].name;
+            let msg = `Target: ${label}. ${calculateDistanceToTarget()} yards. Auto-equipped ${club.name}.`;
             window.announce(msg);
             document.getElementById('visual-output').innerText = msg;
+            window.updateDashboard();
             return;
         }
         if (e.code === 'KeyT') {
