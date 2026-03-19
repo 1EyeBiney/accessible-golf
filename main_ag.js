@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.14.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.14.3)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let devPower = false, devHinge = false, devImpact = false;
@@ -63,6 +63,11 @@ function loadHole(holeNumber) {
     isPutting = false;
     puttState = 0;
     isChokedDown = false;
+
+    // v4.14.1 Reset targeting modes so they don't bleed into the next hole
+    activeTargetType = 'pin';
+    gridX = 0; gridY = 0;
+    targetZoneIndex = 0;
 
     holeTelemetry = [];
     window.updateTargetZone();
@@ -134,6 +139,10 @@ window.getCaddyAdvice = function() {
     const targetDist = Math.round(Math.sqrt((dx * dx) + (dy * dy)));
 
     const style = shotStyles[0]; // Full swing baseline for Oracle simulation
+    
+    // v4.14.1 Apply the Physics Engine Lie Penalties
+    let lieMultiplier = currentLie === 'Sand' ? 0.70 : (currentLie === 'Light Rough' || currentLie === 'Rough') ? 0.90 : 1.0;
+
     const simulatedClubs = [];
     for (let i = 0; i < 14; i++) simulatedClubs.push(clubs[i % clubs.length]);
 
@@ -141,22 +150,30 @@ window.getCaddyAdvice = function() {
     let sims = 0;
 
     simulatedClubs.forEach(simClub => {
+        if (simClub.name === "Putter") return; // Skip putter
+        
         for (let simStance = 0; simStance < 5; simStance++) {
             sims++;
 
             let dynamicLoft = Math.max(0, simClub.loft + style.loftMod + ((2 - simStance) * 5));
             let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
-            let totalDist = simClub.baseDistance * style.distMod * loftDistMod;
-            let rollDist = totalDist * simClub.rollPct * style.rollMod;
+            let totalDist = simClub.baseDistance * style.distMod * loftDistMod * lieMultiplier;
+            
+            // v4.14.1 Advanced Spin-Roll Math
+            let backspinRPM = Math.max(400, Math.round((simClub.loft * 150) + 1000 + ((simStance - 2) * 500) + style.spinMod));
+            let spinRollMod = Math.max(0.1, 1 - ((backspinRPM - 4000) / 10000));
+            let rollDist = totalDist * simClub.rollPct * style.rollMod * spinRollMod;
             let carryDist = Math.max(1, totalDist - rollDist);
 
             let hangTime = Math.min(6, Math.max(0.5, (totalDist / 60) + (dynamicLoft / 15)));
-            let windForward = windY * (hangTime / 1.5);
-            let windCross = windX * (hangTime / 1.2);
+            
+            // v4.14.1 Synchronized Wind Math (hangTime / 2.5)
+            let windForward = windY * (hangTime / 2.5) * style.windMod;
+            let windCross = windX * (hangTime / 2.5) * style.windMod;
 
             let desiredHeading = Math.atan2((targetPoint.x - ballX) - windCross, (targetPoint.y - ballY) - windForward);
             let aimDeg = Math.round((desiredHeading - baseHeading) * (180 / Math.PI));
-            aimDeg = Math.max(-45, Math.min(45, aimDeg));
+            aimDeg = Math.max(-45, Math.min(45, aimDeg)); // Realistic aim limits
 
             let heading = baseHeading + (aimDeg * Math.PI / 180);
             let effectiveCarry = carryDist + windForward;
@@ -182,13 +199,34 @@ window.getCaddyAdvice = function() {
     if (!best) return "Oracle unavailable. Unable to compute tactical targeting right now.";
 
     const aimStr = best.aimDeg === 0 ? "Center" : `${Math.abs(best.aimDeg)} degrees ${best.aimDeg < 0 ? 'Left' : 'Right'}`;
-    return `[Oracle v4.14.0] Target: ${targetPoint.label} (${targetDist}y). Simulated ${sims} shots (14 clubs x 5 stances). Best line: ${best.clubName}, ${best.stanceName}, aim ${aimStr}. Predicted miss: ${Math.round(best.miss)} yards. Estimated total: ${best.totalDist} yards.`;
+    return `[Oracle v4.14.1] Target: ${targetPoint.label} (${targetDist}y). Evaluated ${sims} parameters. Best line: ${best.clubName}, ${best.stanceName}, aim ${aimStr}. Predicted miss: ${Math.round(best.miss)} yards.`;
 };
 
 window.announceGridPosition = function() {
     targetX = pinX + gridX;
     targetY = pinY + gridY;
-    let msg = `Target Square: ${Math.abs(gridY)} yards ${gridY < 0 ? 'Short' : 'Past'}, ${Math.abs(gridX)} yards ${gridX < 0 ? 'Left' : 'Right'} of pin. Distance: ${calculateDistanceToTarget()} yards.`;
+    let distToTarget = calculateDistanceToTarget();
+    let distToPin = Math.sqrt(Math.pow(gridX, 2) + Math.pow(gridY, 2));
+    
+    // v4.14.3 Predictive Topography (Effect Translator)
+    let effectStr = "Plays flat";
+    if (gameMode === 'course') {
+        const holeData = courses[currentCourseIndex].holes[hole - 1];
+        if (holeData.greenType && typeof greenDictionary !== 'undefined') {
+            let activeContours = greenDictionary[holeData.greenType] || [];
+            let zone = activeContours.find(z => distToPin <= z.startY && distToPin > z.endY);
+            if (zone) {
+                let vert = zone.slopeY > 0 ? "Checks up" : zone.slopeY < 0 ? "Releases forward" : "";
+                let horiz = zone.slopeX > 0 ? "Kicks right" : zone.slopeX < 0 ? "Kicks left" : "";
+                
+                if (vert && horiz) effectStr = `${horiz} and ${vert.toLowerCase()}`;
+                else if (vert) effectStr = vert;
+                else if (horiz) effectStr = horiz;
+            }
+        }
+    }
+    
+    let msg = `Target Square: ${Math.abs(gridY)} yards ${gridY < 0 ? 'Short' : 'Past'}, ${Math.abs(gridX)} yards ${gridX < 0 ? 'Left' : 'Right'} of pin. Effect: ${effectStr}. Distance: ${distToTarget} yards.`;
     window.announce(msg);
     document.getElementById('visual-output').innerText = msg;
 };

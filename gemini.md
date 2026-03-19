@@ -149,3 +149,21 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Contour Zones:** Greens are not flat planes. `data_ag.js` defines `greenContours` as an array of distance brackets (e.g., `startY`, `endY`, `slopeX`, `slopeY`). 
 - **The God Caddy (Putting):** To prevent cognitive overload on complex multi-tier greens, the Level 3 Caddy translates the Contour Zones into a plain-text narrative (e.g., "The first 10 yards break left, then it feeds downhill and right").
 - **Touch/Tempo Mechanic:** Hinge timing is replaced by "Tempo" taps during the putt. Perfect tempo widens the "Capture Speed Limit" of the cup, allowing players to "jam it in" on short putts and blast through minor breaks.
+### 30. v4.4 - v4.7 Engine Addendum (Putting Physics & The God Caddy)
+- **Gravity Engine (Step Simulation):** Putts are simulated in 1-yard steps. At each step, `speedRemaining` is evaluated against `activeContours` (slopeX/slopeY). The ball's `currentHeading` is actively modified by the slopes.
+- **Capture Mechanics:** The hole has a `captureRadius` and `captureSpeedLimit`. If the ball crosses the radius but exceeds the speed limit, it lips out. Perfect tempo (`hingeDiff < 50ms`) increases the speed limit, allowing "jammed" putts.
+- **The God Mode Caddy:** Runs a 360-degree radial simulation, testing distances and aim angles through the slope matrix to find the exact yardage and degree to sink the putt.
+
+### 31. v4.8 - v4.11 Engine Addendum (Progression, Autosave & Grid Scorecard)
+- **State Persistence:** `localStorage` captures all game variables (including `roundData`, `windX`, and `holeTelemetry`).
+- **Continuous Loop:** Sinking a putt sets `isHoleComplete = true`. Pressing `Enter` triggers `loadHole(hole + 1)`, resetting states (e.g., `isPutting = false`, `stanceIndex = 2`) without a page refresh.
+- **Custom Grid Scorecard:** `Shift + E` opens the scorecard. To avoid focus-loss in screen readers, it uses an invisible 2D JavaScript array (`scorecardGrid`). Arrow keys strictly intercept and announce `(Row Header, Column Header: Value)`. Sighted spectators see a CSS-highlighted HTML table synced to the ARIA coordinates.
+
+### 32. v4.12 - v4.13 Engine Addendum (The Clubhouse & Context-Sensitive Quit)
+- **The Clubhouse Menu:** `gameMode = 'clubhouse'`. Acts as a safe state container. Arrow keys navigate an array of options (Resume Session, New Round, Practice Facilities).
+- **Context-Sensitive Quit (KeyQ):** If pressed in practice, it instantly returns to the Clubhouse. If pressed mid-round, it intercepts and forces a `KeyS` (Save) or `KeyA` (Abandon) safety check to prevent data loss.
+
+### 33. v4.14 Engine Addendum (Two-Tier Targeting & Oracle Caddy)
+- **Fairway Zones (KeyZ):** Cycles through pre-defined strategic `landingZones` on the fairway.
+- **Green Micro-Grid (Shift + T):** Activates a 20x20 yard navigable grid. Arrow keys move a targeting square, allowing players to aim for specific slopes or safe zones away from the pin.
+- **Oracle Caddy v2:** Level 3 Fairway Caddy. Runs a brute-force physics simulation across 70 permutations (14 clubs * 5 stances) against the `activeTargetType`. Calculates `totalDistance` and exact wind drift to provide a flawless shot blueprint (e.g., "Equip 5 Iron, Back Stance, Aim 3° Right").

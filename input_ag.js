@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.14.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.14.3)
 
 window.addEventListener('keydown', (e) => {
     // v4.11.0 Custom Grid Interceptor
@@ -49,7 +49,7 @@ window.addEventListener('keydown', (e) => {
         } else if (e.code === 'Escape' || e.code === 'Enter') {
             targetX = pinX + gridX;
             targetY = pinY + gridY;
-            activeTargetType = 'pin';
+            activeTargetType = 'grid'; // v4.14.1 FIX: Keep it locked to the grid!
             window.announce("Grid target locked. Returning to swing mode.");
             document.getElementById('visual-output').innerText = getSetupReport();
             window.updateDashboard();
@@ -661,10 +661,23 @@ window.addEventListener('keydown', (e) => {
                 const holeData = courses[currentCourseIndex].holes[hole - 1];
                 if (targetY !== holeData.pinY || targetX !== holeData.pinX) {
                     let distToTarget = Math.round(Math.sqrt(Math.pow(targetX - ballX, 2) + Math.pow(targetY - ballY, 2)));
-                    distMsg += `Aiming at zone, ${distToTarget} yards away. `;
+                    distMsg += `Aiming at target, ${distToTarget} yards away. `;
                 }
                 distMsg += `${distToPin} yards to the pin.`;
                 if (holeData.pinLocation) distMsg += ` Pin is ${holeData.pinLocation}.`;
+
+                // v4.14.3 Macro Elevation Report
+                // (Stubbed for future fairway contours. Currently reads Green elevation if close)
+                let elevationMsg = " Plays flat.";
+                if (distToPin <= 50 && holeData.greenType && typeof greenDictionary !== 'undefined') {
+                    let activeContours = greenDictionary[holeData.greenType] || [];
+                    let zone = activeContours.find(z => distToPin <= z.startY && distToPin > z.endY);
+                    if (zone) {
+                        if (zone.slopeY > 0) elevationMsg = " Plays Uphill.";
+                        if (zone.slopeY < 0) elevationMsg = " Plays Downhill.";
+                    }
+                }
+                distMsg += elevationMsg;
                 distMsg += getSightReport(); 
             } else {
                 distMsg = `${distToPin} yards to the pin.`;
