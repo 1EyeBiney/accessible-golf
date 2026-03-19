@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.19.2)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.19.3)
 
 window.initPutting = function() {
     isPutting = true; swingState = 0; puttState = 0;
@@ -699,4 +699,29 @@ window.formatProximity = function(yards) {
     if (feet === 0) return `${inches} inches`;
     if (inches === 0) return `${feet} feet`;
     return `${feet} feet, ${inches} inches`;
+};
+
+window.autoEquipBestClub = function() {
+    let distToTarget = calculateDistanceToTarget();
+    let lieMultiplier = currentLie === 'Sand' ? 0.70 : (currentLie === 'Light Rough' || currentLie === 'Rough') ? 0.90 : 1.0;
+    let currentStyle = shotStyles[shotStyleIndex];
+    let chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
+    let bestClubIndex = currentClubIndex;
+    let smallestDiff = 9999;
+
+    for (let i = 0; i < clubs.length; i++) {
+        if (clubs[i].name === "Putter") continue;
+        let dynamicLoft = Math.max(0, clubs[i].loft + currentStyle.loftMod + ((2 - stanceIndex) * 5));
+        let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
+        let expectedDist = clubs[i].baseDistance * lieMultiplier * loftDistMod * chokeMod;
+
+        let diff = Math.abs(expectedDist - distToTarget);
+        if (diff < smallestDiff) {
+            smallestDiff = diff;
+            bestClubIndex = i;
+        }
+    }
+    currentClubIndex = bestClubIndex;
+    club = clubs[currentClubIndex];
+    window.updateDashboard();
 };

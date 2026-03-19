@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.19.2)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.19.3)
 
 window.addEventListener('keydown', (e) => {
     // v4.11.0 Custom Grid Interceptor
@@ -716,10 +716,10 @@ window.addEventListener('keydown', (e) => {
                 activeTargetType = 'pin';
                 targetX = holeData.pinX;
                 targetY = holeData.pinY;
-                let msg = `Target mode set to Pin. ${calculateDistanceToTarget()} yards to target.`;
+                window.autoEquipBestClub(); // v4.19.3
+                let msg = `Target mode set to Pin. ${calculateDistanceToTarget()} yards. Auto-equipped ${club.name}.`;
                 window.announce(msg);
                 document.getElementById('visual-output').innerText = msg;
-                window.updateDashboard();
                 return;
             }
 
@@ -734,9 +734,10 @@ window.addEventListener('keydown', (e) => {
             const selectedZone = landingZones[targetZoneIndex];
             targetX = selectedZone.x;
             targetY = selectedZone.y;
-            let msg = `Target mode set to Zone: ${selectedZone.name}. ${calculateDistanceToTarget()} yards to target.`;
-            window.announce(msg); document.getElementById('visual-output').innerText = msg;
-            window.updateDashboard();
+            window.autoEquipBestClub(); // v4.19.3
+            let msg = `Target mode: ${selectedZone.name}. ${calculateDistanceToTarget()} yards. Auto-equipped ${club.name}.`;
+            window.announce(msg);
+            document.getElementById('visual-output').innerText = msg;
             return;
         }
         if (e.code === 'KeyT') {
