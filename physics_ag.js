@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.30.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.30.1)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -229,12 +229,47 @@ function calculateShot(autoMiss = false) {
                 isHoleComplete = true;
 
                 if (gameMode === 'course') {
-                    // v4.30.0 Hole Journaling
+                    // v4.30.1 Broadcast Hole Journaling
                     let term = window.getScoreTerm(par, strokes);
                     let nonPutts = strokes - puttsThisHole;
-                    let reachStr = nonPutts === 0 ? "Drove the green" : `Reached the green in ${nonPutts} strokes`;
-                    let puttStr = puttsThisHole === 1 ? `1-putted from ${formattedDist}` : `${puttsThisHole}-putted`;
-                    let narrative = `Hole ${hole} (Par ${par}): ${reachStr} and ${puttStr} for a ${term}.`;
+
+                    // Calculate Running Score
+                    let currentTotalStrokes = strokes;
+                    let currentTotalPar = par;
+                    roundData.forEach(r => { currentTotalStrokes += r.strokes; currentTotalPar += r.par; });
+                    let rel = currentTotalStrokes - currentTotalPar;
+                    let relStr = rel === 0 ? "Even Par" : rel > 0 ? `+${rel}` : `${Math.abs(rel)} under par`;
+
+                    let narrative = "";
+                    if (strokes === 1) {
+                        narrative = `You aced Hole ${hole} for a Hole in One! You are now ${relStr}.`;
+                    } else {
+                        let shotStory = "";
+                        if (currentHoleStats.driveDistance && par > 3) {
+                            shotStory += `You hit a ${currentHoleStats.driveDistance} yard drive`;
+                        }
+
+                        if (currentHoleStats.approachStart) {
+                            let proxStr = window.formatProximity(currentHoleStats.approachProx);
+                            let verb = currentHoleStats.approachStart > 50 ? "hit your approach" : "chipped";
+                            if (shotStory !== "") shotStory += ` and then `;
+                            else shotStory += `You `;
+                            shotStory += `${verb} from ${currentHoleStats.approachStart} yards to within ${proxStr} of the pin.`;
+                        } else if (nonPutts > 0) {
+                            if (shotStory !== "") shotStory += `. You reached the green in ${nonPutts} strokes.`;
+                            else shotStory += `You reached the green in ${nonPutts} strokes.`;
+                        }
+
+                        let formattedDist = window.formatProximity(puttTargetDist);
+                        let puttStory = "";
+                        if (puttsThisHole === 1) {
+                            puttStory = `You sank a ${formattedDist} putt for ${term}`;
+                        } else {
+                            puttStory = `You ${puttsThisHole}-putted for ${term}`;
+                        }
+
+                        narrative = `${shotStory.trim()} ${puttStory} and are ${relStr} at this point.`;
+                    }
 
                     // v4.30.0 Highlight Tagging (Putts)
                     roundHighlights.putts.push({ hole: hole, dist: puttTargetDist });
@@ -245,6 +280,7 @@ function calculateShot(autoMiss = false) {
                         hole: hole, par: par, distance: courses[currentCourseIndex].holes[hole - 1].distance,
                         strokes: strokes, putts: puttsThisHole, fir: currentHoleStats.fir, gir: currentHoleStats.gir,
                         driveDistance: currentHoleStats.driveDistance, puttDistance: puttTargetDist,
+                        approachStart: currentHoleStats.approachStart, approachProx: currentHoleStats.approachProx, // v4.30.1 Save to array
                         narrative: narrative
                     });
                 }
@@ -678,6 +714,11 @@ function calculateShot(autoMiss = false) {
             const finalRelY = ballY - pinY;
             const finalRelX = ballX - pinX;
             const finalDistToPin = Math.sqrt(Math.pow(finalRelX, 2) + Math.pow(finalRelY, 2));
+
+            // v4.30.1 Track Approach Stats
+            currentHoleStats.approachStart = Math.round(distanceToPin);
+            currentHoleStats.approachProx = finalDistToPin;
+
             roundHighlights.approaches.push({ hole: hole, prox: finalDistToPin, start: Math.round(distanceToPin) });
             roundHighlights.approaches.sort((a, b) => a.prox - b.prox);
             if (roundHighlights.approaches.length > 2) roundHighlights.approaches.pop();

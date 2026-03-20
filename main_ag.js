@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.30.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.30.1)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -78,7 +78,8 @@ function loadHole(holeNumber) {
     
     ballX = 0; ballY = 0; strokes = 0; isHoleComplete = false;
     puttsThisHole = 0;
-    currentHoleStats = { fir: holeData.par > 3 ? false : null, gir: false, driveDistance: null, puttDistance: null };
+    // v4.30.1 Add approachStart and approachProx to the tracker
+    currentHoleStats = { fir: holeData.par > 3 ? false : null, gir: false, driveDistance: null, approachStart: null, approachProx: null, puttDistance: null };
     currentLie = "Tee";
     aimAngle = 0; stanceIndex = 2; stanceAlignment = 0;
     swingState = 0; // FIX: Added state reset
