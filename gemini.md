@@ -192,3 +192,7 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Scorecard Arrays:** The Grid Scorecard tracks 8 columns including Terminology (Birdie/Bogey), Drive Distance on Par 4s/5s, and successful Putt Distance.
 - **Fractional Analytics:** The totals row calculates FIR and GIR as true fractions (e.g., "5 of 9") instead of binary lists.
 - **Oracle Inversion:** The God Caddy putting math properly inverts slope logic, instructing players to aim *against* the break rather than with it.
+### 39. v4.25 Engine Addendum (Green Reading & Accessibility)
+- **Keyboard Explore Mode (F12):** Toggles `isExploreMode`. Intercepts all keydown events to announce `window.getKeyDescription()` instead of executing standard game logic.
+- **Green Reading (Key B):** Translates underlying `slopeX` and `slopeY` values into literal inches for break and elevation to provide intuitive green-reading for screen reader users.
+- **Brute-Force Putting Oracle:** The God Caddy (Level 3) simulates a 360-degree spread of exact physics steps through the `activeContours` to find the precise `bestAim` and `bestPace` to hit the bottom of the cup, replacing generic multiplication estimates.

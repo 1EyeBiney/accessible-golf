@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accessible Golf Sound Bank Tester</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 18px;
+            background: #0e1710;
+            color: #d8e4d8;
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            line-height: 1.45;
+        }
+        .shell {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        h1 {
+            margin: 0 0 6px;
+            color: #8cd38f;
+            font-size: 1.7rem;
+        }
+        .subtitle {
+            margin: 0 0 14px;
+            color: #9fb89f;
+            font-size: 0.95rem;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+            position: sticky;
+            top: 0;
+            background: #0e1710;
+            padding: 10px 0;
+            z-index: 100;
+            border-bottom: 1px solid #1a2b1d;
+        }
+        .toolbar button {
+            background: #1a2b1d;
+            color: #8cd38f;
+            border: 1px solid #2c4a30;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        .toolbar button:hover { background: #233d27; }
+        .toolbar button.danger { color: #f48a8a; border-color: #6a2a2a; }
+        .toolbar button.danger:hover { background: #3d1a1a; }
+        .status {
+            font-family: monospace;
+            color: #88a888;
+            margin-bottom: 24px;
+            padding: 8px;
+            background: #090e0a;
+            border: 1px solid #1a2b1d;
+            min-height: 2.4em;
+        }
+        .section {
+            margin-bottom: 32px;
+        }
+        .section h2 {
+            margin: 0 0 12px;
+            color: #8cd38f;
+            font-size: 1.1rem;
+            border-bottom: 1px solid #1a2b1d;
+            padding-bottom: 4px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 8px;
+        }
+        .cue {
+            background: #111e14;
+            border: 1px solid #233d27;
+            padding: 10px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.1s;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .cue:hover {
+            background: #1a2b1d;
+            border-color: #3b6341;
+        }
+        .cue:focus {
+            outline: 2px solid #8cd38f;
+            background: #233d27;
+        }
+        .cue-name {
+            font-weight: bold;
+            font-size: 0.95rem;
+            color: #8cd38f;
+        }
+        .cue:focus .cue-name { color: #ffffff; }
+        .cue-meta {
+            font-size: 0.75rem;
+            color: #7b997b;
+            font-family: monospace;
+        }
+        .cue:focus .cue-meta { color: #a5cda5; }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <h1>AG Audio Bank Tester</h1>
+        <p class="subtitle">Diagnostic interface for golf_audio_bank.js</p>
+
+        <div class="toolbar">
+            <button type="button" onclick="stopAll()">[■] Stop Audio</button>
+            <button type="button" onclick="testEcho()">Test Context Wake</button>
+        </div>
+
+        <div id="status" class="status" aria-live="polite">Initializing...</div>
+
+        <div id="categories"></div>
+    </div>
+
+    <script src="audio_ag.js"></script>
+    <script src="golf_audio_bank.js"></script>
+    <script>
+        const statusEl = document.getElementById('status');
+
+        function setStatus(msg) {
+            statusEl.textContent = msg;
+            console.log(msg);
+        }
+
+        function stopAll() {
+            if (window.stopAllAudio) {
+                window.stopAllAudio();
+                setStatus('Audio context stopped and cleared.');
+            }
+        }
+
+        function testEcho() {
+            if (window.initAudio) window.initAudio();
+            if (window.playEcho) {
+                window.playEcho('sine', 440, 880, 0.2, 0.2, 0.15);
+                setStatus('Played wake echo.');
+            } else {
+                setStatus('playEcho not found in audio_ag.js');
+            }
+        }
+
+        function playCue(cue) {
+            if (window.initAudio) window.initAudio();
+            setStatus('Playing: ' + cue.name + ' [' + cue.id + ']');
+            const success = window.playGolfSound(cue.id);
+            if (!success) {
+                setStatus('Failed to play: ' + cue.id);
+            }
+        }
+
+        function build() {
+            if (!window.golfAudioBank) {
+                setStatus('Error: golfAudioBank not found. Make sure golf_audio_bank.js is loaded.');
+                return;
+            }
+
+            const root = document.getElementById('categories');
+            let globalIndex = 1; // Counter to number the buttons sequentially
+
+            window.golfAudioBank.categories.forEach((category) => {
+                const section = document.createElement('section');
+                section.className = 'section';
+                section.id = category.id;
+
+                const title = document.createElement('h2');
+                title.textContent = category.label + ' (' + category.cues.length + ')';
+                section.appendChild(title);
+
+                const grid = document.createElement('div');
+                grid.className = 'grid';
+
+                category.cues.forEach((cue) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'cue';
+                    btn.type = 'button';
+                    btn.addEventListener('click', () => playCue(cue));
+
+                    const name = document.createElement('div');
+                    name.className = 'cue-name';
+                    // Inject the sequential number into the text content for the screen reader
+                    name.textContent = globalIndex + '. ' + cue.name;
+                    btn.appendChild(name);
+
+                    const meta = document.createElement('div');
+                    meta.className = 'cue-meta';
+                    meta.textContent = cue.id + ' | source: ' + cue.source;
+                    btn.appendChild(meta);
+
+                    grid.appendChild(btn);
+                    globalIndex++; // Increment the counter for the next button
+                });
+
+                section.appendChild(grid);
+                root.appendChild(section);
+            });
+
+            setStatus('Loaded ' + window.golfAudioBank.totalCues + ' cues.');
+        }
+
+        build();
+    </script>
+</body>
+</html>

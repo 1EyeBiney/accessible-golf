@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.24.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.25.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -161,7 +161,7 @@ function calculateShot(autoMiss = false) {
         let currentHeading = baseHeading + (aimAngle * (Math.PI / 180));
         
         let madeIt = false, lipOut = false;
-        let captureRadius = accuracyScore > 90 ? 0.6 : 0.4; 
+        let captureRadius = accuracyScore > 90 ? 0.8 : 0.5;
         let captureSpeedLimit = (distToPin <= 2 && accuracyScore > 90) ? 6.0 : 2.5 * tempoBonus;
         
         // v4.6.0 Record the Physics Steps
@@ -253,7 +253,7 @@ function calculateShot(autoMiss = false) {
             stateTimeouts.push(setTimeout(() => {
                 if (gameMode === 'putting') {
                     ballX = 0; ballY = 0; isHoleComplete = false;
-                    swingState = 0; strokes = 0; puttState = 0;
+                    swingState = 0; strokes = 0; puttState = 0; aimAngle = 0;
                     puttTargetDist = Math.round(calculateDistanceToPin());
                     window.announce(`${broadcast} Resetting ball to ${puttTargetDist} yards. Targeting Mode active. Press T for a new target.`);
                     window.updateDashboard();
@@ -265,7 +265,7 @@ function calculateShot(autoMiss = false) {
                     window.setCaddyPanelText(compMsg);
                     swingState = 6;
                 } else {
-                    swingState = 0; puttState = 0;
+                    swingState = 0; puttState = 0; aimAngle = 0;
                     puttTargetDist = Math.round(calculateDistanceToPin());
                     window.announce(`${puttTargetDist} yards left. Targeting Mode active.`);
                     window.updateDashboard();

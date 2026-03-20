@@ -1,6 +1,23 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.23.1)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.26.0)
 
 window.addEventListener('keydown', (e) => {
+    // v4.25.0 Keyboard Explore Mode
+    if (e.code === 'F12') {
+        e.preventDefault();
+        isExploreMode = !isExploreMode;
+        window.announce(isExploreMode ? "Keyboard Explore Mode Enabled. Press any key to hear its function. Press F12 again to exit." : "Keyboard Explore Mode Disabled. Returning to game.");
+        return;
+    }
+    if (typeof isExploreMode !== 'undefined' && isExploreMode) {
+        e.preventDefault();
+        let keyName = e.key.toUpperCase();
+        if (e.code === 'Space') keyName = 'SPACEBAR';
+        let funcMsg = window.getKeyDescription(e.code, e.shiftKey);
+        window.announce(`${keyName}: ${funcMsg}`);
+        document.getElementById('visual-output').innerText = `${keyName}: ${funcMsg}`;
+        return;
+    }
+
     // v4.11.0 Custom Grid Interceptor
     if (viewingScorecard) {
         e.preventDefault(); // Lock ALL inputs
@@ -78,6 +95,9 @@ window.addEventListener('keydown', (e) => {
             currentClubIndex = bestClubIndex; 
             club = clubs[currentClubIndex];
             aimAngle = 0; // Reset aim directly at the new target
+            
+            // v4.26.0 Target Lock Audio
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('club_09');
 
             let msg = `Pin Finder target locked at ${distToTarget} yards. Auto-equipped ${club.name}. Returning to swing mode.`;
             window.announce(msg);
@@ -451,6 +471,36 @@ window.addEventListener('keydown', (e) => {
 
     // --- v4.4.1 PUTTING CONTROLS (Mode Toggle) ---
     if (isPutting && (swingState === 0 || isHoleComplete)) {
+        // v4.25.0 Green Reading
+        if (e.code === 'KeyB') {
+            e.preventDefault();
+            let distToPin = calculateDistanceToPin();
+            const holeData = courses[currentCourseIndex].holes[hole - 1];
+            let netElevYards = 0;
+            let netBreakYards = 0;
+            if (holeData.greenType && typeof greenDictionary !== 'undefined') {
+                let activeContours = greenDictionary[holeData.greenType] || [];
+                activeContours.forEach(z => {
+                    if (distToPin >= z.endY) {
+                        let start = Math.min(distToPin, z.startY);
+                        let distInZone = start - z.endY;
+                        netElevYards += (z.slopeY * distInZone * 2.0);
+                        netBreakYards += (z.slopeX * distInZone * 1.5);
+                    }
+                });
+            }
+            let elevInches = Math.round(netElevYards * 4);
+            let breakInches = Math.round(netBreakYards * 6);
+
+            let elevStr = elevInches === 0 ? "plays flat" : `plays ${Math.abs(elevInches)} inches ${elevInches > 0 ? "uphill" : "downhill"}`;
+            let breakStr = breakInches === 0 ? "straight" : `breaks roughly ${Math.abs(breakInches)} inches outside the ${breakInches > 0 ? "right" : "left"} edge`;
+
+            let msg = `Green Reading: It ${elevStr}, and ${breakStr}.`;
+            window.announce(msg);
+            document.getElementById('visual-output').innerText = msg;
+            return;
+        }
+
         if (e.code === 'KeyZ' && e.shiftKey) { // v4.18.0 Unified Putting Grid toggle
             e.preventDefault();
             puttState = puttState === 0 ? 1 : 0;
@@ -664,6 +714,13 @@ window.addEventListener('keydown', (e) => {
             e.preventDefault();
             if (currentClubIndex > 0) {
                 currentClubIndex--; club = clubs[currentClubIndex];
+                
+                // v4.26.0 Club Equip Audio
+                if (typeof window.playGolfSound === 'function') {
+                    let sfx = club.name.includes("Wedge") ? 'club_03' : club.name.includes("Iron") ? 'club_02' : club.name === "Putter" ? 'club_04' : 'club_01';
+                    window.playGolfSound(sfx);
+                }
+
                 if (gameMode === 'range') { pinY = club.baseDistance; pinX = 0; }
                 const setupReport = getSetupReport();
                 window.announce(setupReport); document.getElementById('visual-output').innerText = setupReport;
@@ -674,6 +731,13 @@ window.addEventListener('keydown', (e) => {
             e.preventDefault();
             if (currentClubIndex < clubs.length - 1) {
                 currentClubIndex++; club = clubs[currentClubIndex];
+                
+                // v4.26.0 Club Equip Audio
+                if (typeof window.playGolfSound === 'function') {
+                    let sfx = club.name.includes("Wedge") ? 'club_03' : club.name.includes("Iron") ? 'club_02' : club.name === "Putter" ? 'club_04' : 'club_01';
+                    window.playGolfSound(sfx);
+                }
+
                 if (gameMode === 'range') { pinY = club.baseDistance; pinX = 0; }
                 const setupReport = getSetupReport();
                 window.announce(setupReport); document.getElementById('visual-output').innerText = setupReport;
@@ -770,6 +834,10 @@ window.addEventListener('keydown', (e) => {
             }
 
             window.autoEquipBestClub();
+            
+            // v4.26.0 Target Cycle Audio
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_07');
+
             let label = activeTargetType === 'pin' ? "The Pin" : landingZones[targetZoneIndex].name;
             let behindStr = (targetY < ballY) ? " (Behind you)" : "";
             let msg = `Target: ${label}${behindStr}. ${calculateDistanceToTarget()} yards. Auto-equipped ${club.name}.`;
@@ -826,7 +894,7 @@ window.announceHazard = function(h) {
     const toRad = Math.PI / 180;
     
     let edgeMsg = "";
-    const dist = Math.sqrt(Math.pow(h.x - ballX, 2) + Math.pow(h.y - ballY, 2));
+    const dist = Math.sqrt(Math.pow((h.x !== undefined ? h.x : h.offset) - ballX, 2) + Math.pow((h.y !== undefined ? h.y : h.distance) - ballY, 2));
     
     // v4.21.0 Canopy/Trunk Awareness
     if (h.radius) {
@@ -871,7 +939,7 @@ window.announceHazard = function(h) {
         lineMsg = reach === 0 ? `Inside hazard. ${clear}y to clear.` : `${reach}y to reach, ${clear}y to clear.`;
     }
 
-    const finalMsg = `${h.name || h.type}. ${edgeMsg} ${lineMsg}`;
+    const finalMsg = `${h.name || h.type}. ${Math.round(dist)} yards away. ${edgeMsg} ${lineMsg}`;
     window.announce(finalMsg);
     document.getElementById('visual-output').innerText = finalMsg;
 };
@@ -880,4 +948,39 @@ window.announceHelp = function() {
     const line = helpMenuText[helpIndex];
     window.announce(line.text);
     document.getElementById('visual-output').innerText = line.text;
+};
+
+window.getKeyDescription = function(code, shift) {
+    const desc = {
+        'ArrowDown': "Starts the backswing, locks power, and executes the strike.",
+        'ArrowUp': "Initiates a practice swing.",
+        'Space': "Sets hinge timing during the swing.",
+        'ArrowLeft': shift ? "Closes your stance to add draw spin." : "Aims 1 degree left.",
+        'ArrowRight': shift ? "Opens your stance to add fade spin." : "Aims 1 degree right.",
+        'Home': "Moves the ball forward in your stance, adding loft.",
+        'End': "Moves the ball back in your stance, reducing loft.",
+        'PageUp': "Equips the previous club.",
+        'PageDown': "Equips the next club.",
+        'KeyZ': shift ? "Opens the Pin Finder grid." : "Cycles through tactical landing zones.",
+        'KeyX': "Announces the active club and expected 100 percent distance.",
+        'KeyS': shift ? "Cycles swing styles backward." : "Cycles swing styles forward.",
+        'KeyV': "Toggles choked down grip for increased control.",
+        'Tab': "Provides a quick summary of hole, stroke, distance, and lie.",
+        'KeyT': "Provides a full distance and targeting report.",
+        'KeyW': shift ? "Cycles wind conditions in practice modes." : "Reads the current wind speed and direction.",
+        'KeyL': "Announces your current lie.",
+        'KeyA': shift ? "Cycles the Caddy skill level." : "Asks the Caddy for strategic advice.",
+        'KeyF': "Reads the fairway description.",
+        'KeyH': "Opens the navigable Hazard and Tree list.",
+        'KeyC': shift ? "Copies your telemetry to the clipboard." : "Repeats the last shot report.",
+        'KeyB': "Reads the green elevation and break when putting.",
+        'KeyU': "Takes an unplayable lie penalty and drops the ball in the fairway.",
+        'KeyE': shift ? "Opens the full scorecard." : "Announces your quick score summary.",
+        'KeyQ': "Opens the Quit and Save menu.",
+        'F1': "Toggles Dev Power.",
+        'F2': "Toggles Dev Hinge.",
+        'F3': "Toggles Dev Impact.",
+        'F12': "Toggles Keyboard Explore mode."
+    };
+    return desc[code] || "Unassigned key.";
 };

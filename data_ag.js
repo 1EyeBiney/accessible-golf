@@ -1,4 +1,4 @@
-// data_ag.js - Course Data, Clubs, and Shot Styles (v4.23.1)
+// data_ag.js - Course Data, Clubs, and Shot Styles (v4.25.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -291,7 +291,7 @@ const courses = [
                     { type: "Bunker", distance: 410, depth: 15, side: "Right", offset: 15, width: 15 }
                 ],
                 landingZones: [
-                    { name: "Corner Drive", x: -10, y: 280 },
+                    { name: "Corner Drive", x: -10, y: 240 },
                     { name: "Safe Layup", x: 0, y: 380 },
                     { name: "Aggressive Layup", x: 0, y: 430 },
                     { name: "Green Center", x: -20, y: 525 }

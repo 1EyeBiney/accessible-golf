@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.24.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.25.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -27,6 +27,7 @@ let viewingScorecard = false;
 let scorecardGrid = [];
 let scRow = 0, scCol = 0;
 let gameMode = 'course';
+let isExploreMode = false;
 let clubhouseMenu = [];
 let clubhouseIndex = 0;
 let isPutting = false, puttState = 0, puttTargetDist = 0;
@@ -151,50 +152,64 @@ window.updateTargetZone = function() {
 window.getCaddyAdvice = function() {
     if (gameMode !== 'course') return "Oracle mode is available on the course only.";
 
-    // v4.16.0 Restored Putting Caddy
     if (typeof isPutting !== 'undefined' && isPutting) {
-        let distToPin = 0;
-        if (typeof calculateDistanceToPin === 'function') distToPin = Math.round(calculateDistanceToPin());
-        else distToPin = Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
-
+        let distToPin = Math.round(calculateDistanceToPin());
         const holeData = courses[currentCourseIndex].holes[hole - 1];
-        
-        let contourMsg = "The green is flat.";
-        let pwrAdj = 0;
-        let aimAdj = 0;
-        
+        let activeContours = [];
         if (holeData.greenType && typeof greenDictionary !== 'undefined') {
-            let activeContours = greenDictionary[holeData.greenType] || [];
-            let descriptions = [];
-            
-            activeContours.forEach(z => {
-                if (distToPin >= z.endY) {
-                    let vert = z.slopeY > 0 ? "uphill" : z.slopeY < 0 ? "downhill" : "";
-                    let horiz = z.slopeX > 0 ? "right" : z.slopeX < 0 ? "left" : "";
-                    let breakStr = "";
-                    if (vert && horiz) breakStr = `${vert} and breaks ${horiz}`;
-                    else if (vert) breakStr = vert;
-                    else if (horiz) breakStr = `breaks ${horiz}`;
-                    
-                    let start = Math.min(distToPin, z.startY);
-                    if (start > z.endY && breakStr) {
-                        descriptions.push(`From ${start} to ${z.endY} yards, it plays ${breakStr}.`);
-                    }
-                    
-                    let distInZone = start - z.endY;
-                    aimAdj -= (z.slopeX * distInZone * 1.5);
-                    pwrAdj += (z.slopeY * distInZone * 2.0);
-                }
-            });
-            if (descriptions.length > 0) contourMsg = descriptions.join(" ");
+            activeContours = greenDictionary[holeData.greenType] || [];
         }
-        
+
         if (caddyLevel === 1) return `[Rookie]: ${distToPin} yards to the cup. It's on the green.`;
-        if (caddyLevel === 2) return `[Veteran]: ${distToPin} yards out. ${contourMsg}`;
-        
-        let playDist = Math.max(1, Math.round(distToPin + pwrAdj));
-        let aimStr = Math.abs(aimAdj) < 1 ? "Dead Center" : `${Math.abs(Math.round(aimAdj))} degrees ${aimAdj < 0 ? 'Left' : 'Right'}`;
-        return `[Oracle Putting]: ${distToPin} yards. ${contourMsg} To sink it, aim ${aimStr} and hit it with ${playDist} yards of pace.`;
+        if (caddyLevel === 2) return `[Veteran]: ${distToPin} yards out. Read the slopes carefully.`;
+
+        // v4.25.0 Brute-Force Oracle Simulation
+        let bestAim = 0;
+        let bestPace = distToPin;
+        let minMiss = 9999;
+        let baseHeading = Math.atan2(pinX - ballX, pinY - ballY);
+
+        for (let testPace = distToPin; testPace <= distToPin + 30; testPace++) {
+            for (let testAim = -45; testAim <= 45; testAim++) {
+                let simX = ballX, simY = ballY;
+                let speedRemaining = testPace;
+                let currentHeading = baseHeading + (testAim * (Math.PI / 180));
+                let distTraveled = 0;
+                let madeIt = false;
+
+                while (speedRemaining > 0 && distTraveled < 100) {
+                    let stepDist = Math.min(1.0, speedRemaining);
+                    let currentDistToHole = Math.sqrt(Math.pow(pinX - simX, 2) + Math.pow(pinY - simY, 2));
+
+                    if (currentDistToHole <= 0.8) {
+                        if (speedRemaining <= 6.0) { madeIt = true; break; }
+                    }
+
+                    let zone = activeContours.find(z => currentDistToHole <= z.startY && currentDistToHole > z.endY);
+                    let sx = zone ? zone.slopeX : 0, sy = zone ? zone.slopeY : 0;
+
+                    currentHeading -= (sx * 0.05);
+                    simX += Math.sin(currentHeading) * stepDist;
+                    simY += Math.cos(currentHeading) * stepDist;
+                    distTraveled += stepDist;
+                    speedRemaining -= (1.0 + (sy * 0.15));
+                }
+
+                let missDist = Math.sqrt(Math.pow(pinX - simX, 2) + Math.pow(pinY - simY, 2));
+                if (madeIt) missDist = 0;
+
+                if (missDist < minMiss) {
+                    minMiss = missDist;
+                    bestAim = testAim;
+                    bestPace = testPace;
+                }
+                if (madeIt) break;
+            }
+            if (minMiss === 0) break;
+        }
+
+        let aimStr = bestAim === 0 ? "Dead Center" : `${Math.abs(bestAim)} degrees ${bestAim < 0 ? 'Left' : 'Right'}`;
+        return `[Oracle Putting]: ${distToPin} yards. To sink it, aim ${aimStr} and hit it with ${bestPace} yards of pace.`;
     }
 
     // --- v4.14.1 Fairway Oracle Below ---
