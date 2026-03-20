@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.26.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.30.0)
 
 window.addEventListener('keydown', (e) => {
     // v4.25.0 Keyboard Explore Mode
@@ -265,6 +265,34 @@ window.addEventListener('keydown', (e) => {
             } else {
                 let quick = window.getQuickScore();
                 document.getElementById('visual-output').innerText = quick; window.announce(quick);
+            }
+            return;
+        }
+
+        // v4.30.0 Narrative & Share Sheet
+        if (e.code === 'KeyN') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                if (gameMode === 'post_round' || (roundData.length > 0 && hole >= courses[currentCourseIndex].holes.length)) {
+                    let summary = window.generateNarrativeSummary();
+                    navigator.clipboard.writeText(summary).then(() => {
+                        let msg = "Round summary copied to clipboard! " + summary;
+                        document.getElementById('visual-output').innerText = summary;
+                        window.announce(msg);
+                    }).catch(err => {
+                        window.announce("Failed to copy to clipboard, but here is your summary: " + summary);
+                    });
+                } else {
+                    window.announce("Share Sheet is only available when the round is complete.");
+                }
+            } else {
+                if (roundData.length > 0) {
+                    let lastHole = roundData[roundData.length - 1];
+                    document.getElementById('visual-output').innerText = lastHole.narrative;
+                    window.announce(lastHole.narrative);
+                } else {
+                    window.announce("No holes completed yet.");
+                }
             }
             return;
         }
@@ -976,6 +1004,7 @@ window.getKeyDescription = function(code, shift) {
         'KeyB': "Reads the green elevation and break when putting.",
         'KeyU': "Takes an unplayable lie penalty and drops the ball in the fairway.",
         'KeyE': shift ? "Opens the full scorecard." : "Announces your quick score summary.",
+        'KeyN': shift ? "Copies the Post-Round Summary to your clipboard." : "Reads the narrative of the last completed hole.",
         'KeyQ': "Opens the Quit and Save menu.",
         'F1': "Toggles Dev Power.",
         'F2': "Toggles Dev Hinge.",

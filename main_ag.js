@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.29.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.30.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -21,6 +21,7 @@ let isGridNavigating = false;
 let currentLie = "Tee";
 let isHoleComplete = false;
 let roundData = [];
+let roundHighlights = { drives: [], approaches: [], putts: [] };
 let puttsThisHole = 0;
 let currentHoleStats = { fir: null, gir: false };
 let viewingScorecard = false;
@@ -500,6 +501,39 @@ window.announceScorecardCell = function(isInit = false) {
     }
 };
 
+window.generateNarrativeSummary = function() {
+    if (roundData.length === 0) return "No holes completed yet.";
+    let totalStrokes = 0, totalPar = 0;
+    roundData.forEach(r => { totalStrokes += r.strokes; totalPar += r.par; });
+    let rel = totalStrokes - totalPar;
+    let relStr = rel === 0 ? "Even Par" : rel > 0 ? `+${rel}` : `${Math.abs(rel)} Under Par`;
+
+    let text = `⛳ Accessible Golf Round Summary ⛳\n`;
+    text += `Course: ${courses[currentCourseIndex].name}\n`;
+    text += `Score: ${relStr} (${totalStrokes})\n\n`;
+    text += `🏆 Highlights of the Round:\n`;
+
+    let hasHighlights = false;
+    if (roundHighlights.drives.length > 0) {
+        text += `[Monster Drives]\n`;
+        roundHighlights.drives.forEach(d => text += `- Crushed a ${d.dist}-yard tee shot on Hole ${d.hole}.\n`);
+        hasHighlights = true;
+    }
+    if (roundHighlights.approaches.length > 0) {
+        text += `\n[Sniper Approaches]\n`;
+        roundHighlights.approaches.forEach(a => text += `- Stuck it to ${window.formatProximity(a.prox)} from ${a.start} yards out on Hole ${a.hole}.\n`);
+        hasHighlights = true;
+    }
+    if (roundHighlights.putts.length > 0) {
+        text += `\n[Clutch Putts]\n`;
+        roundHighlights.putts.forEach(p => text += `- Drained a ${window.formatProximity(p.dist)} putt on Hole ${p.hole}.\n`);
+        hasHighlights = true;
+    }
+
+    if (!hasHighlights) text += "- A solid, consistent round of golf.\n";
+    return text;
+};
+
 // v4.9.0 Autosave & Persistence System
 window.saveGame = function() {
     const state = {
@@ -509,7 +543,7 @@ window.saveGame = function() {
         windX, windY, windLevelIndex,
         holeTelemetry, lastShotReport,
         currentClubIndex, shotStyleIndex,
-        roundData, puttsThisHole, currentHoleStats
+        roundData, puttsThisHole, currentHoleStats, roundHighlights
     };
     try { localStorage.setItem('ag_save_state', JSON.stringify(state)); } catch(e) {}
 };
@@ -530,6 +564,7 @@ window.loadGame = function() {
         holeTelemetry = state.holeTelemetry || []; lastShotReport = state.lastShotReport || "Game loaded.";
         currentClubIndex = state.currentClubIndex || 0; shotStyleIndex = state.shotStyleIndex || 0;
         roundData = state.roundData || [];
+        roundHighlights = state.roundHighlights || { drives: [], approaches: [], putts: [] };
         puttsThisHole = state.puttsThisHole || 0;
         currentHoleStats = state.currentHoleStats || { fir: null, gir: false };
 
@@ -622,7 +657,7 @@ window.buildClubhouseMenu = function() {
     }
     
     clubhouseMenu.push({ text: "Start New Round", action: () => {
-        window.clearSave(); roundData = []; puttsThisHole = 0; holeTelemetry = [];
+        window.clearSave(); roundData = []; roundHighlights = { drives: [], approaches: [], putts: [] }; puttsThisHole = 0; holeTelemetry = [];
         gameMode = 'course'; currentCourseIndex = 0; strokes = 0;
         document.getElementById('dashboard-panel').style.display = 'grid';
         document.getElementById('swing-meter').style.display = 'block';

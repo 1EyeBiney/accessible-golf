@@ -196,3 +196,7 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Keyboard Explore Mode (F12):** Toggles `isExploreMode`. Intercepts all keydown events to announce `window.getKeyDescription()` instead of executing standard game logic.
 - **Green Reading (Key B):** Translates underlying `slopeX` and `slopeY` values into literal inches for break and elevation to provide intuitive green-reading for screen reader users.
 - **Brute-Force Putting Oracle:** The God Caddy (Level 3) simulates a 360-degree spread of exact physics steps through the `activeContours` to find the precise `bestAim` and `bestPace` to hit the bottom of the cup, replacing generic multiplication estimates.
+### 40. v4.30 Engine Addendum (Narrative & Journaling)
+- **Hole Journaling:** The engine translates raw physics telemetry into natural language upon sinking a putt, storing a broadcast-style summary in `roundData[i].narrative`. 
+- **Top 2 Tagging Logic:** Highlights are parsed into a `{ drives: [], approaches: [], putts: [] }` global object. `drives` and `putts` are dynamically sorted in descending order by distance, while `approaches` are sorted in ascending order by proximity. The array is continually `pop()`'d to maintain exactly two premium shots per category.
+- **Post-Round State:** Completing the final hole of the active course transitions `gameMode` to `'post_round'`, unlocking the `Shift + N` Share Sheet API.

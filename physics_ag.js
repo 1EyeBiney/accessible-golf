@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.29.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.30.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -228,12 +228,24 @@ function calculateShot(autoMiss = false) {
                 resultMsg = `You sank a putt from ${formattedDist} away! IT'S IN THE HOLE!`;
                 isHoleComplete = true;
 
-                // v4.10.0 Push Hole Data
                 if (gameMode === 'course') {
+                    // v4.30.0 Hole Journaling
+                    let term = window.getScoreTerm(par, strokes);
+                    let nonPutts = strokes - puttsThisHole;
+                    let reachStr = nonPutts === 0 ? "Drove the green" : `Reached the green in ${nonPutts} strokes`;
+                    let puttStr = puttsThisHole === 1 ? `1-putted from ${formattedDist}` : `${puttsThisHole}-putted`;
+                    let narrative = `Hole ${hole} (Par ${par}): ${reachStr} and ${puttStr} for a ${term}.`;
+
+                    // v4.30.0 Highlight Tagging (Putts)
+                    roundHighlights.putts.push({ hole: hole, dist: puttTargetDist });
+                    roundHighlights.putts.sort((a, b) => b.dist - a.dist);
+                    if (roundHighlights.putts.length > 2) roundHighlights.putts.pop();
+
                     roundData.push({
                         hole: hole, par: par, distance: courses[currentCourseIndex].holes[hole - 1].distance,
                         strokes: strokes, putts: puttsThisHole, fir: currentHoleStats.fir, gir: currentHoleStats.gir,
-                        driveDistance: currentHoleStats.driveDistance, puttDistance: puttTargetDist
+                        driveDistance: currentHoleStats.driveDistance, puttDistance: puttTargetDist,
+                        narrative: narrative
                     });
                 }
             } else {
@@ -651,11 +663,25 @@ function calculateShot(autoMiss = false) {
         currentLie = "Green";
     }
 
-    // v4.10.0 Stat Tracking
+    // v4.10.0 Stat Tracking & v4.30.0 Highlight Tagging
     if (gameMode === 'course') {
-        if (strokes === 1 && par > 3 && currentLie === "Fairway") currentHoleStats.fir = true;
-        if (strokes === 1 && par > 3) currentHoleStats.driveDistance = totalDistance;
+        if (strokes === 1 && par > 3 && currentLie === "Fairway") {
+            currentHoleStats.fir = true;
+            roundHighlights.drives.push({ hole: hole, dist: Math.round(totalDistance) });
+            roundHighlights.drives.sort((a, b) => b.dist - a.dist);
+            if (roundHighlights.drives.length > 2) roundHighlights.drives.pop();
+        }
+        if (strokes === 1 && par > 3) currentHoleStats.driveDistance = Math.round(totalDistance);
         if (currentLie === "Green" && strokes <= par - 2) currentHoleStats.gir = true;
+
+        if (currentLie === "Green" && club.name !== "Putter" && distanceToPin > 20) {
+            const finalRelY = ballY - pinY;
+            const finalRelX = ballX - pinX;
+            const finalDistToPin = Math.sqrt(Math.pow(finalRelX, 2) + Math.pow(finalRelY, 2));
+            roundHighlights.approaches.push({ hole: hole, prox: finalDistToPin, start: Math.round(distanceToPin) });
+            roundHighlights.approaches.sort((a, b) => a.prox - b.prox);
+            if (roundHighlights.approaches.length > 2) roundHighlights.approaches.pop();
+        }
     }
 
     document.getElementById('visual-output').innerText = "Ball is in the air...";
@@ -790,7 +816,17 @@ function calculateShot(autoMiss = false) {
                     lastShotReport = completionMessage + "\n\nTelemetry:\n" + metrics;
                     holeTelemetry.push(lastShotReport);
                     window.setCaddyPanelText(lastShotReport);
-                    swingState = 6;
+
+                    // v4.30.0 Post-Round Transition
+                    if (hole >= courses[currentCourseIndex].holes.length) {
+                        gameMode = 'post_round';
+                        stateTimeouts.push(setTimeout(() => {
+                            viewingScorecard = true; window.showScorecard();
+                            window.announce("Round Complete! Full Scorecard open. Press Shift + N to copy your Round Summary to the clipboard, or Escape to return to the Clubhouse.");
+                        }, 4000));
+                    } else {
+                        swingState = 6;
+                    }
                 } else {
                     if (gameMode === 'range') {
                         let finalProximity = distanceToPin;
