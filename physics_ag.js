@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.22.1)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.23.1)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -219,9 +219,10 @@ function calculateShot(autoMiss = false) {
 
         function finishPutt() {
             let resultMsg = "";
+            let formattedDist = window.formatProximity(puttTargetDist);
             if (madeIt) {
                 playTone(440, 'sine', 0.2, 0.4); setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 200);
-                resultMsg = "IT'S IN THE HOLE!";
+                resultMsg = `You sank a putt from ${formattedDist} away! IT'S IN THE HOLE!`;
                 isHoleComplete = true;
 
                 // v4.10.0 Push Hole Data
@@ -232,14 +233,14 @@ function calculateShot(autoMiss = false) {
                     });
                 }
             } else {
-                let finalDist = calculateDistanceToPin();
-                if (lipOut) { playTone(150, 'square', 0.1, 0.5); resultMsg = `Lipped out! Hit it too hard.`; } 
+                if (lipOut) { playTone(150, 'square', 0.1, 0.5); resultMsg = `Lipped out a ${formattedDist} putt! Hit it too hard.`; }
                 else {
                     let latStr = Math.abs(ballX - pinX) < 0.5 ? "straight" : ballX < pinX ? "left" : "right";
                     let vertStr = ballY < pinY ? "short" : "long";
-                    resultMsg = `Missed. Settled ${vertStr} and ${latStr}.`;
+                    resultMsg = `Missed a ${formattedDist} putt. Settled ${vertStr} and ${latStr}.`;
                 }
-                broadcast += ` ${finalDist} yards left.`;
+                broadcast = `Putt: ${finalPower}% Power. ${resultMsg}`; // Override broadcast so it doesn't say "Target was 5y"
+                broadcast += ` ${calculateDistanceToPin()} yards left.`;
             }
 
             broadcast += ` ${resultMsg}`;
@@ -350,6 +351,7 @@ function calculateShot(autoMiss = false) {
 
     let backspinRPM = Math.max(400, Math.round((club.loft * 150) + (finalPower * 10) + (impactAcc * 7) + ((stanceIndex - 2) * 500) + currentStyle.spinMod));
     let sideSpinRPM = Math.round((impactDiff / 20) * 100 * spinPenalty * pressureDispersion * styleSideSpinMod) + (stanceAlignment * 800 * styleSideSpinMod);
+    sideSpinRPM = Math.max(-4500, Math.min(4500, sideSpinRPM));
     
     let chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
     let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
@@ -575,7 +577,13 @@ function calculateShot(autoMiss = false) {
             if (carryY >= hStart && carryY <= hEnd && carryX >= hLeft && carryX <= hRight) {
                 if (h.type === "Bunker") currentLie = "Sand";
                 if (h.type === "Water") inWater = true;
-            } 
+            } else if (carryY >= hStart && carryY <= hEnd) {
+                // v4.23.1 Hazard Narrow Miss
+                let marginL = Math.abs(carryX - hLeft);
+                let marginR = Math.abs(carryX - hRight);
+                if (carryX < hLeft && marginL <= 15) flightPathNarrative += ` Shaved the left edge of the ${h.type} by ${Math.round(marginL)} yards.`;
+                else if (carryX > hRight && marginR <= 15) flightPathNarrative += ` Shaved the right edge of the ${h.type} by ${Math.round(marginR)} yards.`;
+            }
             // Check if the ball ROLL entered a hazard
             else if (!inWater && ballY >= hStart && ballY <= hEnd && ballX >= hLeft && ballX <= hRight) {
                 if (h.type === "Bunker") {
@@ -749,7 +757,7 @@ function calculateShot(autoMiss = false) {
                         if (currentLie.toLowerCase().includes("water") && gameMode === 'course') {
                             penaltyStr = " (includes 1 stroke water penalty).";
                         }
-                        const broadcast = `Stroke ${strokes + 1}${penaltyStr} ${distanceToPin} yards to the pin. ${shotBroadcast}`;
+                        const broadcast = `${shotBroadcast} Stroke ${strokes + 1}${penaltyStr} ${distanceToPin} yards to the pin.`;
                         
                         // Track the Caddy/Transition sequence
                         stateTimeouts.push(setTimeout(() => {

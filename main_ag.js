@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.21.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.23.1)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -107,21 +107,29 @@ function loadHole(holeNumber) {
 
 function getSightReport() {
     const currentHole = courses[currentCourseIndex].holes[hole - 1];
-    if (!currentHole.trees) return "";
-    
     let warnings = [];
-    currentHole.trees.forEach(tree => {
-        // Calculate angle to tree relative to ball position
-        let targetAngleRad = Math.atan2(targetX - ballX, targetY - ballY);
-        let treeAngleRad = Math.atan2(tree.x - ballX, tree.y - ballY);
-        let relativeAngle = Math.abs((treeAngleRad - targetAngleRad) * (180 / Math.PI) - aimAngle);
-        
-        // If tree is within 15 degrees of our aim line and ahead of us
-        if (relativeAngle < 15 && tree.y > ballY) {
-            let dist = Math.round(Math.sqrt(Math.pow(tree.x - ballX, 2) + Math.pow(tree.y - ballY, 2)));
-            warnings.push(`${tree.name} is in your line of sight, ${dist} yards ahead.`);
-        }
-    });
+    const targetAngleRad = Math.atan2(targetX - ballX, targetY - ballY);
+    const userAimRad = targetAngleRad + (aimAngle * (Math.PI / 180));
+    const aimDeg = userAimRad * (180 / Math.PI);
+
+    if (currentHole.trees) {
+        currentHole.trees.forEach(tree => {
+            let treeAngleRad = Math.atan2(tree.x - ballX, tree.y - ballY) * (180 / Math.PI);
+            if (Math.abs(treeAngleRad - aimDeg) < 15 && tree.y > ballY) {
+                let dist = Math.round(Math.sqrt(Math.pow(tree.x - ballX, 2) + Math.pow(tree.y - ballY, 2)));
+                warnings.push(`${tree.name} is in your line of sight, ${dist} yards ahead.`);
+            }
+        });
+    }
+    if (currentHole.hazards) {
+        currentHole.hazards.forEach(h => {
+            let hAngleRad = Math.atan2(h.offset - ballX, h.distance - ballY) * (180 / Math.PI);
+            if (Math.abs(hAngleRad - aimDeg) < 15 && h.distance > ballY) {
+                let dist = Math.round(Math.sqrt(Math.pow(h.offset - ballX, 2) + Math.pow(h.distance - ballY, 2)));
+                warnings.push(`${h.type} is in your line of sight, ${dist} yards ahead.`);
+            }
+        });
+    }
     return warnings.length > 0 ? " Warning: " + warnings.join(" ") : "";
 }
 
@@ -174,7 +182,7 @@ window.getCaddyAdvice = function() {
                     }
                     
                     let distInZone = start - z.endY;
-                    aimAdj += (z.slopeX * distInZone * 1.5);
+                    aimAdj -= (z.slopeX * distInZone * 1.5);
                     pwrAdj += (z.slopeY * distInZone * 2.0);
                 }
             });

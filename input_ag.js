@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.21.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.23.1)
 
 window.addEventListener('keydown', (e) => {
     // v4.11.0 Custom Grid Interceptor
@@ -334,6 +334,17 @@ window.addEventListener('keydown', (e) => {
         }
         if (e.code === 'KeyR') {
             e.preventDefault(); confirmingRange = true; window.announce("Go to Driving Range? Press Y or Enter to confirm."); return;
+        }
+        if (e.code === 'KeyU' && gameMode === 'course') {
+            e.preventDefault();
+            strokes++;
+            ballX = 0; // Drop in center of fairway
+            currentLie = 'Fairway';
+            let msg = `Unplayable lie penalty taken. 1 stroke added. Ball dropped in the center of the fairway. Stroke ${strokes + 1}. ${calculateDistanceToPin()} yards to the pin.`;
+            document.getElementById('visual-output').innerText = msg;
+            window.announce(msg);
+            window.updateDashboard();
+            return;
         }
         if (e.code === 'KeyG') {
             e.preventDefault();

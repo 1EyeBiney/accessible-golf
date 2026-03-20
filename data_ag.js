@@ -1,4 +1,4 @@
-// data_ag.js - Course Data, Clubs, and Shot Styles (v4.23.0)
+// data_ag.js - Course Data, Clubs, and Shot Styles (v4.23.1)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -85,14 +85,7 @@ const courses = [
                     { level: 3, trigger: 'Trouble_Right', text: 'You are blocked by the trees on the right. Pitch out to the fairway.' }
                 ],
                 hazards: [{ type: "Water", distance: 100, depth: 250, side: "Left", offset: -45, width: 40 }],
-                landingZones: [
-                    { name: "Drive Target", x: 0, y: 240 },
-                    { name: "Layup Area", x: 0, y: 340 },
-                    { name: "Green Entry", x: 0, y: 400 },
-                    { name: "First Landing Zone", x: 0, y: 240 },
-                    { name: "Layup Area", x: -20, y: 380 },
-                    { name: "Aggressive Approach", x: 15, y: 410 }
-                ],
+                landingZones: [{ name: "Drive Target", x: 0, y: 240 }, { name: "Layup Area", x: 0, y: 340 }, { name: "Aggressive Approach", x: 15, y: 410 }],
                 zones: [{ name: "Safe Drive", x: 0, y: 250 }],
                 trees: [
                     { x: 15, y: 200, radius: 5, height: 25, name: "Oak Tree" },
@@ -153,10 +146,7 @@ const courses = [
                     { level: 3, trigger: 'Trouble_Right', text: 'You are blocked by the trees on the right. Pitch out sideways to the fairway; do not try to be a hero through the branches.' }
                 ],
                 hazards: [{ type: "Bunker", distance: 290, depth: 30, side: "Center", offset: 0, width: 30 }],
-                landingZones: [
-                    { name: "Mid Fairway", x: 0, y: 220 },
-                    { name: "Approach Area", x: 0, y: 360 }
-                ],
+                landingZones: [{ name: "Mid Fairway", x: 0, y: 220 }, { name: "Approach Area", x: 0, y: 280 }],
                 trees: [{ x: -15, y: 250, radius: 10, height: 30, name: "Left Woods" }],
                 zones: [{ name: "Safe Layup", x: 15, y: 240 }, { name: "Go For It", x: 0, y: 330 }]
             },
@@ -191,10 +181,7 @@ const courses = [
                     { level: 3, trigger: 'Approach', text: 'If the wind is in your face, club up. If you are not confident, aim for the left edge of the green-there is a small bailout area of grass there.' }
                 ],
                 hazards: [{ type: "Water", distance: 480, depth: 15, side: "Center", offset: 0, width: 100 }],
-                landingZones: [
-                    { name: "Safe Approach", x: 0, y: 120 },
-                    { name: "Green Entry", x: 0, y: 175 }
-                ],
+                landingZones: [{ name: "Drive Target", x: 0, y: 260 }, { name: "Approach Layup", x: 0, y: 460 }],
                 trees: [],
                 zones: [{ name: "Approach Layup", x: 0, y: 460 }, { name: "Aggressive Carry", x: 0, y: 510 }]
             },
@@ -209,11 +196,7 @@ const courses = [
                     { level: 3, trigger: 'Tee', text: 'The Guardian Oak blocks a direct shot to the right pin. You have to play a high fade around it, or just aim for the left center of the green and accept a long two-putt.' }
                 ],
                 hazards: [{ type: "Bunker", distance: 195, depth: 25, side: "Left", offset: -15, width: 15 }],
-                landingZones: [
-                    { name: "Landing 1", x: 0, y: 230 },
-                    { name: "Landing 2", x: 0, y: 380 },
-                    { name: "Approach", x: 0, y: 480 }
-                ],
+                landingZones: [{ name: "Safe Green Center", x: -5, y: 215 }],
                 trees: [{ x: 10, y: 180, radius: 8, height: 40, name: "The Guardian Oak" }],
                 zones: [{ name: "Green Center", x: -5, y: 215 }]
             },
