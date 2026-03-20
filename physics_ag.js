@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.25.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.27.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -298,7 +298,12 @@ function calculateShot(autoMiss = false) {
 
     lockedImpactTime = performance.now() - impactStartTime;
     if (autoMiss) {
-        playTone(150, 'sine', 0.5, 0.5);
+        // v4.27.0 Whiff Audio
+        if (typeof window.playGolfSound === 'function') {
+            window.playGolfSound('swing_10');
+        } else {
+            playTone(150, 'sawtooth', 0.5, 0.4); // Fallback
+        }
         let missDist = calculateDistanceToPin();
         lastShotReport = `Whiffed. Stroke ${strokes}. ${missDist} yards to the pin.`;
         window.announce("Whiffed!");
@@ -346,6 +351,28 @@ function calculateShot(autoMiss = false) {
 
     const currentStyle = shotStyles[shotStyleIndex];
     const accuracyScore = Math.round((impactAcc + hingeAcc) / 2);
+    
+    // v4.27.0 Dynamic Strike Audio
+    if (typeof window.playGolfSound === 'function') {
+        let strikeSound = 'flight_01'; // Default: Flushed (Clean Strike)
+        
+        if (accuracyScore < 95) {
+            // If timing is off, determine if it was Early (Thin) or Late (Fat)
+            if (impactDiff < 0) {
+                strikeSound = 'flight_02'; // Thin, sharp click
+            } else {
+                strikeSound = 'flight_03'; // Fat, muffled thud
+            }
+        }
+        
+        // Override for Bunker/Sand shots
+        if (currentLie === 'Sand') {
+            strikeSound = 'hazard_03'; // Sand splash impact
+        }
+        
+        window.playGolfSound(strikeSound);
+    }
+
     let dynamicLoft = Math.max(0, club.loft + currentStyle.loftMod + ((2 - stanceIndex) * 5));
     
     let styleSideSpinMod = currentStyle.name === "Full" ? 1.0 : (currentStyle.distMod * 0.4);
@@ -619,7 +646,6 @@ function calculateShot(autoMiss = false) {
     }
 
     document.getElementById('visual-output').innerText = "Ball is in the air...";
-    playTone(800, 'triangle', 0.1, 0.6);
     playNoise(hangTimeSecs + 0.3, 0.3, false);
 
     // v4.19.4 Track flight timeout

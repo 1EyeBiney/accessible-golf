@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.25.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.27.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -711,6 +711,12 @@ function startDownswing() {
     swingState = 3; stateTimeouts.forEach(clearTimeout);
     let elapsed = performance.now() - powerStartTime;
     finalPower = Math.min(120, Math.round(25 + ((elapsed / 2000) * 75)));
+    
+    // v4.27.0 Overpower Warning Audio
+    if (finalPower > 105 && typeof window.playGolfSound === 'function') {
+        window.playGolfSound('swing_07'); // Harsh buzz for over-torquing
+    }
+
     if (powerOscillator) { powerOscillator.stop(); }
     downswingStartTime = performance.now();
     document.getElementById('visual-output').innerText = isPracticeSwing ? "Practice Downswing..." : "Downswing...";
@@ -879,4 +885,3 @@ window.drawMeter = function() {
         }
     }
 };
-
