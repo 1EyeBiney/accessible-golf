@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.21.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.22.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -473,19 +473,61 @@ function calculateShot(autoMiss = false) {
                     let verticalMarginYards = Math.round(ballHeightAtTree - tree.height);
                     
                     if (ballHeightAtTree < tree.height) {
-                        // v4.21.0 Tree Deflection Physics
-                        playTone(1200, 'square', 0.1, 0.5);
-                        window.announce(`THWACK! You hit the ${tree.name}!`);
-                        // Deflect: Bounce slightly back or side, and lose 80% velocity
-                        const bounceAngle = finalRad + (Math.random() * 2 - 1);
-                        const bounceDist = Math.max(2, totalDistance * 0.15);
-                        ballX = startX + (Math.sin(bounceAngle) * distToTreeCenter);
-                        ballY = startY + (Math.cos(bounceAngle) * distToTreeCenter);
-                        totalDistance = distToTreeCenter + bounceDist;
-                        rollDistance = bounceDist; carryDistance = distToTreeCenter;
-                        flightPathNarrative = `${shotShapeNarrative} that crashed straight into the ${tree.name}.`;
-                        treeCollisionReport = `[${tree.name} Check: ${tree.height}y tall. Apex: ${Math.round(ballHeightAtTree)}y. Result: THWACK]`;
+                        // v4.22.0 The Canopy Gamble (33 / 33 / 33)
+                        let gamble = Math.random();
+                        let kickDir = tree.x > 0 ? -1 : 1; // Always kick horizontally toward the fairway center (x:0)
+
+                        if (gamble < 0.33) {
+                            // 1. The Narrow Miss (Leaves)
+                            playNoise(0.5, 0.4, false);
+                            window.announce(`Rustled through the leaves of the ${tree.name}!`);
+
+                            // Halve distance, triple lateral dispersion
+                            totalDistance = Math.round(totalDistance * 0.5);
+                            carryDistance = Math.round(carryDistance * 0.5);
+                            rollDistance = Math.max(0, totalDistance - carryDistance);
+                            let lateralTotal = (physicsX + windXEffect) * 3;
+
+                            let newMoveY = Math.cos(finalRad) * totalDistance - Math.sin(finalRad) * lateralTotal;
+                            let newMoveX = Math.sin(finalRad) * totalDistance + Math.cos(finalRad) * lateralTotal;
+                            ballY = startY + newMoveY;
+                            ballX = startX + newMoveX;
+
+                            flightPathNarrative = `${shotShapeNarrative} that punched narrowly through the canopy, drastically losing speed and scattering offline.`;
+                            treeCollisionReport = `[${tree.name} Check: Apex ${Math.round(ballHeightAtTree)}y. Result: NARROW MISS (33%). Disp x3, Dist x0.5]`;
+                        }
+                        else if (gamble < 0.66) {
+                            // 2. The Glancing Blow (Branch)
+                            playTone(800, 'triangle', 0.1, 0.6);
+                            window.announce(`Crack! A glancing blow off a branch of the ${tree.name}!`);
+
+                            let bounceDist = 18 + (Math.random() * 5); // 18 to 23 yards
+                            ballY = startY + (Math.cos(finalRad) * distToTreeCenter); // Stop forward momentum at the tree
+                            ballX = startX + (Math.sin(finalRad) * distToTreeCenter) + (kickDir * bounceDist); // Kick sideways
+
+                            totalDistance = Math.round(distToTreeCenter + bounceDist);
+                            rollDistance = Math.round(bounceDist); carryDistance = Math.round(distToTreeCenter);
+
+                            flightPathNarrative = `${shotShapeNarrative} that clipped a thick branch and violently deflected sideways.`;
+                            treeCollisionReport = `[${tree.name} Check: Apex ${Math.round(ballHeightAtTree)}y. Result: GLANCING BLOW (33%). Kick ${Math.round(bounceDist)}y]`;
+                        }
+                        else {
+                            // 3. The Solid Strike (Trunk)
+                            playTone(200, 'square', 0.1, 0.8);
+                            window.announce(`THWACK! Dead center into the trunk of the ${tree.name}!`);
+
+                            let bounceDist = 8 + (Math.random() * 5); // 8 to 13 yards
+                            ballY = startY + (Math.cos(finalRad) * distToTreeCenter);
+                            ballX = startX + (Math.sin(finalRad) * distToTreeCenter) + (kickDir * bounceDist);
+
+                            totalDistance = Math.round(distToTreeCenter + bounceDist);
+                            rollDistance = Math.round(bounceDist); carryDistance = Math.round(distToTreeCenter);
+
+                            flightPathNarrative = `${shotShapeNarrative} that crashed straight into the trunk and dropped.`;
+                            treeCollisionReport = `[${tree.name} Check: Apex ${Math.round(ballHeightAtTree)}y. Result: SOLID STRIKE (33%). Kick ${Math.round(bounceDist)}y]`;
+                        }
                     } else {
+                        // Cleared the tree
                         window.announce(`Sailed right over the ${tree.name}!`);
                         flightPathNarrative = `${shotShapeNarrative} that sailed safely over the ${tree.name}, clearing the top by ${verticalMarginYards} yards.`;
                         treeCollisionReport = `[${tree.name} Check: ${tree.height}y tall. Apex: ${Math.round(ballHeightAtTree)}y. Margin: +${verticalMarginYards}y. Result: CLEARED]`;
