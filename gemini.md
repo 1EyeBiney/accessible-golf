@@ -188,3 +188,7 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Relative Target Warning:** The `Z` key mathematically compares the `targetY` to the `ballY`. If a landing zone is behind the player, it appends "(Behind you)" to the announcement to prevent accidental backwards shots.
 - **Under the Canopy Escape Math:** The Edge Finder (`KeyH`) detects if the player's ball is within 1.2x of a tree's radius. If true, it announces "Under the canopy" and calculates escape angles based on a narrow 1.5-yard trunk rather than the full branch width, allowing for realistic 5-15 degree punch-outs.
 - **Tree Deflection Physics:** Replaced the static "vertical drop" penalty. Hitting a tree now retains 15% of the ball's velocity and calculates a randomized 60-degree deflection vector, allowing the ball to bounce realistically away from the trunk.
+### 38. v4.23 - v4.24 Engine Addendum (Tactical Realignment & Scorecard Overhaul)
+- **Scorecard Arrays:** The Grid Scorecard tracks 8 columns including Terminology (Birdie/Bogey), Drive Distance on Par 4s/5s, and successful Putt Distance.
+- **Fractional Analytics:** The totals row calculates FIR and GIR as true fractions (e.g., "5 of 9") instead of binary lists.
+- **Oracle Inversion:** The God Caddy putting math properly inverts slope logic, instructing players to aim *against* the break rather than with it.

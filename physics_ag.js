@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.23.1)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.24.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -229,7 +229,8 @@ function calculateShot(autoMiss = false) {
                 if (gameMode === 'course') {
                     roundData.push({
                         hole: hole, par: par, distance: courses[currentCourseIndex].holes[hole - 1].distance,
-                        strokes: strokes, putts: puttsThisHole, fir: currentHoleStats.fir, gir: currentHoleStats.gir
+                        strokes: strokes, putts: puttsThisHole, fir: currentHoleStats.fir, gir: currentHoleStats.gir,
+                        driveDistance: currentHoleStats.driveDistance, puttDistance: puttTargetDist
                     });
                 }
             } else {
@@ -613,6 +614,7 @@ function calculateShot(autoMiss = false) {
     // v4.10.0 Stat Tracking
     if (gameMode === 'course') {
         if (strokes === 1 && par > 3 && currentLie === "Fairway") currentHoleStats.fir = true;
+        if (strokes === 1 && par > 3) currentHoleStats.driveDistance = totalDistance;
         if (currentLie === "Green" && strokes <= par - 2) currentHoleStats.gir = true;
     }
 

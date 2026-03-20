@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.23.1)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.24.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -76,7 +76,7 @@ function loadHole(holeNumber) {
     
     ballX = 0; ballY = 0; strokes = 0; isHoleComplete = false;
     puttsThisHole = 0;
-    currentHoleStats = { fir: holeData.par > 3 ? false : null, gir: false };
+    currentHoleStats = { fir: holeData.par > 3 ? false : null, gir: false, driveDistance: null, puttDistance: null };
     currentLie = "Tee";
     aimAngle = 0; stanceIndex = 2; stanceAlignment = 0;
     swingState = 0; // FIX: Added state reset
@@ -374,37 +374,64 @@ window.getQuickScore = function() {
     return `Through ${roundData.length} holes, you are ${relStr}. Total strokes: ${totalStrokes}.`;
 };
 
+window.getScoreTerm = function(par, score) {
+    if (score === 1) return "Hole in One";
+    let diff = score - par;
+    if (diff === -3) return "Albatross";
+    if (diff === -2) return "Eagle";
+    if (diff === -1) return "Birdie";
+    if (diff === 0) return "Par";
+    if (diff === 1) return "Bogey";
+    if (diff === 2) return "Double Bogey";
+    if (diff === 3) return "Triple Bogey";
+    return `+${diff}`;
+};
+
 window.showScorecard = function() {
     scorecardGrid = [];
-    // Row 0: Headers
-    scorecardGrid.push(["Hole", "Par", "Score", "Putts", "FIR", "GIR"]);
-    
+    scorecardGrid.push(["Hole", "Par", "Score", "Result", "Drive", "Putt", "FIR", "GIR"]);
+
     let tStrokes = 0, tPar = 0, tPutts = 0;
+    let firHit = 0, firPossible = 0;
+    let girHit = 0, girPossible = 0;
+
     roundData.forEach(r => {
         tStrokes += r.strokes; tPar += r.par; tPutts += r.putts;
-        let firStr = r.fir === null ? "-" : r.fir ? "Yes" : "No";
+        let firStr = "-";
+        if (r.fir !== null) {
+            firPossible++;
+            if (r.fir) { firHit++; firStr = "Yes"; } else { firStr = "No"; }
+        }
+        girPossible++;
+        if (r.gir) { girHit++; }
         let girStr = r.gir ? "Yes" : "No";
-        scorecardGrid.push([r.hole.toString(), r.par.toString(), r.strokes.toString(), r.putts.toString(), firStr, girStr]);
+
+        let term = window.getScoreTerm(r.par, r.strokes);
+        let driveStr = r.driveDistance ? `${r.driveDistance}y` : "-";
+        let puttStr = r.puttDistance ? window.formatProximity(r.puttDistance) : (r.putts === 0 ? "0" : "-");
+
+        scorecardGrid.push([r.hole.toString(), r.par.toString(), r.strokes.toString(), term, driveStr, puttStr, firStr, girStr]);
     });
-    
+
     let rel = tStrokes - tPar;
     let relStr = rel === 0 ? "E" : rel > 0 ? `+${rel}` : `${rel}`;
-    // Final Row: Totals
-    scorecardGrid.push(["TOTAL", `(${relStr})`, tStrokes.toString(), tPutts.toString(), "-", "-"]);
+    let firTotalStr = firPossible > 0 ? `${firHit} of ${firPossible}` : "-";
+    let girTotalStr = girPossible > 0 ? `${girHit} of ${girPossible}` : "-";
 
-    // Build the visual table for sighted spectators (no colspans to maintain strict 6x6 visual mapping)
+    scorecardGrid.push(["TOTAL", `(${relStr})`, tStrokes.toString(), "-", "-", "-", firTotalStr, girTotalStr]);
+
     let html = `<table id="scorecard-table" style="width:100%; border-collapse: collapse; text-align: center; color: white;" border="1" aria-hidden="true">
         <thead><tr>${scorecardGrid[0].map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>`;
     for (let i = 1; i < scorecardGrid.length - 1; i++) {
         html += `<tr>${scorecardGrid[i].map(d => `<td>${d}</td>`).join('')}</tr>`;
     }
     let lastRow = scorecardGrid[scorecardGrid.length - 1];
-    html += `</tbody><tfoot><tr><th>${lastRow[0]}</th><th>${lastRow[1]}</th><td>${lastRow[2]}</td><td>${lastRow[3]}</td><td>${lastRow[4]}</td><td>${lastRow[5]}</td></tr></tfoot></table>`;
-    
+    html += `</tbody><tfoot><tr><th>${lastRow[0]}</th><th>${lastRow[1]}</th><td>${lastRow[2]}</td><td>${lastRow[3]}</td><td>${lastRow[4]}</td><td>${lastRow[5]}</td><td>${lastRow[6]}</td><td>${lastRow[7]}</td></tr></tfoot></table>`;
+
     document.getElementById('scorecard-container').innerHTML = html;
     document.getElementById('scorecard-container').style.display = 'block';
     document.getElementById('visual-output').style.display = 'none';
-    
+
     scRow = 0; scCol = 0;
     window.announceScorecardCell(true);
 };
