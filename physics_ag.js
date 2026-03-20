@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.22.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.22.1)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -426,31 +426,34 @@ function calculateShot(autoMiss = false) {
         let treeRadius = 10;
         if (carryDistance > synthTreeDist) {
             let flightFraction = synthTreeDist / carryDistance;
+            let timeToTreeMs = hangTimeSecs * 1000 * flightFraction; // v4.22.1 Acoustic Timing
             let projectedX = startX + (landX - startX) * flightFraction;
             let lateralDistFromCenter = Math.abs(projectedX - synthTreeX);
             
             if (lateralDistFromCenter < treeRadius) {
-                // v3.81.0 Parabolic Math
                 let ballHeightYards = (Math.tan(dynamicLoft * Math.PI / 180) / carryDistance) * synthTreeDist * (carryDistance - synthTreeDist);
                 let ballHeightFeet = Math.max(0, ballHeightYards * 3);
                 let verticalMargin = Math.round(ballHeightFeet - synthTreeHeight);
                 
                 if (ballHeightFeet < synthTreeHeight) {
-                    playTone(1200, 'square', 0.1, 0.5);
-                    window.announce(`THWACK! You hit the Synth Tree!`);
+                    stateTimeouts.push(setTimeout(() => {
+                        playTone(1200, 'square', 0.1, 0.5);
+                        window.announce(`THWACK! You hit the Synth Tree!`);
+                    }, timeToTreeMs));
+                    
                     totalDistance = Math.round(synthTreeDist); rollDistance = 2; carryDistance = totalDistance - rollDistance;
                     ballY = startY + (landY - startY) * flightFraction; ballX = startX + (landX - startX) * flightFraction;
                     flightPathNarrative = `${shotShapeNarrative} that crashed into the Synth Tree canopy, ${Math.abs(verticalMargin)} feet too low.`;
                     treeCollisionReport = `[Synth Tree: ${Math.round(synthTreeHeight)}ft. Apex: ${Math.round(ballHeightFeet)}ft. Result: THWACK]`;
                 } else {
-                    window.announce(`Sailed over the Synth Tree!`);
+                    stateTimeouts.push(setTimeout(() => { window.announce(`Sailed over the Synth Tree!`); }, timeToTreeMs));
                     flightPathNarrative = `${shotShapeNarrative} that sailed safely over the Synth Tree, clearing the top branches by ${verticalMargin} feet.`;
                     treeCollisionReport = `[Synth Tree: ${Math.round(synthTreeHeight)}ft. Apex: ${Math.round(ballHeightFeet)}ft. Margin: +${verticalMargin}ft. Result: CLEARED]`;
                 }
             } else if (lateralDistFromCenter < treeRadius + 15) {
                 let lateralMargin = Math.round(lateralDistFromCenter - treeRadius);
                 let passSide = projectedX > synthTreeX ? "right" : "left";
-                window.announce(`Curved past the Synth Tree!`);
+                stateTimeouts.push(setTimeout(() => { window.announce(`Curved past the Synth Tree!`); }, timeToTreeMs));
                 flightPathNarrative = `${shotShapeNarrative} that shaved the ${passSide} edge of the Synth Tree canopy by just ${lateralMargin} yards.`;
                 treeCollisionReport = `[Synth Tree bypassed laterally by ${lateralMargin} yards on the ${passSide}.]`;
             }
@@ -463,26 +466,25 @@ function calculateShot(autoMiss = false) {
             let distToTreeCenter = Math.sqrt(Math.pow(tree.x - startX, 2) + Math.pow(tree.y - startY, 2));
             if (carryDistance > distToTreeCenter && tree.y > startY) {
                 let flightFraction = distToTreeCenter / carryDistance;
+                let timeToTreeMs = hangTimeSecs * 1000 * flightFraction; // v4.22.1 Acoustic Timing
                 let projectedX = startX + (landX - startX) * flightFraction;
                 let projectedY = startY + (landY - startY) * flightFraction;
                 let actualDistToTree = Math.sqrt(Math.pow(tree.x - projectedX, 2) + Math.pow(tree.y - projectedY, 2));
 
                 if (actualDistToTree < tree.radius) {
-                    // v3.81.0 Parabolic Math
                     let ballHeightAtTree = Math.max(0, (Math.tan(dynamicLoft * Math.PI / 180) / carryDistance) * distToTreeCenter * (carryDistance - distToTreeCenter));
                     let verticalMarginYards = Math.round(ballHeightAtTree - tree.height);
                     
                     if (ballHeightAtTree < tree.height) {
-                        // v4.22.0 The Canopy Gamble (33 / 33 / 33)
                         let gamble = Math.random();
-                        let kickDir = tree.x > 0 ? -1 : 1; // Always kick horizontally toward the fairway center (x:0)
+                        let kickDir = tree.x > 0 ? -1 : 1;
 
                         if (gamble < 0.33) {
-                            // 1. The Narrow Miss (Leaves)
-                            playNoise(0.5, 0.4, false);
-                            window.announce(`Rustled through the leaves of the ${tree.name}!`);
+                            stateTimeouts.push(setTimeout(() => {
+                                playNoise(0.5, 0.4, false);
+                                window.announce(`Rustled through the leaves of the ${tree.name}!`);
+                            }, timeToTreeMs));
 
-                            // Halve distance, triple lateral dispersion
                             totalDistance = Math.round(totalDistance * 0.5);
                             carryDistance = Math.round(carryDistance * 0.5);
                             rollDistance = Math.max(0, totalDistance - carryDistance);
@@ -497,13 +499,14 @@ function calculateShot(autoMiss = false) {
                             treeCollisionReport = `[${tree.name} Check: Apex ${Math.round(ballHeightAtTree)}y. Result: NARROW MISS (33%). Disp x3, Dist x0.5]`;
                         }
                         else if (gamble < 0.66) {
-                            // 2. The Glancing Blow (Branch)
-                            playTone(800, 'triangle', 0.1, 0.6);
-                            window.announce(`Crack! A glancing blow off a branch of the ${tree.name}!`);
+                            stateTimeouts.push(setTimeout(() => {
+                                playTone(800, 'triangle', 0.1, 0.6);
+                                window.announce(`Crack! A glancing blow off a branch of the ${tree.name}!`);
+                            }, timeToTreeMs));
 
-                            let bounceDist = 18 + (Math.random() * 5); // 18 to 23 yards
-                            ballY = startY + (Math.cos(finalRad) * distToTreeCenter); // Stop forward momentum at the tree
-                            ballX = startX + (Math.sin(finalRad) * distToTreeCenter) + (kickDir * bounceDist); // Kick sideways
+                            let bounceDist = 18 + (Math.random() * 5);
+                            ballY = startY + (Math.cos(finalRad) * distToTreeCenter);
+                            ballX = startX + (Math.sin(finalRad) * distToTreeCenter) + (kickDir * bounceDist);
 
                             totalDistance = Math.round(distToTreeCenter + bounceDist);
                             rollDistance = Math.round(bounceDist); carryDistance = Math.round(distToTreeCenter);
@@ -512,11 +515,12 @@ function calculateShot(autoMiss = false) {
                             treeCollisionReport = `[${tree.name} Check: Apex ${Math.round(ballHeightAtTree)}y. Result: GLANCING BLOW (33%). Kick ${Math.round(bounceDist)}y]`;
                         }
                         else {
-                            // 3. The Solid Strike (Trunk)
-                            playTone(200, 'square', 0.1, 0.8);
-                            window.announce(`THWACK! Dead center into the trunk of the ${tree.name}!`);
+                            stateTimeouts.push(setTimeout(() => {
+                                playTone(200, 'square', 0.1, 0.8);
+                                window.announce(`THWACK! Dead center into the trunk of the ${tree.name}!`);
+                            }, timeToTreeMs));
 
-                            let bounceDist = 8 + (Math.random() * 5); // 8 to 13 yards
+                            let bounceDist = 8 + (Math.random() * 5);
                             ballY = startY + (Math.cos(finalRad) * distToTreeCenter);
                             ballX = startX + (Math.sin(finalRad) * distToTreeCenter) + (kickDir * bounceDist);
 
@@ -527,8 +531,7 @@ function calculateShot(autoMiss = false) {
                             treeCollisionReport = `[${tree.name} Check: Apex ${Math.round(ballHeightAtTree)}y. Result: SOLID STRIKE (33%). Kick ${Math.round(bounceDist)}y]`;
                         }
                     } else {
-                        // Cleared the tree
-                        window.announce(`Sailed right over the ${tree.name}!`);
+                        stateTimeouts.push(setTimeout(() => { window.announce(`Sailed right over the ${tree.name}!`); }, timeToTreeMs));
                         flightPathNarrative = `${shotShapeNarrative} that sailed safely over the ${tree.name}, clearing the top by ${verticalMarginYards} yards.`;
                         treeCollisionReport = `[${tree.name} Check: ${tree.height}y tall. Apex: ${Math.round(ballHeightAtTree)}y. Margin: +${verticalMarginYards}y. Result: CLEARED]`;
                     }

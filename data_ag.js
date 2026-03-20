@@ -1,4 +1,4 @@
-// data_ag.js - Course Data, Clubs, and Shot Styles (v4.21.1)
+// data_ag.js - Course Data, Clubs, and Shot Styles (v4.23.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -253,6 +253,195 @@ const courses = [
                 ],
                 trees: [],
                 zones: [{ name: "Fairway Left", x: -15, y: 250 }]
+            }
+            ,{ 
+                number: 10, par: 4, distance: 410, pinX: 0, pinY: 410, greenType: "The Saddle", fairwayWidth: 30, greenRadius: 15,
+                pinLocation: "Center",
+                description: "A 410-yard par 4 to start the back nine. A massive weeping willow guards the left side of the fairway at 260 yards, forcing drives to the right.",
+                fairwayDescription: "The fairway is 30 yards wide. A large weeping willow overhangs the left side of the landing zone at 260 yards.",
+                caddyNotes: [
+                    { level: 1, trigger: 'Tee', text: 'Keep your drive down the right side.' },
+                    { level: 3, trigger: 'Tee', text: 'Aim 5 degrees right. The weeping willow on the left will swallow any draws that don\'t turn back in time.' },
+                    { level: 3, trigger: 'Trouble_Left', text: 'You are stuck under the willow. Use your Edge Finder to calculate a low punch out. Don\'t get greedy.' }
+                ],
+                hazards: [],
+                landingZones: [
+                    { name: "Safe Drive Right", x: 10, y: 250 },
+                    { name: "Aggressive Drive", x: 0, y: 280 },
+                    { name: "Approach Area", x: 0, y: 350 },
+                    { name: "Green Center", x: 0, y: 410 }
+                ],
+                trees: [{ x: -15, y: 260, radius: 10, height: 45, name: "Weeping Willow" }],
+                zones: [{ name: "Green Center", x: 0, y: 410 }]
+            },
+            { 
+                number: 11, par: 3, distance: 185, pinX: 10, pinY: 182, greenType: "The Redan", fairwayWidth: 25, greenRadius: 14,
+                pinLocation: "Back-Right",
+                description: "A gorgeous but deadly 185-yard par 3. You must carry a deep ravine that eats anything short. The green slopes severely right-to-left.",
+                fairwayDescription: "No fairway. It's a 160-yard forced carry over a ravine to reach the safety of the green.",
+                caddyNotes: [
+                    { level: 1, trigger: 'Tee', text: 'Take enough club to carry the ravine.' },
+                    { level: 2, trigger: 'Tee', text: 'The green slopes hard to the left. Aim right of the flag.' },
+                    { level: 3, trigger: 'Tee', text: 'The Redan green will kick the ball left. Aim 10 yards right of the pin and let the slope feed it down to the hole.' }
+                ],
+                hazards: [{ type: "Water", distance: 20, depth: 140, side: "Center", offset: 0, width: 80 }],
+                landingZones: [
+                    { name: "Safe Bailout Right", x: 15, y: 175 },
+                    { name: "Green Center", x: 0, y: 185 }
+                ],
+                trees: [],
+                zones: [{ name: "Green Target", x: 10, y: 182 }]
+            },
+            { 
+                number: 12, par: 5, distance: 525, pinX: -20, pinY: 525, greenType: "The Two-Tiered Step", fairwayWidth: 35, greenRadius: 16,
+                pinLocation: "Back-Left",
+                description: "A sweeping 525-yard par 5 dogleg left. A perfect drive gives you a chance to go for the green in two, but a nest of bunkers protects the ideal layup zone.",
+                fairwayDescription: "The fairway bends left at 280 yards. At 400 yards, a cluster of fairway bunkers pinches the width down to just 15 yards.",
+                caddyNotes: [
+                    { level: 1, trigger: 'Tee', text: 'Hit a draw off the tee to follow the fairway.' },
+                    { level: 3, trigger: 'Tee', text: 'A draw is perfect here. Aim down the right side and let it turn left to cut the corner.' },
+                    { level: 2, trigger: 'Approach_Long', text: 'Watch the bunkers if you are laying up.' },
+                    { level: 3, trigger: 'Approach_Long', text: 'You can\'t reach the green. Lay up to the 380-yard mark to stay short of the bunker cluster, leaving a 145-yard approach.' }
+                ],
+                hazards: [
+                    { type: "Bunker", distance: 400, depth: 15, side: "Left", offset: -10, width: 15 },
+                    { type: "Bunker", distance: 410, depth: 15, side: "Right", offset: 15, width: 15 }
+                ],
+                landingZones: [
+                    { name: "Corner Drive", x: -10, y: 280 },
+                    { name: "Safe Layup", x: 0, y: 380 },
+                    { name: "Aggressive Layup", x: 0, y: 430 },
+                    { name: "Green Center", x: -20, y: 525 }
+                ],
+                trees: [{ x: -25, y: 280, radius: 8, height: 50, name: "Corner Pines" }],
+                zones: [{ name: "Green Center", x: -20, y: 525 }]
+            },
+            { 
+                number: 13, par: 4, distance: 380, pinX: 0, pinY: 380, greenType: "The Shelf", fairwayWidth: 25, greenRadius: 12,
+                pinLocation: "Right",
+                description: "A claustrophobic 380-yard par 4. Dense pine trees line both sides of this narrow 25-yard fairway. Accuracy is at an absolute premium.",
+                fairwayDescription: "Straight and incredibly narrow. Pine trees encroach on both the left and right sides from tee to green.",
+                caddyNotes: [
+                    { level: 1, trigger: 'Tee', text: 'Keep the driver in the bag. Find the fairway.' },
+                    { level: 3, trigger: 'Tee', text: 'Take a 3-Wood or long iron. The trees will punish anything offline. Play for position.' },
+                    { level: 3, trigger: 'Trouble_Left', text: 'You are deep in the pines. Don\'t try a hero shot. Punch out sideways into the fairway.' }
+                ],
+                hazards: [],
+                landingZones: [
+                    { name: "Safe Iron Tee Shot", x: 0, y: 220 },
+                    { name: "Mid Fairway", x: 0, y: 280 },
+                    { name: "Green Center", x: 0, y: 380 }
+                ],
+                trees: [
+                    { x: -18, y: 200, radius: 6, height: 60, name: "Left Pines" },
+                    { x: 18, y: 240, radius: 6, height: 60, name: "Right Pines" },
+                    { x: -18, y: 300, radius: 6, height: 60, name: "Deep Left Pines" }
+                ],
+                zones: [{ name: "Green Center", x: 0, y: 380 }]
+            },
+            { 
+                number: 14, par: 4, distance: 430, pinX: 0, pinY: 430, greenType: "The Welcoming Bowl", fairwayWidth: 35, greenRadius: 18,
+                pinLocation: "Center",
+                description: "A straightforward 430-yard par 4. Let the big dog eat. The fairway is wide, but a deep bunker guards the direct front of the green.",
+                fairwayDescription: "A wide 35-yard fairway with no hidden tricks until you reach the green.",
+                caddyNotes: [
+                    { level: 1, trigger: 'Tee', text: 'Swing hard, it is wide open.' },
+                    { level: 3, trigger: 'Tee', text: 'No hazards off the tee. 100% power with the Driver to leave a short iron in.' },
+                    { level: 3, trigger: 'Approach_Scoring', text: 'The pin is centered, but the front bunker is deep. Take an extra half-club to make sure you carry the sand.' }
+                ],
+                hazards: [{ type: "Bunker", distance: 405, depth: 10, side: "Center", offset: 0, width: 20 }],
+                landingZones: [
+                    { name: "Power Drive", x: 0, y: 270 },
+                    { name: "Mid Fairway", x: 0, y: 340 },
+                    { name: "Green Center", x: 0, y: 430 }
+                ],
+                trees: [],
+                zones: [{ name: "Green Center", x: 0, y: 430 }]
+            },
+            { 
+                number: 15, par: 5, distance: 560, pinX: 15, pinY: 558, greenType: "The False Front", fairwayWidth: 35, greenRadius: 15,
+                pinLocation: "Back",
+                description: "A monstrous 560-yard par 5. A creek crosses the fairway at 320 yards, meaning even long hitters must decide whether to lay up or attempt a massive carry.",
+                fairwayDescription: "The fairway is intersected by a 10-yard wide creek exactly 320 yards from the tee.",
+                caddyNotes: [
+                    { level: 1, trigger: 'Tee', text: 'A 3-shot hole. Lay up short of the creek.' },
+                    { level: 3, trigger: 'Tee', text: 'The creek is at 320 yards. A solid drive will leave you safely short of it, setting up a second shot to the 100-yard marker.' },
+                    { level: 3, trigger: 'Approach_Long', text: 'You cleared the creek. Lay up to the 100-yard zone. The green has a severe false front, so you want a full wedge for your third.' }
+                ],
+                hazards: [{ type: "Water", distance: 320, depth: 10, side: "Center", offset: 0, width: 50 }],
+                landingZones: [
+                    { name: "Short of Creek", x: 0, y: 290 },
+                    { name: "Second Shot Layup", x: 0, y: 450 },
+                    { name: "Approach Area", x: 0, y: 500 },
+                    { name: "Green Target", x: 15, y: 558 }
+                ],
+                trees: [],
+                zones: [{ name: "Green Target", x: 15, y: 558 }]
+            },
+            { 
+                number: 16, par: 3, distance: 150, pinX: 0, pinY: 150, greenType: "The Turtleback", fairwayWidth: 20, greenRadius: 12,
+                pinLocation: "Center",
+                description: "A short, terrifying 150-yard par 3. The green is a tiny 'Turtleback' that sheds balls off all sides into deep, punishing bunkers.",
+                fairwayDescription: "No fairway. Just a 150-yard shot to a tiny, elevated green surrounded by sand.",
+                caddyNotes: [
+                    { level: 1, trigger: 'Tee', text: 'Hit the middle of the green. Do not miss.' },
+                    { level: 3, trigger: 'Tee', text: 'This green rejects everything. Aim dead center and try to generate as much backspin as possible to hold the putting surface.' },
+                    { level: 3, trigger: 'Greenside', text: 'You are in the sand and the green runs away from you. Pop it up soft and let it trickle.' }
+                ],
+                hazards: [
+                    { type: "Bunker", distance: 135, depth: 10, side: "Center", offset: 0, width: 30 },
+                    { type: "Bunker", distance: 145, depth: 20, side: "Left", offset: -18, width: 10 },
+                    { type: "Bunker", distance: 145, depth: 20, side: "Right", offset: 18, width: 10 },
+                    { type: "Bunker", distance: 162, depth: 10, side: "Center", offset: 0, width: 30 }
+                ],
+                landingZones: [
+                    { name: "Dead Center", x: 0, y: 150 }
+                ],
+                trees: [],
+                zones: [{ name: "Green Center", x: 0, y: 150 }]
+            },
+            { 
+                number: 17, par: 4, distance: 450, pinX: -15, pinY: 450, greenType: "The Serpentine", fairwayWidth: 30, greenRadius: 16,
+                pinLocation: "Left",
+                description: "A grueling 450-yard par 4. A massive oak tree blocks the right side of the fairway at 280 yards, demanding a drive down the riskier left side.",
+                fairwayDescription: "A 30-yard fairway. To have a clear approach, you must navigate your drive to the left of the massive Oak sitting on the right side at 280 yards.",
+                caddyNotes: [
+                    { level: 1, trigger: 'Tee', text: 'Keep the drive to the left.' },
+                    { level: 3, trigger: 'Tee', text: 'Aim 5 degrees left. If you leak it right, the Oak tree will completely block your long approach to the green.' },
+                    { level: 3, trigger: 'Trouble_Right', text: 'You are blocked by the Oak. You have to lay up short of the green or try a massive hook around it.' }
+                ],
+                hazards: [],
+                landingZones: [
+                    { name: "Ideal Drive Left", x: -10, y: 260 },
+                    { name: "Mid Fairway", x: 0, y: 350 },
+                    { name: "Green Target", x: -15, y: 450 }
+                ],
+                trees: [{ x: 12, y: 280, radius: 10, height: 55, name: "The Blocking Oak" }],
+                zones: [{ name: "Green Target", x: -15, y: 450 }]
+            },
+            { 
+                number: 18, par: 4, distance: 440, pinX: 10, pinY: 438, greenType: "The Augusta Monster", fairwayWidth: 35, greenRadius: 18,
+                pinLocation: "Back-Right",
+                description: "The 440-yard grand finale. A beautiful, straight par 4 leading to 'The Augusta Monster' green. Bunkers guard the left, water guards the right.",
+                fairwayDescription: "The fairway is wide, but the approach is intimidating. Water flanks the entire right side of the green, and bunkers sit on the left.",
+                caddyNotes: [
+                    { level: 1, trigger: 'Tee', text: 'The final hole. Let it rip down the middle.' },
+                    { level: 3, trigger: 'Tee', text: 'Give it everything you have off the tee to leave a shorter club for this terrifying approach shot.' },
+                    { level: 2, trigger: 'Approach', text: 'Water right, sand left. The green is heavily contoured.' },
+                    { level: 3, trigger: 'Approach_Scoring', text: 'Do not go pin-hunting on the right side near the water. Aim for the center of the green and rely on your putter. Par here feels like a birdie.' },
+                    { level: 3, trigger: 'Greenside', text: 'This green has three massive tiers. Read the topography carefully before you putt.' }
+                ],
+                hazards: [
+                    { type: "Water", distance: 410, depth: 50, side: "Right", offset: 30, width: 30 },
+                    { type: "Bunker", distance: 420, depth: 25, side: "Left", offset: -25, width: 15 }
+                ],
+                landingZones: [
+                    { name: "Center Drive", x: 0, y: 270 },
+                    { name: "Approach Area", x: 0, y: 360 },
+                    { name: "Safe Green Center", x: -5, y: 435 }
+                ],
+                trees: [],
+                zones: [{ name: "Safe Green Center", x: -5, y: 435 }, { name: "The Pin", x: 10, y: 438 }]
             }
         ]
     }
