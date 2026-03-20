@@ -1,4 +1,4 @@
-// data_ag.js - Course Data, Clubs, and Shot Styles (v4.20.0)
+// data_ag.js - Course Data, Clubs, and Shot Styles (v4.21.1)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -260,58 +260,65 @@ const courses = [
 let currentCourseIndex = 0;
 
 const helpMenuText = [
-    { text: "Accessible Golf Engine Help Menu. Heading Level 1.", heading: true },
-    { text: "Use the Up and Down arrows to navigate this guide. Press Escape or Enter at any time to close.", heading: false },
+    { text: "Accessible Golf Help Menu: Use the Up and Down arrows to navigate this guide. Press Escape or Enter at any time to close. Heading Level 1.", heading: true },
     
     { text: "The Swing Mechanic: Heading Level 2.", heading: true },
     { text: "The Swing Mechanic is divided into 4 phases. You will use the Down Arrow and the Spacebar to control your shot.", heading: false },
     { text: "Phase 1: The Backswing.", heading: false },
-    { text: "Press and hold the Down Arrow. This initiates the backswing and begins the timing metronome sounds for the swing hinge, or amount you cock your wrist.", heading: false },
-    { text: "There will be 4 metronome sounds and you need to press your spacebar during this first 2 second segment to lock your backswing hinge, thus cocking your wrists back.", heading: false },
+    { text: "Press and hold the Down Arrow. This initiates the backswing and begins the timing metronome sounds for the swing hinge, or the amount you cock your wrists.", heading: false },
+    { text: "There will be four metronome sounds. You need to press your Spacebar during this first two-second segment to lock your backswing hinge, thus cocking your wrists back.", heading: false },
     
     { text: "Phase 2: The Power Phase.", heading: false },
-    { text: "You will have been holding down the down arrow during phase 1, and now, keep holding it down to set your power.", heading: false },
-    { text: "There will be audio pings for power at 25, 50 75 and finally, 100 percent, which has a bright definitive ding.", heading: false },
-    { text: "Release the down arrow to set your power. Remember: You can overswing up to 120% but the forgiveness on other meters is drastically reduced. Overswinging can cause wild results. You have been warned.", heading: false },
+    { text: "You will have been holding down the Down Arrow during Phase 1. Keep holding it down to set your power.", heading: false },
+    { text: "There will be audio pings for power at 25, 50, 75, and finally 100 percent, which has a bright, definitive ding.", heading: false },
+    { text: "Release the Down Arrow to set your power. Remember: You can overswing up to 120%, but the forgiveness on other meters is drastically reduced. Overswinging can cause wild results. You have been warned.", heading: false },
     
     { text: "Phase 3: The Downswing.", heading: false },
     { text: "When the downswing starts, you will re-enter the metronome phase.", heading: false },
-    { text: "Press the spacebar again and time it to the point when you set your hinge during backswing. You need to match the timing on hinge to get a boost to power. Mistiming can cause fat or thin shots because the club does not strike the ball perfectly.", heading: false },
-    { text: "Note: You can skip using hinge and get no bonus or penalty by simply not setting hinge with spacebar, however, if you set hinge, you need to release as well by pressing spacebar a second time.", heading: false },
+    { text: "Press the Spacebar again and match the timing of when you set your hinge during the backswing. You need to match this timing to get a boost to power, accuracy or spin rate. Mistiming can cause fat or thin shots because the club does not strike the ball perfectly.", heading: false },
+    { text: "Note: You can skip using the hinge and get no bonus or penalty by simply not pressing the Spacebar. However, if you set the hinge in Phase 1, you must release it in Phase 3 by pressing the Spacebar a second time.", heading: false },
     
     { text: "Phase 4: The Impact Zone.", heading: false },
-    { text: "After you set or skip hinge, the down tone will continue to drop and you will hear 4 pings to set your timing to press the down arrow and strike the ball.", heading: false },
+    { text: "After you set or skip the hinge, the downswing tone will continue to drop, and you will hear four pings to set your timing to strike the ball.", heading: false },
     { text: "Press the Down Arrow exactly when it hits the bottom to strike the ball perfectly.", heading: false },
     { text: "Striking the ball early or late will add sidespin and cause hooks or slices.", heading: false },
     
+    { text: "Practice Swings.", heading: false },
+    { text: "Press the Up Arrow instead of the Down Arrow to initiate a Practice Swing. Releasing the Up Arrow starts the downswing, and pressing it again at impact gives you feedback on your timing without hitting the ball.", heading: false },
+    
     { text: "General Keybinds: Heading Level 2.", heading: true },
     { text: "Course Navigation: Press numbers 1 through 9 to warp to the front nine holes. Hold Shift and press 1 through 9 for the back nine.", heading: false },
+    { text: "Press Q to open the Quit/Save Menu.", heading: false },
+    { text: "Scorecard: Press E for a quick score summary, or Shift + E to open the full scorecard grid.", heading: false },
     { text: "Setup and Aim: Left and Right arrows adjust your aim 1 degree at a time.", heading: false },
-    { text: "Shift Left and Right Arrows open and close your stance. Each adjustment adds or removes 800 rpm of side spin.", heading: false },
-    { text: "Home and End adjust ball placement in your stance. Moving the ball forward in your stance adds loft in 5 degree amounts while moving the ball back in your stance removes 5 degrees of loft at a time.", heading: false },
+    { text: "Shift + Left and Right Arrows open and close your stance. Each adjustment adds or removes 800 RPM of side spin.", heading: false },
+    { text: "Home and End adjust ball placement in your stance. Moving the ball forward adds loft in 5-degree amounts, while moving the ball back removes 5 degrees of loft at a time. This affects forward and backward spin rates.", heading: false },
+    { text: "Targeting: Press Z to cycle through available landing zones on the fairway or green. The engine will automatically equip the best club for your active target.", heading: false },
+    { text: "Press Shift + Z to open the Pin Finder grid. Use the arrow keys to explore the green yard by yard, then press Enter to lock your target.", heading: false },
     
     { text: "Equipment: Heading Level 2.", heading: true },
     { text: "Page Up and Page Down cycle through your clubs.", heading: false },
-    { text: "Press X to hear the club in your hand and expected distance.", heading: false },
-    { text: "Press S to cycle shot styles like Pitch or Flop from normal through a variety of short game swing types.", heading: false },
+    { text: "Press X to hear the club in your hand and the expected 100% distance based on your current lie.", heading: false },
+    { text: "Press S to cycle shot styles forward (from Normal down to Flop). Press Shift + S to cycle styles backward.", heading: false },
+    { text: "Press V to choke down on the club and limit power to 90% while widening impact zones.", heading: false },
     { text: "Note: For auditory players, it is often easier to adjust swing style, club choice, and ball position in order to have 100% power be the correct distance. Trying to hit 85% power is difficult without a visual meter.", heading: false },
     
-    { text: "Environment: Heading Level 2.", heading: true },
-    { text: "Press W to read the wind.", heading: false },
-    { text: "Press Shift W to change wind speed in environments in which you are allowed.", heading: false },
-    { text: "Press L to hear your lie.", heading: false },
-    { text: "Press L on the holo range to cycle terrain types under the ball. It's why it's a holo range.", heading: false },
+    { text: "Environment & Status: Heading Level 2.", heading: true },
+    { text: "Press Tab for a quick summary of your current hole, stroke, distance, and lie.", heading: false },
+    { text: "Press T for a full distance and targeting report, including green topography if you are close.", heading: false },
+    { text: "Press W to read the wind. Press Shift + W to change wind speed in practice areas.", heading: false },
+    { text: "Press L to hear your lie. On the holo range, press L to cycle the terrain type under the ball.", heading: false },
+    { text: "Press Shift + Z to toggle between the Pin Finder and Swing Mode. In the Pin Finder, use the arrows to adjust your cursor on the putting grid, where each square indicates expected ball behavior when landing from that approach. Press Enter to lock your target and return to swing mode.", heading: false },
     
-    { text: "Information: Heading Level 2.", heading: true },
-    { text: "Many of these may not be available at all times in all areas.", heading: false },
-    { text: "Press A to hear Caddy advice.", heading: false },
-    { text: "Press Shift A to change Caddy skill level.", heading: false },
+    { text: "Information & Feedback: Heading Level 2.", heading: true },
+    { text: "Press A to hear Caddy advice. Press Shift + A to change the Caddy skill level if available.", heading: false },
     { text: "Press F to read the fairway description.", heading: false },
-    { text: "Press H to open the navigable Hazard list.", heading: false },
-    { text: "Press Z to shift between available target zones on the fairway.", heading: false },
+    { text: "Press H to open the navigable Hazard and Tree list. This also acts as your Edge Finder to help punch out from under trees.", heading: false },
+    { text: "Press C to repeat the post-shot Caddy Report and telemetry. Press Shift + C to copy your session telemetry to your clipboard.", heading: false },
     
-    { text: "Game Modes: Heading Level 2.", heading: true },
+    { text: "Game Modes & Putting: Heading Level 2.", heading: true },
     { text: "Press R to warp to the Driving Range.", heading: false },
-    { text: "Press G to warp to the Chipping Green.", heading: false },
-    { text: "Press Shift G to warp to the Pitch and long-chip green.", heading: false }
+    { text: "Press G to warp to the Chipping Green. Press Shift + G to toggle between short and long chip ranges.", heading: false },
+    { text: "Press Shift + P to warp to the Practice Putting Green.", heading: false },
+    { text: "Putting Controls: On the green, press Shift + Z to toggle between the Pin Finder and Putting Mode. In the Pin Finder, use the arrows to adjust your putt aim and distance, then press Enter to lock it in and swing.", heading: false }
 ];

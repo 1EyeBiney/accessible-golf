@@ -167,3 +167,24 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Fairway Zones (KeyZ):** Cycles through pre-defined strategic `landingZones` on the fairway.
 - **Green Micro-Grid (Shift + T):** Activates a 20x20 yard navigable grid. Arrow keys move a targeting square, allowing players to aim for specific slopes or safe zones away from the pin.
 - **Oracle Caddy v2:** Level 3 Fairway Caddy. Runs a brute-force physics simulation across 70 permutations (14 clubs * 5 stances) against the `activeTargetType`. Calculates `totalDistance` and exact wind drift to provide a flawless shot blueprint (e.g., "Equip 5 Iron, Back Stance, Aim 3° Right").
+### 34. v4.18 Engine Addendum (Audio Priming & Unified Targeting)
+- **Audio Priming:** Introduced `window.playEcho` (Sound 37) to "wake up" the browser's audio context during `loadHole` and Clubhouse boot sequences, preventing stuttering on the first shot.
+- **Unified Targeting Bindings:** The Green Micro-Grid was remapped from `Shift + T` to `Shift + Z`, unifying all targeting mechanisms (Macro Zones and Micro Grids) under the `Z` key.
+
+### 35. v4.19 Engine Addendum (Stability & Style Streamlining)
+- **Engine Restoration (v4.19.0):** Reverted core swing impact logic to direct function calls instead of relying on event-loop timeouts, permanently eliminating the browser-desync "whiff" bug.
+- **Advanced Style Cycle:** `KeyS` (Forward) and `Shift + S` (Backward) cycle through styles. The engine now automatically resets to "Normal" after every shot and dynamically reads out the expected 100% distance based on the active club, lie, and stance while cycling.
+- **Atomic State Integrity (Ghost Timer Safety):** - Implemented recursive tracking for every single `setTimeout` call (bounces, rolls, caddy reports, transitions) into the `stateTimeouts` array.
+    - `loadHole` acts as an atomic "kill switch," immediately clearing all pending timers to prevent state-bleeding between holes.
+- **Watchdog Failsafe:** `SHOT_RECOVERY_TIMEOUT_MS` (20s) acts as a heartbeat monitor. If a shot calculation or caddy report stalls, it forces a state reset to `swingState = 0` to prevent the UI from freezing.
+
+### 36. v4.20 Engine Addendum (Fairway Navigation & Auto-Equip)
+- **Intelligent Z-Cycle:** Standardized the `Z` key to cycle in a continuous loop: [The Pin] -> [Fairway Zones] -> [Green Zones] -> [The Pin].
+- **Target-Locked Auto-Equip:** Cycling targets via `Z` or locking a grid via `Shift + Z` automatically triggers a physics evaluation to instantly hand the player the most mathematically appropriate club for the newly selected distance.
+- **Fairway Target Density:** Established the standard of placing invisible landing zones every 80-120 yards along the center `x: 0` line to allow for tactical layup progression.
+
+### 37. v4.21 Engine Addendum (Canopy Physics & Situational Awareness)
+- **Quick Status (Tab Key):** A zero-state hotkey that instantly announces the current Hole, Stroke, Distance to Pin, and Lie without triggering the full telemetry Caddy Report.
+- **Relative Target Warning:** The `Z` key mathematically compares the `targetY` to the `ballY`. If a landing zone is behind the player, it appends "(Behind you)" to the announcement to prevent accidental backwards shots.
+- **Under the Canopy Escape Math:** The Edge Finder (`KeyH`) detects if the player's ball is within 1.2x of a tree's radius. If true, it announces "Under the canopy" and calculates escape angles based on a narrow 1.5-yard trunk rather than the full branch width, allowing for realistic 5-15 degree punch-outs.
+- **Tree Deflection Physics:** Replaced the static "vertical drop" penalty. Hitting a tree now retains 15% of the ball's velocity and calculates a randomized 60-degree deflection vector, allowing the ball to bounce realistically away from the trunk.
