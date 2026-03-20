@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.27.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.29.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -221,7 +221,10 @@ function calculateShot(autoMiss = false) {
             let resultMsg = "";
             let formattedDist = window.formatProximity(puttTargetDist);
             if (madeIt) {
-                playTone(440, 'sine', 0.2, 0.4); setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 200);
+                // v4.28.0 Cup Sink Audio
+                if (typeof window.playGolfSound === 'function') window.playGolfSound('score_02');
+                else { playTone(440, 'sine', 0.2, 0.4); setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 200); }
+
                 resultMsg = `You sank a putt from ${formattedDist} away! IT'S IN THE HOLE!`;
                 isHoleComplete = true;
 
@@ -234,7 +237,13 @@ function calculateShot(autoMiss = false) {
                     });
                 }
             } else {
-                if (lipOut) { playTone(150, 'square', 0.1, 0.5); resultMsg = `Lipped out a ${formattedDist} putt! Hit it too hard.`; }
+                if (lipOut) {
+                    // v4.28.0 Lip-Out Audio
+                    if (typeof window.playGolfSound === 'function') window.playGolfSound('putt_06');
+                    else playTone(150, 'square', 0.1, 0.5);
+
+                    resultMsg = `Lipped out a ${formattedDist} putt! Hit it too hard.`;
+                }
                 else {
                     let latStr = Math.abs(ballX - pinX) < 0.5 ? "straight" : ballX < pinX ? "left" : "right";
                     let vertStr = ballY < pinY ? "short" : "long";
@@ -617,6 +626,10 @@ function calculateShot(autoMiss = false) {
                 if (h.type === "Bunker") {
                     currentLie = "Sand";
                     rollStopTriggered = true;
+                    
+                    // v4.29.0 Sand Enter Audio
+                    if (typeof window.playGolfSound === 'function') window.playGolfSound('hazard_03');
+                    
                     // Stop the ball just inside the bunker edge
                     const entryBuffer = 2; 
                     ballY = hStart + entryBuffer;
@@ -673,7 +686,10 @@ function calculateShot(autoMiss = false) {
         if (isWater) {
             rollTimeSecs = 0; // Kills the roll timer for water shots
             bounceSequenceMs = 400; // Gives the splash exactly 400ms to play before Caddy talks
-            if (typeof window.playSplash === 'function') window.playSplash(0.5);
+            
+            // v4.29.0 Heavy Splash Audio
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('hazard_05');
+            else if (typeof window.playSplash === 'function') window.playSplash(0.5);
         } else {
             // Only bounce and roll if NOT in water
             bounceOffsets.forEach((bounceOffsetMs, bounceIndex) => {
@@ -753,9 +769,22 @@ function calculateShot(autoMiss = false) {
                 window.updateDashboard();
             } else {
                 if (isHoleComplete) {
-                    playTone(440, 'sine', 0.2, 0.4);
-                    stateTimeouts.push(setTimeout(() => playTone(554, 'sine', 0.2, 0.4), 200));
-                    stateTimeouts.push(setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 400));
+                    // v4.28.0 Dynamic Scoring Chords
+                    if (typeof window.playGolfSound === 'function') {
+                        let diff = strokes - par;
+                        let sfx = 'score_01'; // Default: Par
+                        if (diff <= -2) sfx = 'score_04'; // Eagle/Hole-in-One
+                        else if (diff === -1) sfx = 'score_03'; // Birdie
+                        else if (diff === 1) sfx = 'score_05'; // Bogey
+                        else if (diff === 2) sfx = 'score_06'; // Double Bogey
+                        else if (diff >= 3) sfx = 'score_07'; // Triple Bogey+
+                        window.playGolfSound(sfx);
+                    } else {
+                        playTone(440, 'sine', 0.2, 0.4);
+                        stateTimeouts.push(setTimeout(() => playTone(554, 'sine', 0.2, 0.4), 200));
+                        stateTimeouts.push(setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 400));
+                    }
+
                     const completionMessage = `Hole complete! ${shotBroadcast} You reached the green in ${strokes} strokes.`;
                     window.announce(completionMessage);
                     lastShotReport = completionMessage + "\n\nTelemetry:\n" + metrics;

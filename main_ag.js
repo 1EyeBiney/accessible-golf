@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.27.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.29.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -103,6 +103,11 @@ function loadHole(holeNumber) {
     club = clubs[currentClubIndex];
     shotStyleIndex = 0;
     window.updateDashboard();
+
+    // v4.29.0 Ambient Wind on Tee
+    if (windLevelIndex >= 2 && typeof window.playGolfSound === 'function') {
+        window.playGolfSound('env_02');
+    }
     if (typeof window.saveGame === 'function') window.saveGame(); // Save when starting new hole
 }
 
@@ -208,6 +213,9 @@ window.getCaddyAdvice = function() {
             if (minMiss === 0) break;
         }
 
+        // v4.29.0 Oracle Chime
+        if (typeof window.playGolfSound === 'function') window.playGolfSound('caddy_02');
+
         let aimStr = bestAim === 0 ? "Dead Center" : `${Math.abs(bestAim)} degrees ${bestAim < 0 ? 'Left' : 'Right'}`;
         return `[Oracle Putting]: ${distToPin} yards. To sink it, aim ${aimStr} and hit it with ${bestPace} yards of pace.`;
     }
@@ -283,6 +291,9 @@ window.getCaddyAdvice = function() {
     if (!best) return "Oracle unavailable. Unable to compute tactical targeting right now.";
 
     const aimStr = best.aimDeg === 0 ? "Center" : `${Math.abs(best.aimDeg)} degrees ${best.aimDeg < 0 ? 'Left' : 'Right'}`;
+    
+    // v4.29.0 Oracle Chime
+    if (typeof window.playGolfSound === 'function') window.playGolfSound('caddy_02');
     
     // v4.16.0 Concise Fairway Oracle
     return `[Oracle]: To hit ${targetPoint.label} (${targetDist}y), equip ${best.clubName}, ${best.stanceName} stance, aim ${aimStr}.`;
