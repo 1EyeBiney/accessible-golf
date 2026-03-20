@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.19.7)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.21.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -473,10 +473,16 @@ function calculateShot(autoMiss = false) {
                     let verticalMarginYards = Math.round(ballHeightAtTree - tree.height);
                     
                     if (ballHeightAtTree < tree.height) {
+                        // v4.21.0 Tree Deflection Physics
                         playTone(1200, 'square', 0.1, 0.5);
-                        window.announce(`Hit the ${tree.name}!`);
-                        ballX = tree.x + (Math.random() * 4 - 2); ballY = tree.y - 5;
-                        totalDistance *= 0.4; rollDistance = 2; carryDistance = totalDistance - rollDistance;
+                        window.announce(`THWACK! You hit the ${tree.name}!`);
+                        // Deflect: Bounce slightly back or side, and lose 80% velocity
+                        const bounceAngle = finalRad + (Math.random() * 2 - 1);
+                        const bounceDist = Math.max(2, totalDistance * 0.15);
+                        ballX = startX + (Math.sin(bounceAngle) * distToTreeCenter);
+                        ballY = startY + (Math.cos(bounceAngle) * distToTreeCenter);
+                        totalDistance = distToTreeCenter + bounceDist;
+                        rollDistance = bounceDist; carryDistance = distToTreeCenter;
                         flightPathNarrative = `${shotShapeNarrative} that crashed straight into the ${tree.name}.`;
                         treeCollisionReport = `[${tree.name} Check: ${tree.height}y tall. Apex: ${Math.round(ballHeightAtTree)}y. Result: THWACK]`;
                     } else {

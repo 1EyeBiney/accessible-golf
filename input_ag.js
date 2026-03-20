@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.20.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.21.0)
 
 window.addEventListener('keydown', (e) => {
     // v4.11.0 Custom Grid Interceptor
@@ -535,6 +535,15 @@ window.addEventListener('keydown', (e) => {
     }
 
     if (swingState === 0) {
+        if (e.code === 'Tab') {
+            e.preventDefault();
+            let dist = calculateDistanceToPin();
+            let msg = `Hole ${hole}. Stroke ${strokes + 1}. ${dist} yards to pin. Lie: ${currentLie}.`;
+            window.announce(msg);
+            document.getElementById('visual-output').innerText = msg;
+            return;
+        }
+
         if (e.code === 'Home' || e.code === 'End') {
             e.preventDefault();
             if (e.code === 'Home') stanceIndex = Math.max(0, stanceIndex - 1);
@@ -751,7 +760,8 @@ window.addEventListener('keydown', (e) => {
 
             window.autoEquipBestClub();
             let label = activeTargetType === 'pin' ? "The Pin" : landingZones[targetZoneIndex].name;
-            let msg = `Target: ${label}. ${calculateDistanceToTarget()} yards. Auto-equipped ${club.name}.`;
+            let behindStr = (targetY < ballY) ? " (Behind you)" : "";
+            let msg = `Target: ${label}${behindStr}. ${calculateDistanceToTarget()} yards. Auto-equipped ${club.name}.`;
             window.announce(msg);
             document.getElementById('visual-output').innerText = msg;
             window.updateDashboard();
@@ -804,14 +814,21 @@ window.announceHazard = function(h) {
     const toDeg = 180 / Math.PI;
     const toRad = Math.PI / 180;
     
-    // 1. EDGE FINDER MATH (Angles to bypass)
     let edgeMsg = "";
-    if (h.radius) { // Tree/Circle
-        const dist = Math.sqrt(Math.pow(h.x - ballX, 2) + Math.pow(h.y - ballY, 2));
+    const dist = Math.sqrt(Math.pow(h.x - ballX, 2) + Math.pow(h.y - ballY, 2));
+    
+    // v4.21.0 Canopy/Trunk Awareness
+    if (h.radius) {
+        let effectiveRadius = h.radius;
+        let contextPrefix = "";
+        if (dist < h.radius * 1.2) {
+            effectiveRadius = 1.5; // Trunk radius
+            contextPrefix = "Under the canopy. ";
+        }
         const angleToCenter = Math.atan2(h.x - ballX, h.y - ballY) * toDeg;
-        const angleOffset = Math.asin(Math.min(0.99, h.radius / dist)) * toDeg;
-        edgeMsg = `To clear edges: aim ${Math.round(angleToCenter - angleOffset)}° left, or ${Math.round(angleToCenter + angleOffset)}° right.`;
-    } else { // Rectangular Hazard
+        const angleOffset = Math.asin(Math.min(0.99, effectiveRadius / dist)) * toDeg;
+        edgeMsg = `${contextPrefix}To clear trunk: aim ${Math.round(angleToCenter - angleOffset)}° left, or ${Math.round(angleToCenter + angleOffset)}° right.`;
+    } else {
         const corners = [
             {x: h.offset - h.width/2, y: h.distance}, {x: h.offset + h.width/2, y: h.distance},
             {x: h.offset - h.width/2, y: h.distance + h.depth}, {x: h.offset + h.width/2, y: h.distance + h.depth}
@@ -820,7 +837,6 @@ window.announceHazard = function(h) {
         edgeMsg = `To clear edges: aim ${Math.round(Math.min(...angles))}° left, or ${Math.round(Math.max(...angles))}° right.`;
     }
 
-    // 2. AIM LINE MATH (Distance to reach/clear on current heading)
     const targetAngleRad = Math.atan2(targetX - ballX, targetY - ballY);
     const finalRad = targetAngleRad + (aimAngle * toRad);
     const dirX = Math.sin(finalRad);
@@ -838,10 +854,10 @@ window.announceHazard = function(h) {
         } else if (pos < min || pos > max) { tmin = Infinity; }
     });
 
-    let lineMsg = "Your current line is clear of this obstacle.";
+    let lineMsg = "Your current line is clear.";
     if (tmax >= tmin && tmax > 0) {
         let reach = Math.max(0, Math.round(tmin)), clear = Math.round(tmax);
-        lineMsg = reach === 0 ? `Line is inside obstacle. ${clear} yards to clear.` : `On this line: ${reach} yards to reach, ${clear} yards to clear.`;
+        lineMsg = reach === 0 ? `Inside hazard. ${clear}y to clear.` : `${reach}y to reach, ${clear}y to clear.`;
     }
 
     const finalMsg = `${h.name || h.type}. ${edgeMsg} ${lineMsg}`;
