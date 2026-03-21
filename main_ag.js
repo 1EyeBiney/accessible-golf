@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.30.1)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.30.2)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -25,6 +25,7 @@ let roundHighlights = { drives: [], approaches: [], putts: [] };
 let puttsThisHole = 0;
 let currentHoleStats = { fir: null, gir: false };
 let viewingScorecard = false;
+let scorecardPage = 0;
 let scorecardGrid = [];
 let scRow = 0, scCol = 0;
 let gameMode = 'course';
@@ -417,11 +418,16 @@ window.getScoreTerm = function(par, score) {
 
 window.showScorecard = function() {
     scorecardGrid = [];
-    scorecardGrid.push(["Hole", "Par", "Score", "Result", "Drive", "Putt", "FIR", "GIR"]);
-
     let tStrokes = 0, tPar = 0, tPutts = 0;
     let firHit = 0, firPossible = 0;
     let girHit = 0, girPossible = 0;
+    let totalAppProx = 0, appProxCount = 0;
+
+    if (scorecardPage === 0) {
+        scorecardGrid.push(["Hole", "Par", "Score", "Result", "Putts"]);
+    } else {
+        scorecardGrid.push(["Hole", "Drive", "FIR", "App Start", "App Prox", "GIR"]);
+    }
 
     roundData.forEach(r => {
         tStrokes += r.strokes; tPar += r.par; tPutts += r.putts;
@@ -436,17 +442,33 @@ window.showScorecard = function() {
 
         let term = window.getScoreTerm(r.par, r.strokes);
         let driveStr = r.driveDistance ? `${r.driveDistance}y` : "-";
-        let puttStr = r.puttDistance ? window.formatProximity(r.puttDistance) : (r.putts === 0 ? "0" : "-");
+        let puttStr = r.putts.toString();
+        
+        let appStartStr = r.approachStart ? `${r.approachStart}y` : "-";
+        let appProxStr = r.approachProx ? window.formatProximity(r.approachProx) : "-";
+        if (r.approachProx) {
+            totalAppProx += r.approachProx;
+            appProxCount++;
+        }
 
-        scorecardGrid.push([r.hole.toString(), r.par.toString(), r.strokes.toString(), term, driveStr, puttStr, firStr, girStr]);
+        if (scorecardPage === 0) {
+            scorecardGrid.push([r.hole.toString(), r.par.toString(), r.strokes.toString(), term, puttStr]);
+        } else {
+            scorecardGrid.push([r.hole.toString(), driveStr, firStr, appStartStr, appProxStr, girStr]);
+        }
     });
 
     let rel = tStrokes - tPar;
     let relStr = rel === 0 ? "E" : rel > 0 ? `+${rel}` : `${rel}`;
-    let firTotalStr = firPossible > 0 ? `${firHit} of ${firPossible}` : "-";
-    let girTotalStr = girPossible > 0 ? `${girHit} of ${girPossible}` : "-";
+    let firTotalStr = firPossible > 0 ? `${firHit}/${firPossible}` : "-";
+    let girTotalStr = girPossible > 0 ? `${girHit}/${girPossible}` : "-";
+    let avgProxStr = appProxCount > 0 ? window.formatProximity(totalAppProx / appProxCount) : "-";
 
-    scorecardGrid.push(["TOTAL", `(${relStr})`, tStrokes.toString(), "-", "-", "-", firTotalStr, girTotalStr]);
+    if (scorecardPage === 0) {
+        scorecardGrid.push(["TOTAL", `(${relStr})`, tStrokes.toString(), "-", tPutts.toString()]);
+    } else {
+        scorecardGrid.push(["TOTAL", "-", firTotalStr, "-", avgProxStr, girTotalStr]);
+    }
 
     let html = `<table id="scorecard-table" style="width:100%; border-collapse: collapse; text-align: center; color: white;" border="1" aria-hidden="true">
         <thead><tr>${scorecardGrid[0].map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>`;
@@ -454,25 +476,33 @@ window.showScorecard = function() {
         html += `<tr>${scorecardGrid[i].map(d => `<td>${d}</td>`).join('')}</tr>`;
     }
     let lastRow = scorecardGrid[scorecardGrid.length - 1];
-    html += `</tbody><tfoot><tr><th>${lastRow[0]}</th><th>${lastRow[1]}</th><td>${lastRow[2]}</td><td>${lastRow[3]}</td><td>${lastRow[4]}</td><td>${lastRow[5]}</td><td>${lastRow[6]}</td><td>${lastRow[7]}</td></tr></tfoot></table>`;
+    html += `</tbody><tfoot><tr><th>${lastRow[0]}</th>` + lastRow.slice(1).map(d => `<td>${d}</td>`).join('') + `</tr></tfoot></table>`;
 
     document.getElementById('scorecard-container').innerHTML = html;
     document.getElementById('scorecard-container').style.display = 'block';
     document.getElementById('visual-output').style.display = 'none';
 
-    scRow = 0; scCol = 0;
-    window.announceScorecardCell(true);
+    // Clamp column if Analytics page has fewer/more columns than Traditional
+    if (scCol >= scorecardGrid[0].length) scCol = scorecardGrid[0].length - 1;
+
+    // Only call the Init Announcement if we are opening it fresh (Row 0, Col 0)
+    if (scRow === 0 && scCol === 0) window.announceScorecardCell(true);
 };
 
-window.announceScorecardCell = function(isInit = false) {
+window.announceScorecardCell = function(isInit = false, isPageFlip = false) {
     let val = scorecardGrid[scRow][scCol];
     let colName = scorecardGrid[0][scCol];
     let rowName = scorecardGrid[scRow][0];
     
     let msg = "";
     if (isInit) {
-        msg = "Scorecard open. Use Arrow Keys to navigate the grid. Press Escape to close. ";
+        let courseName = courses[currentCourseIndex].name;
+        msg = `${courseName} Scorecard. Page ${scorecardPage + 1}. Use Spacebar to flip pages, Arrow Keys to navigate, Escape to close. `;
         msg += `Row 1, Column 1. ${val}.`;
+    } else if (isPageFlip) {
+        let pageName = scorecardPage === 0 ? "Page 1: Traditional Scoring" : "Page 2: Advanced Analytics";
+        let rowPrefix = rowName === "TOTAL" ? "TOTAL Row" : `Hole ${rowName}`;
+        msg = `${pageName}. ${rowPrefix}, ${colName}: ${val}`;
     } else {
         if (scRow === 0) {
             msg = `Column Header: ${val}`;
@@ -486,7 +516,6 @@ window.announceScorecardCell = function(isInit = false) {
     
     window.announce(msg);
     
-    // Spectator Visual Highlight
     let table = document.getElementById('scorecard-table');
     if (table) {
         let cells = table.getElementsByTagName('td');

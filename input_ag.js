@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.30.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.30.2)
 
 window.addEventListener('keydown', (e) => {
     // v4.25.0 Keyboard Explore Mode
@@ -30,9 +30,19 @@ window.addEventListener('keydown', (e) => {
             document.getElementById('visual-output').innerText = getSetupReport();
             return;
         }
+
+        // v4.30.2 Spacebar Page Toggle
+        if (e.code === 'Space') {
+            e.preventDefault();
+            scorecardPage = scorecardPage === 0 ? 1 : 0;
+            window.showScorecard();
+            window.announceScorecardCell(false, true);
+            return;
+        }
         
         if (e.code === 'ArrowRight') {
-            if (scCol < scorecardGrid[0].length - 1) { scCol++; window.announceScorecardCell(); }
+            const maxCol = scorecardGrid[0] ? scorecardGrid[0].length - 1 : 0;
+            if (scCol < maxCol) { scCol++; window.announceScorecardCell(); }
             else { window.announce("Right edge."); }
         } else if (e.code === 'ArrowLeft') {
             if (scCol > 0) { scCol--; window.announceScorecardCell(); }
