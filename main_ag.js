@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.30.2)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.30.3)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -424,7 +424,8 @@ window.showScorecard = function() {
     let totalAppProx = 0, appProxCount = 0;
 
     if (scorecardPage === 0) {
-        scorecardGrid.push(["Hole", "Par", "Score", "Result", "Putts"]);
+        // v4.30.3 Added Putt Dist
+        scorecardGrid.push(["Hole", "Par", "Score", "Result", "Putts", "Putt Dist"]);
     } else {
         scorecardGrid.push(["Hole", "Drive", "FIR", "App Start", "App Prox", "GIR"]);
     }
@@ -444,6 +445,9 @@ window.showScorecard = function() {
         let driveStr = r.driveDistance ? `${r.driveDistance}y` : "-";
         let puttStr = r.putts.toString();
         
+        // v4.30.3 Extract and format the holed putt distance
+        let puttDistStr = (r.putts > 0 && r.puttDistance) ? window.formatProximity(r.puttDistance) : "-";
+        
         let appStartStr = r.approachStart ? `${r.approachStart}y` : "-";
         let appProxStr = r.approachProx ? window.formatProximity(r.approachProx) : "-";
         if (r.approachProx) {
@@ -452,7 +456,7 @@ window.showScorecard = function() {
         }
 
         if (scorecardPage === 0) {
-            scorecardGrid.push([r.hole.toString(), r.par.toString(), r.strokes.toString(), term, puttStr]);
+            scorecardGrid.push([r.hole.toString(), r.par.toString(), r.strokes.toString(), term, puttStr, puttDistStr]);
         } else {
             scorecardGrid.push([r.hole.toString(), driveStr, firStr, appStartStr, appProxStr, girStr]);
         }
@@ -465,7 +469,7 @@ window.showScorecard = function() {
     let avgProxStr = appProxCount > 0 ? window.formatProximity(totalAppProx / appProxCount) : "-";
 
     if (scorecardPage === 0) {
-        scorecardGrid.push(["TOTAL", `(${relStr})`, tStrokes.toString(), "-", tPutts.toString()]);
+        scorecardGrid.push(["TOTAL", `(${relStr})`, tStrokes.toString(), "-", tPutts.toString(), "-"]);
     } else {
         scorecardGrid.push(["TOTAL", "-", firTotalStr, "-", avgProxStr, girTotalStr]);
     }

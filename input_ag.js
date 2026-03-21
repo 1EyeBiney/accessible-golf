@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.30.2)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.30.3)
 
 window.addEventListener('keydown', (e) => {
     // v4.25.0 Keyboard Explore Mode
@@ -271,7 +271,7 @@ window.addEventListener('keydown', (e) => {
             e.preventDefault();
             if (e.shiftKey) {
                 viewingScorecard = true; window.showScorecard();
-                window.announce("Full Scorecard open. Use your screen reader's native table navigation commands to read. Press Escape to close.");
+                // v4.30.3 Removed hardcoded announce to allow main_ag.js to handle it
             } else {
                 let quick = window.getQuickScore();
                 document.getElementById('visual-output').innerText = quick; window.announce(quick);
