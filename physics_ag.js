@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.37.2)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.38.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -317,7 +317,16 @@ function calculateShot(autoMiss = false) {
             }
 
             broadcast += ` ${resultMsg}`;
-            lastShotReport = broadcast + `\nTelemetry: Impact ${impactDiff}ms, Tempo ${hingeDiff}ms.`;
+
+            // v4.38.0 Advanced Putting Telemetry
+            let isShortTarget = puttTargetDist <= 5.0;
+            let targUnit = isShortTarget ? "ft" : "yds";
+            let targDistDisp = isShortTarget ? Math.round(puttTargetDist * 3) : Math.round(puttTargetDist);
+            let aimDisp = aimAngle === 0 ? "Straight" : `${Math.abs(aimAngle)}° ${aimAngle < 0 ? 'Left' : 'Right'}`;
+
+            let advancedTelemetry = `\n\n[Putting Diagnostics]\nTarget Cursor: ${targDistDisp} ${targUnit}, Aim: ${aimDisp}\nExecution: Power ${finalPower}%, Impact ${impactDiff}ms, Touch (Hinge) ${hingeDiff}ms\nTouch Magnetism: ${tempoBonus.toFixed(2)}x Multiplier\nEffective Hole Radius: ${(activeHoleRadius * 36).toFixed(1)} inches (Base: ${(baseHoleRadius * 36).toFixed(1)}in)\nSlope Dampener: ${(slopeDampener * 100).toFixed(0)}% applied (100% = Full Break)\nAccuracy Score: ${Math.round(accuracyScore)}/100`;
+
+            lastShotReport = broadcast + advancedTelemetry;
             holeTelemetry.push(lastShotReport);
             window.announce(broadcast);
             document.getElementById('visual-output').innerText = broadcast;
@@ -1133,4 +1142,89 @@ window.getLandingZoneEffect = function(x, y) {
     if (feed) return ` Landing here ${feed}.`;
 
     return " Area is relatively flat.";
+};
+
+// v4.37.3 Synchronized Putting Oracle
+window.getCaddyAdvice = function() {
+    if (gameMode === 'putting' || (gameMode === 'course' && currentLie === "Green")) {
+        if (typeof caddyLevel !== 'undefined' && caddyLevel < 3) return "I can only read the green at Level 3. Press Shift + A to upgrade me.";
+
+        let distToPin = calculateDistanceToPin();
+        const holeData = courses[currentCourseIndex].holes[hole - 1];
+        let activeContours = [];
+        if (gameMode === 'course' && holeData.greenType && typeof greenDictionary !== 'undefined') {
+            activeContours = greenDictionary[holeData.greenType] || [];
+        } else if (gameMode === 'putting') {
+            activeContours = [
+                { startY: 45, endY: 25, slopeX: 0.8, slopeY: 0.4 },
+                { startY: 25, endY: 10, slopeX: -0.3, slopeY: 0.0 },
+                { startY: 10, endY: 0, slopeX: 0.6, slopeY: -0.3 }
+            ];
+        }
+
+        let bestAim = null;
+        let bestPace = null;
+
+        // Oracle assumes perfect touch (Tempo Bonus = 2.5) for its baseline
+        let tempoBonus = 2.5;
+        let baseHoleRadius = 0.15;
+        let activeHoleRadius = ((distToPin <= 2.0) ? (baseHoleRadius * 3.0) : baseHoleRadius) * tempoBonus;
+        let slopeDampener = (distToPin <= 3.0) ? 0.1 : (distToPin <= 6.0) ? 0.35 : 1.0;
+        let baseHeading = Math.atan2(pinX - ballX, pinY - ballY);
+
+        for (let p = Math.max(0.5, distToPin * 0.5); p <= distToPin * 2.5; p += 0.25) {
+            for (let a = -45; a <= 45; a += 1) {
+                let simX = ballX, simY = ballY;
+                let speedRemaining = p;
+                let distTraveled = 0;
+                let currentHeading = baseHeading + (a * (Math.PI / 180));
+                let madeIt = false;
+
+                let captureSpeedLimit = (distToPin <= 2) ? 6.0 : 2.5 * tempoBonus;
+
+                while (speedRemaining > 0 && distTraveled < 100) {
+                    let stepDist = Math.min(1.0, speedRemaining);
+                    let currentDistToHole = Math.sqrt(Math.pow(pinX - simX, 2) + Math.pow(pinY - simY, 2));
+
+                    if (currentDistToHole <= activeHoleRadius) {
+                        if (speedRemaining <= captureSpeedLimit) {
+                            madeIt = true;
+                            break;
+                        }
+                    }
+
+                    let zone = activeContours.find(z => currentDistToHole <= z.startY && currentDistToHole > z.endY);
+                    let sx = (zone ? zone.slopeX : 0) * slopeDampener;
+                    let sy = (zone ? zone.slopeY : 0) * slopeDampener;
+
+                    currentHeading -= (sx * 0.05);
+                    simX += Math.sin(currentHeading) * stepDist;
+                    simY += Math.cos(currentHeading) * stepDist;
+                    distTraveled += stepDist;
+                    speedRemaining -= (1.0 + (sy * 0.15));
+                }
+
+                if (madeIt) {
+                    if (bestPace === null || p < bestPace || (p === bestPace && Math.abs(a) < Math.abs(bestAim))) {
+                        bestAim = a;
+                        bestPace = p;
+                    }
+                }
+            }
+        }
+
+        if (bestAim !== null && bestPace !== null) {
+            let aimStr = bestAim === 0 ? "straight" : `${Math.abs(bestAim)} degrees ${bestAim < 0 ? 'Left' : 'Right'}`;
+            let isShort = distToPin <= 5.0;
+            let unit = isShort ? "feet" : "yards";
+            let paceDisplay = isShort ? `${Math.round(bestPace * 3)}` : `${bestPace}`;
+            let distDisplay = isShort ? `${Math.round(distToPin * 3)}` : `${Math.round(distToPin)}`;
+
+            return `[Oracle Putting]: ${distDisplay} ${unit}. To sink it with perfect timing, aim ${aimStr} and hit it with ${paceDisplay} ${unit} of pace.`;
+        } else {
+            return `[Oracle Putting]: This putt is extremely difficult. I cannot find a guaranteed line. Best guess is to lay up.`;
+        }
+    }
+
+    return "Check your alignment, grip, and the wind before taking your swing.";
 };
