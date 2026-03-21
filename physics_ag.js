@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.32.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.33.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -643,50 +643,54 @@ function calculateShot(autoMiss = false) {
         currentFW = 30; // Apron width
     }
 
-    currentLie = Math.abs(ballX) > (currentFW / 2) ? "Light Rough" : "Fairway";
     let inWater = false;
-
     let rollStopTriggered = false;
-    if (holeData.hazards && gameMode === 'course') {
-        const startY = ballY - moveY;
-        const carryY = startY + (moveY * (carryDistance / totalDistance));
-        const carryX = (ballX - moveX) + (moveX * (carryDistance / totalDistance));
+    if (gameMode === 'range' || gameMode === 'chipping') {
+        currentLie = rangeTargetLie;
+        if (currentLie === 'Water') inWater = true;
+    } else {
+        currentLie = Math.abs(ballX) > (currentFW / 2) ? "Light Rough" : "Fairway";
+        if (holeData.hazards && gameMode === 'course') {
+            const startY = ballY - moveY;
+            const carryY = startY + (moveY * (carryDistance / totalDistance));
+            const carryX = (ballX - moveX) + (moveX * (carryDistance / totalDistance));
 
-        holeData.hazards.forEach(h => {
-            const hLeft = h.offset - (h.width / 2);
-            const hRight = h.offset + (h.width / 2);
-            const hStart = h.distance;
-            const hEnd = h.distance + h.depth;
+            holeData.hazards.forEach(h => {
+                const hLeft = h.offset - (h.width / 2);
+                const hRight = h.offset + (h.width / 2);
+                const hStart = h.distance;
+                const hEnd = h.distance + h.depth;
 
-            // Check if the ball CARRY landed in hazard
-            if (carryY >= hStart && carryY <= hEnd && carryX >= hLeft && carryX <= hRight) {
-                if (h.type === "Bunker") currentLie = "Sand";
-                if (h.type === "Water") inWater = true;
-            } else if (carryY >= hStart && carryY <= hEnd) {
-                // v4.23.1 Hazard Narrow Miss
-                let marginL = Math.abs(carryX - hLeft);
-                let marginR = Math.abs(carryX - hRight);
-                if (carryX < hLeft && marginL <= 15) flightPathNarrative += ` Shaved the left edge of the ${h.type} by ${Math.round(marginL)} yards.`;
-                else if (carryX > hRight && marginR <= 15) flightPathNarrative += ` Shaved the right edge of the ${h.type} by ${Math.round(marginR)} yards.`;
-            }
-            // Check if the ball ROLL entered a hazard
-            else if (!inWater && ballY >= hStart && ballY <= hEnd && ballX >= hLeft && ballX <= hRight) {
-                if (h.type === "Bunker") {
-                    currentLie = "Sand";
-                    rollStopTriggered = true;
-                    
-                    // v4.29.0 Sand Enter Audio
-                    if (typeof window.playGolfSound === 'function') window.playGolfSound('hazard_03');
-                    
-                    // Stop the ball just inside the bunker edge
-                    const entryBuffer = 2; 
-                    ballY = hStart + entryBuffer;
-                    rollDistance = Math.max(0, Math.round(ballY - carryY));
-                    totalDistance = carryDistance + rollDistance;
+                // Check if the ball CARRY landed in hazard
+                if (carryY >= hStart && carryY <= hEnd && carryX >= hLeft && carryX <= hRight) {
+                    if (h.type === "Bunker") currentLie = "Sand";
+                    if (h.type === "Water") inWater = true;
+                } else if (carryY >= hStart && carryY <= hEnd) {
+                    // v4.23.1 Hazard Narrow Miss
+                    let marginL = Math.abs(carryX - hLeft);
+                    let marginR = Math.abs(carryX - hRight);
+                    if (carryX < hLeft && marginL <= 15) flightPathNarrative += ` Shaved the left edge of the ${h.type} by ${Math.round(marginL)} yards.`;
+                    else if (carryX > hRight && marginR <= 15) flightPathNarrative += ` Shaved the right edge of the ${h.type} by ${Math.round(marginR)} yards.`;
                 }
-                if (h.type === "Water") inWater = true;
-            }
-        });
+                // Check if the ball ROLL entered a hazard
+                else if (!inWater && ballY >= hStart && ballY <= hEnd && ballX >= hLeft && ballX <= hRight) {
+                    if (h.type === "Bunker") {
+                        currentLie = "Sand";
+                        rollStopTriggered = true;
+                        
+                        // v4.29.0 Sand Enter Audio
+                        if (typeof window.playGolfSound === 'function') window.playGolfSound('hazard_03');
+                        
+                        // Stop the ball just inside the bunker edge
+                        const entryBuffer = 2; 
+                        ballY = hStart + entryBuffer;
+                        rollDistance = Math.max(0, Math.round(ballY - carryY));
+                        totalDistance = carryDistance + rollDistance;
+                    }
+                    if (h.type === "Water") inWater = true;
+                }
+            });
+        }
     }
 
     const greenSize = holeData.greenRadius || 20;

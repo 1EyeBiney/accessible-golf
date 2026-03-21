@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.31.7)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.33.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -36,6 +36,7 @@ let isPutting = false, puttState = 0, puttTargetDist = 0;
 let viewingHazards = false, hazardIndex = 0;
 let viewingHelp = false, helpIndex = 0;
 let rangeLie = 'Fairway', confirmingRange = false, confirmingQuit = false;
+let rangeTargetLie = 'Fairway';
 let synthTreeActive = false;
 let synthTreeX = 0;
 let synthTreeDist = 0;

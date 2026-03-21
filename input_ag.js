@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.31.3)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.34.0)
 
 window.addEventListener('keydown', (e) => {
     // v4.25.0 Keyboard Explore Mode
@@ -23,6 +23,8 @@ window.addEventListener('keydown', (e) => {
         e.preventDefault(); // Lock ALL inputs
         
         if (e.code === 'Escape' || e.code === 'Enter') {
+            if (e.code === 'Escape' && typeof window.playGolfSound === 'function') window.playGolfSound('bunker_33');
+            if (e.code === 'Enter' && typeof window.playGolfSound === 'function') window.playGolfSound('ag_11');
             viewingScorecard = false;
             document.getElementById('scorecard-container').style.display = 'none';
             document.getElementById('visual-output').style.display = 'block';
@@ -126,6 +128,7 @@ window.addEventListener('keydown', (e) => {
             if (e.code === 'ArrowDown') { if (helpIndex < helpMenuText.length - 1) helpIndex++; window.announceHelp(); }
             else if (e.code === 'ArrowUp') { if (helpIndex > 0) helpIndex--; window.announceHelp(); }
             else if (e.code === 'Escape' || e.code === 'Enter') {
+                if (e.code === 'Escape' && typeof window.playGolfSound === 'function') window.playGolfSound('bunker_33');
                 viewingHelp = false; window.announce("Exited Help Menu."); window.announceClubhouse();
             }
             return;
@@ -138,6 +141,7 @@ window.addEventListener('keydown', (e) => {
             if (clubhouseIndex > 0) clubhouseIndex--;
             window.announceClubhouse(false);
         } else if (e.code === 'Enter') {
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('ag_11');
             clubhouseMenu[clubhouseIndex].action();
         }
         return; 
@@ -212,6 +216,7 @@ window.addEventListener('keydown', (e) => {
             window.announce("Round abandoned.");
             window.buildClubhouseMenu();
         } else if (e.code === 'Escape') {
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('bunker_33');
             confirmingQuit = false;
             window.announce("Quit cancelled.");
             document.getElementById('visual-output').innerText = getSetupReport();
@@ -240,6 +245,7 @@ window.addEventListener('keydown', (e) => {
             }
             window.announceHelp();
         } else if (e.code === 'Escape' || e.code === 'Enter') {
+            if (e.code === 'Escape' && typeof window.playGolfSound === 'function') window.playGolfSound('bunker_33');
             viewingHelp = false;
             window.announce("Exited Help Menu.");
             if (gameMode === 'clubhouse') window.announceClubhouse(); 
@@ -268,6 +274,7 @@ window.addEventListener('keydown', (e) => {
         // v4.13.0 Context-Sensitive Quit Trigger
         if (e.code === 'KeyQ') {
             e.preventDefault();
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('bunker_11');
             if (gameMode === 'course') {
                 confirmingQuit = true;
                 let msg = "Quit Menu. Press S to Save and Exit, A to Abandon Round, or Escape to cancel.";
@@ -395,13 +402,16 @@ window.addEventListener('keydown', (e) => {
         }
         if (e.code === 'KeyL') {
             e.preventDefault();
-            if (gameMode === 'range') {
-                rangeLie = rangeLie === 'Fairway' ? 'Rough' : 'Fairway';
-                const lieMsg = `Virtual lie set to ${rangeLie}.`;
-                document.getElementById('visual-output').innerText = lieMsg; window.announce(lieMsg);
+            if (e.shiftKey && (gameMode === 'range' || gameMode === 'chipping')) {
+                const lies = ['Fairway', 'Green', 'Rough', 'Sand', 'Water'];
+                let idx = lies.indexOf(rangeTargetLie);
+                rangeTargetLie = lies[(idx + 1) % lies.length];
+                let msg = `Target terrain set to ${rangeTargetLie}.`;
+                window.announce(msg);
+                document.getElementById('visual-output').innerText = msg;
             } else {
-                const lieMsg = `Ball is on the ${currentLie}.`;
-                document.getElementById('visual-output').innerText = lieMsg; window.announce(lieMsg);
+                let activeLie = gameMode === 'range' ? rangeLie : currentLie;
+                window.announce(`Ball is on the ${activeLie}.`);
             }
             window.updateDashboard();
             return;
@@ -493,6 +503,7 @@ window.addEventListener('keydown', (e) => {
                 window.announceHazard(allObstacles[hazardIndex]);
             }
             if (e.code === 'Escape' || e.code === 'Enter') {
+                if (e.code === 'Escape' && typeof window.playGolfSound === 'function') window.playGolfSound('bunker_33');
                 viewingHazards = false; 
                 window.announce("Exited Obstacle List.");
                 document.getElementById('visual-output').innerText = getSetupReport();
@@ -672,8 +683,10 @@ window.addEventListener('keydown', (e) => {
             // v4.19.7 Advanced Style Cycling: S = Forward (+1), Shift+S = Backward (-1)
             if (e.shiftKey) {
                 shotStyleIndex = (shotStyleIndex - 1 + shotStyles.length) % shotStyles.length;
+                if (typeof window.playGolfSound === 'function') window.playGolfSound('bunker_04');
             } else {
                 shotStyleIndex = (shotStyleIndex + 1) % shotStyles.length;
+                if (typeof window.playGolfSound === 'function') window.playGolfSound('bunker_03');
             }
             
             const style = shotStyles[shotStyleIndex];
@@ -1022,7 +1035,7 @@ window.getKeyDescription = function(code, shift) {
         'Tab': "Provides a quick summary of hole, stroke, distance, and lie.",
         'KeyT': "Provides a full distance and targeting report.",
         'KeyW': shift ? "Cycles wind conditions in practice modes." : "Reads the current wind speed and direction.",
-        'KeyL': "Announces your current lie.",
+        'KeyL': "Announces current lie. Shift + L on range toggles target terrain.",
         'KeyA': shift ? "Cycles the Caddy skill level." : "Asks the Caddy for strategic advice.",
         'KeyF': "Reads the fairway description.",
         'KeyH': "Opens the navigable Hazard and Tree list.",
