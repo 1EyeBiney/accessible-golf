@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.31.8)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.32.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -754,14 +754,14 @@ function calculateShot(autoMiss = false) {
             bounceGapMs = Math.max(90, Math.round(bounceGapMs * 0.85));
         }
 
-        // v4.31.8 Theatrical Roll & Dramatic Pause
+        // v4.32.0 Theatrical Roll & Dramatic Pause (Reduced to 1000ms)
         let isWater = currentLie.toLowerCase().includes("water");
         let rollTimeSecs = Math.max(0, Math.abs(rollDistance) / 10);
         let caddyDelayMs = 500;
 
         if (currentLie === "Green" && !isWater) {
             rollTimeSecs = Math.max(3.0, Math.min(6.0, Math.abs(rollDistance) / 3));
-            caddyDelayMs = 2000; // 2-second dramatic pause before Caddy speaks
+            caddyDelayMs = 1000;
         }
 
         if (isWater) {
@@ -838,24 +838,27 @@ function calculateShot(autoMiss = false) {
                 const finalRelX = ballX - pinX;
                 const finalDistToPin = Math.sqrt(Math.pow(finalRelX, 2) + Math.pow(finalRelY, 2));
 
-                // v4.31.8 Proximity Chime Rewards
+                // v4.32.0 Dynamic MP3 Proximity Rewards
                 if (currentLie === "Green" && club.name !== "Putter") {
+                    let audioFile = "";
+                    let variant = Math.random() < 0.5 ? "1" : "2";
+
                     if (finalDistToPin <= 7.0) {
-                        // Tier 1: The Dart (Triumphant Major Arpeggio)
-                        if (typeof window.playGolfSound === 'function') window.playGolfSound('score_04');
-                        else {
-                            playTone(523.25, 'triangle', 0.1, 0.5);
-                            setTimeout(() => playTone(659.25, 'triangle', 0.1, 0.5), 100);
-                            setTimeout(() => playTone(783.99, 'triangle', 0.4, 0.5), 200);
-                        }
+                        audioFile = `audio/test_close${variant}.mp3`;
                     } else if (finalDistToPin <= 12.0) {
-                        // Tier 2: Great Shot (Positive Double Chime)
-                        if (typeof window.playGolfSound === 'function') window.playGolfSound('score_03');
-                        else {
-                            playTone(440, 'triangle', 0.1, 0.5);
-                            setTimeout(() => playTone(554.37, 'triangle', 0.3, 0.5), 150);
-                        }
+                        audioFile = `audio/testmid${variant}.mp3`;
+                    } else {
+                        audioFile = `audio/test_far${variant}.mp3`;
                     }
+
+                    const proximityAudio = new Audio(audioFile);
+                    proximityAudio.volume = 0.8;
+                    proximityAudio.play().catch(e => console.log("Audio file not found:", audioFile));
+
+                    // Delay Caddy until 500ms after the MP3 ends
+                    proximityAudio.onloadedmetadata = () => {
+                        caddyDelayMs = (proximityAudio.duration * 1000) + 500;
+                    };
                 }
 
                 const landDir = landRelY < -1 ? "short" : landRelY > 1 ? "long" : "pin-high";
