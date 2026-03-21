@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.35.1)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.37.1)
 
 window.addEventListener('keydown', (e) => {
     // v4.25.0 Keyboard Explore Mode
@@ -93,8 +93,27 @@ window.addEventListener('keydown', (e) => {
                 let msgX = xZero ? "Center" : `${reportX} ${unit} ${gridX < 0 ? 'Left' : 'Right'}`;
                 let msgY = yZero ? "Pin High" : `${reportY} ${unit} ${gridY < 0 ? 'Short' : 'Long'}`;
 
-                window.announce(`${msgX}, ${msgY}.`);
-                document.getElementById('visual-output').innerText = `Target: ${msgX}, ${msgY}`;
+                // v4.37.1 Terrain Probe & Landing Zone Oracle
+                let absX = pinX + gridX;
+                let absY = pinY + gridY;
+                let terrain = typeof window.getTerrainAt === 'function' ? window.getTerrainAt(absX, absY) : "";
+                let terrainStr = "";
+                let slopeStr = "";
+
+                if (terrain === "Green" || terrain === "Fairway") {
+                    terrainStr = ` On the ${terrain}.`;
+                    // If on the green, probe the landing effect
+                    if (terrain === "Green" && typeof window.getLandingZoneEffect === 'function') {
+                        slopeStr = window.getLandingZoneEffect(absX, absY);
+                    }
+                } else if (terrain === "Sand" || terrain === "Rough" || terrain === "Water") {
+                    terrainStr = ` In the ${terrain}.`;
+                } else if (terrain) {
+                    terrainStr = ` Over ${terrain}.`;
+                }
+
+                window.announce(`${msgX}, ${msgY}.${terrainStr}${slopeStr}`);
+                document.getElementById('visual-output').innerText = `Target: ${msgX}, ${msgY}.${terrainStr}${slopeStr}`;
             }
         } else if (e.code === 'Escape' || e.code === 'Enter') {
             targetX = pinX + gridX;

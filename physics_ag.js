@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.36.2)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.37.2)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -1068,4 +1068,69 @@ window.autoEquipBestClub = function() {
     currentClubIndex = bestClubIndex;
     club = clubs[currentClubIndex];
     window.updateDashboard();
+};
+
+// v4.37.0 Terrain Probe Helper
+window.getTerrainAt = function(x, y) {
+    if (gameMode !== 'course') return typeof rangeTargetLie !== 'undefined' ? rangeTargetLie : "Fairway";
+
+    const holeData = courses[currentCourseIndex].holes[hole - 1];
+    let distToPin = Math.sqrt(Math.pow(x - pinX, 2) + Math.pow(y - pinY, 2));
+    const greenSize = holeData.greenRadius || 20;
+
+    if (distToPin <= greenSize) return "Green";
+
+    let terrain = "Fairway";
+    let currentFW = typeof activeFairwayWidth !== 'undefined' ? activeFairwayWidth : (holeData.fairwayWidth || 40);
+
+    if (holeData.approachWidth && distToPin <= 50 && distToPin > (holeData.apronRadius || 0)) {
+        currentFW = holeData.approachWidth;
+    } else if (holeData.apronRadius && distToPin <= holeData.apronRadius) {
+        currentFW = 30; // Apron width
+    }
+
+    if (Math.abs(x) > (currentFW / 2)) terrain = "Rough";
+
+    if (holeData.hazards) {
+        holeData.hazards.forEach(h => {
+            const hLeft = h.offset - (h.width / 2);
+            const hRight = h.offset + (h.width / 2);
+            const hStart = h.distance;
+            const hEnd = h.distance + h.depth;
+            if (y >= hStart && y <= hEnd && x >= hLeft && x <= hRight) {
+                terrain = h.type === "Bunker" ? "Sand" : h.type;
+            }
+        });
+    }
+    return terrain;
+};
+
+// v4.37.1 Landing Zone Oracle
+window.getLandingZoneEffect = function(x, y) {
+    if (gameMode !== 'course') return "";
+    const holeData = courses[currentCourseIndex].holes[hole - 1];
+    if (!holeData || !holeData.greenType || typeof greenDictionary === 'undefined') return "";
+
+    // Calculate distance from the targeted coordinates to the pin
+    let distFromPin = Math.sqrt(Math.pow(x - pinX, 2) + Math.pow(y - pinY, 2));
+    let activeContours = greenDictionary[holeData.greenType] || [];
+
+    // Find the contour zone that governs this specific distance from the cup
+    let zone = activeContours.find(z => distFromPin <= z.startY && distFromPin > z.endY);
+
+    if (!zone) return " Area is relatively flat.";
+
+    let kick = "";
+    if (zone.slopeX > 0.1) kick = "kicks right";
+    else if (zone.slopeX < -0.1) kick = "kicks left";
+
+    let feed = "";
+    if (zone.slopeY > 0.1) feed = "feeds uphill";
+    else if (zone.slopeY < -0.1) feed = "feeds downhill";
+
+    if (kick && feed) return ` Landing here ${kick} and ${feed}.`;
+    if (kick) return ` Landing here ${kick}.`;
+    if (feed) return ` Landing here ${feed}.`;
+
+    return " Area is relatively flat.";
 };
