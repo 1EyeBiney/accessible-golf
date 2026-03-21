@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.35.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.36.2)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -129,7 +129,22 @@ function calculateShot(autoMiss = false) {
         
         // Touch Mechanic (Spacebar Hinge becomes Tempo)
         let accuracyScore = Math.max(10, 100 - (Math.abs(impactDiff) / 2.5));
-        let tempoBonus = Math.abs(hingeDiff) < 50 ? 1.2 : 1.0; // Perfect tempo gives 20% wider cup capture
+
+        // v4.36.1 Linear Touch Magnetism (Putting)
+        let startDistToPin = Math.sqrt(Math.pow(ballX - pinX, 2) + Math.pow(ballY - pinY, 2));
+        let slopeDampener = (startDistToPin <= 3.0) ? 0.1 : (startDistToPin <= 6.0) ? 0.35 : 1.0;
+
+        let absHinge = Math.abs(hingeDiff);
+        let tempoBonus = 1.0;
+        if (absHinge <= 50) {
+            tempoBonus = 2.5; // Max Bonus
+        } else if (absHinge < 150) {
+            // Smoothly scale from 2.5 down to 1.0 over the 100ms gap
+            tempoBonus = 2.5 - ((absHinge - 50) / 100) * 1.5;
+        }
+
+        let baseHoleRadius = 0.15;
+        let activeHoleRadius = ((startDistToPin <= 2.0) ? (baseHoleRadius * 3.0) : baseHoleRadius) * tempoBonus;
         
         let powerOvercharge = finalPower > 100 ? finalPower - 100 : 0;
 
@@ -150,16 +165,6 @@ function calculateShot(autoMiss = false) {
                 { startY: 10, endY: 0, slopeX: 0.6, slopeY: -0.3 }
             ];
         }
-
-        // v4.35.0 Short Game Dampening & Magnetism
-        let startDistToPin = Math.sqrt(Math.pow(ballX - pinX, 2) + Math.pow(ballY - pinY, 2));
-
-        // Dampen extreme breaks on short putts (cut through the slope)
-        let slopeDampener = (startDistToPin <= 5.0) ? 0.3 : 1.0;
-
-        // Tap-in Magnetism: 300% larger hole for putts inside 1 yard (3 feet)
-        let baseHoleRadius = 0.15; // Standard 5.4 inch golf hole in yards
-        let activeHoleRadius = (startDistToPin <= 1.0) ? (baseHoleRadius * 3.0) : baseHoleRadius;
 
         // v4.7.2 Find the actual angle to the pin!
         let baseHeading = Math.atan2(pinX - ballX, pinY - ballY);
@@ -192,7 +197,7 @@ function calculateShot(autoMiss = false) {
             playbackArray.push({ x: simX, y: simY, speed: speedRemaining, madeIt: false });
             
             let zone = activeContours.find(z => currentDistToHole <= z.startY && currentDistToHole > z.endY);
-            let sx = (zone ? zone.slopeX : 0) * slopeDampener, sy = zone ? zone.slopeY : 0;
+            let sx = (zone ? zone.slopeX : 0) * slopeDampener, sy = (zone ? zone.slopeY : 0) * slopeDampener;
             
             currentHeading -= (sx * 0.05); 
             simX += Math.sin(currentHeading) * stepDist;
@@ -711,6 +716,33 @@ function calculateShot(autoMiss = false) {
         ballX = 0; 
     } else if (gameMode === 'course' && distanceToPin <= greenSize) {
         currentLie = "Green";
+    }
+
+    // v4.36.1 Linear Touch Magnetism (Approach/Hole-Out Logic)
+    let isHoleOut = false;
+    if ((gameMode === 'course' || gameMode === 'chipping') && currentLie === "Green" && club.name !== "Putter") {
+        const finalRelY = ballY - pinY;
+        const finalRelX = ballX - pinX;
+        const finalDistToPin = Math.sqrt(Math.pow(finalRelX, 2) + Math.pow(finalRelY, 2));
+
+        let absHinge = Math.abs(hingeDiff);
+        let touchBonus = 1.0;
+        if (absHinge <= 50) {
+            touchBonus = 3.0; // Max Bonus
+        } else if (absHinge < 150) {
+            // Smoothly scale from 3.0 down to 1.0 over the 100ms gap
+            touchBonus = 3.0 - ((absHinge - 50) / 100) * 2.0;
+        }
+
+        let captureRadius = 0.15 * touchBonus;
+
+        if (finalDistToPin <= captureRadius) {
+            isHoleOut = true;
+            isHoleComplete = true;
+            ballX = pinX;
+            ballY = pinY;
+            currentLie = "Hole";
+        }
     }
 
     // v4.10.0 Stat Tracking & v4.30.0 Highlight Tagging
