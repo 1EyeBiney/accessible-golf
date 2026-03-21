@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.38.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.39.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -119,6 +119,56 @@ function calculateZoneAccuracy(offsetMs, pressure) {
 
 function calculateShot(autoMiss = false) {
     swingState = 5; 
+
+    // v4.39.0 Automatic Diagnostic Memory (Capture before ball moves)
+    let autoGreenRead = "N/A";
+    let autoOracle = "N/A";
+
+    if (isPutting || currentLie === "Green") {
+        // 1. Silently capture the Oracle prediction
+        if (typeof window.getCaddyAdvice === 'function') {
+            autoOracle = window.getCaddyAdvice().replace("[Oracle Putting]: ", "").trim();
+        }
+
+        // 2. Silently run the Green Reading algorithm
+        let distToPin = calculateDistanceToPin();
+        const holeData = courses[currentCourseIndex].holes[hole - 1];
+        let netElevYards = 0; let netBreakYards = 0;
+
+        if (holeData && holeData.greenType && typeof greenDictionary !== 'undefined') {
+            let activeContours = greenDictionary[holeData.greenType] || [];
+            activeContours.forEach(z => {
+                if (distToPin >= z.endY) {
+                    let start = Math.min(distToPin, z.startY);
+                    let distInZone = start - z.endY;
+                    netElevYards += (z.slopeY * distInZone * 2.0);
+                    netBreakYards += (z.slopeX * distInZone * 1.5);
+                }
+            });
+        } else if (gameMode === 'putting') {
+            // Default practice green contours for diagnostics
+            let activeContours = [
+                { startY: 45, endY: 25, slopeX: 0.8, slopeY: 0.4 },
+                { startY: 25, endY: 10, slopeX: -0.3, slopeY: 0.0 },
+                { startY: 10, endY: 0, slopeX: 0.6, slopeY: -0.3 }
+            ];
+            activeContours.forEach(z => {
+                if (distToPin >= z.endY) {
+                    let start = Math.min(distToPin, z.startY);
+                    let distInZone = start - z.endY;
+                    netElevYards += (z.slopeY * distInZone * 2.0);
+                    netBreakYards += (z.slopeX * distInZone * 1.5);
+                }
+            });
+        }
+
+        let elevInches = Math.round(netElevYards * 4);
+        let breakInches = Math.round(netBreakYards * 6);
+        let elevStr = elevInches === 0 ? "Flat" : `${Math.abs(elevInches)}in ${elevInches > 0 ? "Uphill" : "Downhill"}`;
+        let breakStr = breakInches === 0 ? "Straight" : `${Math.abs(breakInches)}in ${breakInches > 0 ? "Right" : "Left"}`;
+        autoGreenRead = `${elevStr}, Breaks ${breakStr}`;
+    }
+
     if (isPutting) {
         stateTimeouts.forEach(clearTimeout);
         strokes++;
@@ -318,13 +368,13 @@ function calculateShot(autoMiss = false) {
 
             broadcast += ` ${resultMsg}`;
 
-            // v4.38.0 Advanced Putting Telemetry
+            // v4.39.0 Advanced Putting Telemetry (with Auto-Diagnostics)
             let isShortTarget = puttTargetDist <= 5.0;
             let targUnit = isShortTarget ? "ft" : "yds";
             let targDistDisp = isShortTarget ? Math.round(puttTargetDist * 3) : Math.round(puttTargetDist);
             let aimDisp = aimAngle === 0 ? "Straight" : `${Math.abs(aimAngle)}° ${aimAngle < 0 ? 'Left' : 'Right'}`;
 
-            let advancedTelemetry = `\n\n[Putting Diagnostics]\nTarget Cursor: ${targDistDisp} ${targUnit}, Aim: ${aimDisp}\nExecution: Power ${finalPower}%, Impact ${impactDiff}ms, Touch (Hinge) ${hingeDiff}ms\nTouch Magnetism: ${tempoBonus.toFixed(2)}x Multiplier\nEffective Hole Radius: ${(activeHoleRadius * 36).toFixed(1)} inches (Base: ${(baseHoleRadius * 36).toFixed(1)}in)\nSlope Dampener: ${(slopeDampener * 100).toFixed(0)}% applied (100% = Full Break)\nAccuracy Score: ${Math.round(accuracyScore)}/100`;
+            let advancedTelemetry = `\n\n[Putting Diagnostics]\nTarget Cursor: ${targDistDisp} ${targUnit}, Aim: ${aimDisp}\nAuto-Read: ${autoGreenRead}\nOracle Says: ${autoOracle}\nExecution: Power ${finalPower}%, Impact ${impactDiff}ms, Touch (Hinge) ${hingeDiff}ms\nTouch Magnetism: ${tempoBonus.toFixed(2)}x Multiplier\nEffective Hole Radius: ${(activeHoleRadius * 36).toFixed(1)} inches (Base: ${(baseHoleRadius * 36).toFixed(1)}in)\nSlope Dampener: ${(slopeDampener * 100).toFixed(0)}% applied (100% = Full Break)\nAccuracy Score: ${Math.round(accuracyScore)}/100`;
 
             lastShotReport = broadcast + advancedTelemetry;
             holeTelemetry.push(lastShotReport);
