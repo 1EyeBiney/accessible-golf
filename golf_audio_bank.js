@@ -14,7 +14,11 @@
                 { id: 'ui_nav_07', name: 'Cycle Target', source: 'new', recipe: 'sequence', args: [['sine', 'sine'], [480, 620], 0.07, 0.15] },
                 { id: 'ui_nav_08', name: 'Cycle Club', source: 'new', recipe: 'sequence', args: [['sine', 'sine'], [620, 480], 0.07, 0.15] },
                 { id: 'ui_nav_09', name: 'Toggle On', source: 'soundtester-72', recipe: 'tone', args: [430, 'sine', 0.1, 0.16] },
-                { id: 'ui_nav_10', name: 'Toggle Off', source: 'soundtester-73', recipe: 'tone', args: [650, 'sine', 0.1, 0.16] }
+                { id: 'ui_nav_10', name: 'Toggle Off', source: 'soundtester-73', recipe: 'tone', args: [650, 'sine', 0.1, 0.16] },
+                { id: 'bunker_03', name: 'Floor Up', source: 'bunker-3', recipe: 'sweep', args: [300, 600, 600, 0.15, 0.25, 'triangle'] },
+                { id: 'bunker_04', name: 'Floor Down', source: 'bunker-4', recipe: 'sweep', args: [600, 300, 300, 0.15, 0.25, 'triangle'] },
+                { id: 'bunker_11', name: 'Low Boop', source: 'bunker-11', recipe: 'tone', args: [150, 'sine', 0.15, 0.4] },
+                { id: 'bunker_33', name: 'Close Menus', source: 'bunker-33', recipe: 'echo', args: ['triangle', 300, 30, 0.6, 0.3, 0.4] }
             ]
         },
         {

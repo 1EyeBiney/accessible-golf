@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.33.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.35.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -151,6 +151,16 @@ function calculateShot(autoMiss = false) {
             ];
         }
 
+        // v4.35.0 Short Game Dampening & Magnetism
+        let startDistToPin = Math.sqrt(Math.pow(ballX - pinX, 2) + Math.pow(ballY - pinY, 2));
+
+        // Dampen extreme breaks on short putts (cut through the slope)
+        let slopeDampener = (startDistToPin <= 5.0) ? 0.3 : 1.0;
+
+        // Tap-in Magnetism: 300% larger hole for putts inside 1 yard (3 feet)
+        let baseHoleRadius = 0.15; // Standard 5.4 inch golf hole in yards
+        let activeHoleRadius = (startDistToPin <= 1.0) ? (baseHoleRadius * 3.0) : baseHoleRadius;
+
         // v4.7.2 Find the actual angle to the pin!
         let baseHeading = Math.atan2(pinX - ballX, pinY - ballY);
 
@@ -161,7 +171,7 @@ function calculateShot(autoMiss = false) {
         let currentHeading = baseHeading + (aimAngle * (Math.PI / 180));
         
         let madeIt = false, lipOut = false;
-        let captureRadius = accuracyScore > 90 ? 0.8 : 0.5;
+        let captureRadius = activeHoleRadius;
         let captureSpeedLimit = (distToPin <= 2 && accuracyScore > 90) ? 6.0 : 2.5 * tempoBonus;
         
         // v4.6.0 Record the Physics Steps
@@ -182,7 +192,7 @@ function calculateShot(autoMiss = false) {
             playbackArray.push({ x: simX, y: simY, speed: speedRemaining, madeIt: false });
             
             let zone = activeContours.find(z => currentDistToHole <= z.startY && currentDistToHole > z.endY);
-            let sx = zone ? zone.slopeX : 0, sy = zone ? zone.slopeY : 0; 
+            let sx = (zone ? zone.slopeX : 0) * slopeDampener, sy = zone ? zone.slopeY : 0;
             
             currentHeading -= (sx * 0.05); 
             simX += Math.sin(currentHeading) * stepDist;

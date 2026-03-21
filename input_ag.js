@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.34.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.35.1)
 
 window.addEventListener('keydown', (e) => {
     // v4.25.0 Keyboard Explore Mode
@@ -24,7 +24,7 @@ window.addEventListener('keydown', (e) => {
         
         if (e.code === 'Escape' || e.code === 'Enter') {
             if (e.code === 'Escape' && typeof window.playGolfSound === 'function') window.playGolfSound('bunker_33');
-            if (e.code === 'Enter' && typeof window.playGolfSound === 'function') window.playGolfSound('ag_11');
+            if (e.code === 'Enter' && typeof window.playGolfSound === 'function') window.playGolfSound('menu_01');
             viewingScorecard = false;
             document.getElementById('scorecard-container').style.display = 'none';
             document.getElementById('visual-output').style.display = 'block';
@@ -63,18 +63,39 @@ window.addEventListener('keydown', (e) => {
     if (activeTargetType === 'grid' && isGridNavigating) {
         e.preventDefault();
 
-        if (e.code === 'ArrowUp') {
-            gridY += 1;
-            window.announceGridPosition();
-        } else if (e.code === 'ArrowDown') {
-            gridY -= 1;
-            window.announceGridPosition();
-        } else if (e.code === 'ArrowLeft') {
-            gridX -= 1;
-            window.announceGridPosition();
-        } else if (e.code === 'ArrowRight') {
-            gridX += 1;
-            window.announceGridPosition();
+        if (e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+            if (activeTargetType === 'grid' || activeTargetType === 'pin') {
+                let distToPin = calculateDistanceToPin();
+
+                // v4.35.1 Dynamic Grid Scaling (Removed Green restriction)
+                // If inside 5 yards, use 1-foot (0.33 yard) increments. Otherwise, 1 yard.
+                let isShortPutt = (distToPin <= 5.0);
+                let increment = isShortPutt ? (1 / 3) : 1.0;
+
+                if (e.code === 'ArrowUp') gridY += increment;
+                if (e.code === 'ArrowDown') gridY -= increment;
+                if (e.code === 'ArrowLeft') gridX -= increment;
+                if (e.code === 'ArrowRight') gridX += increment;
+
+                // Dynamic TTS Reporting
+                let reportX = Math.abs(gridX);
+                let reportY = Math.abs(gridY);
+                let unit = isShortPutt ? "feet" : "yards";
+
+                // Convert to whole numbers if using feet for clean audio
+                if (isShortPutt) {
+                    reportX = Math.round(reportX * 3);
+                    reportY = Math.round(reportY * 3);
+                }
+
+                let xZero = Math.abs(gridX) < 0.001;
+                let yZero = Math.abs(gridY) < 0.001;
+                let msgX = xZero ? "Center" : `${reportX} ${unit} ${gridX < 0 ? 'Left' : 'Right'}`;
+                let msgY = yZero ? "Pin High" : `${reportY} ${unit} ${gridY < 0 ? 'Short' : 'Long'}`;
+
+                window.announce(`${msgX}, ${msgY}.`);
+                document.getElementById('visual-output').innerText = `Target: ${msgX}, ${msgY}`;
+            }
         } else if (e.code === 'Escape' || e.code === 'Enter') {
             targetX = pinX + gridX;
             targetY = pinY + gridY;
@@ -141,7 +162,7 @@ window.addEventListener('keydown', (e) => {
             if (clubhouseIndex > 0) clubhouseIndex--;
             window.announceClubhouse(false);
         } else if (e.code === 'Enter') {
-            if (typeof window.playGolfSound === 'function') window.playGolfSound('ag_11');
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('menu_01');
             clubhouseMenu[clubhouseIndex].action();
         }
         return; 
@@ -590,30 +611,38 @@ window.addEventListener('keydown', (e) => {
         }
 
         if (puttState === 0) {
-            // v4.16.0 The Cup Locator
+            // v4.35.1 Scalable Cup Locator
             let updatePuttTarget = () => {
                 let distToPin = 0;
                 if (typeof calculateDistanceToPin === 'function') distToPin = Math.round(calculateDistanceToPin());
                 else distToPin = Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
                 
-                let isCup = (puttTargetDist === distToPin && aimAngle === 0);
+                let isCup = (Math.abs(puttTargetDist - distToPin) < 0.1 && aimAngle === 0);
                 let locStr = isCup ? " (The Cup)" : "";
                 let aimStr = aimAngle === 0 ? "Center" : `${Math.abs(aimAngle)}° ${aimAngle < 0 ? 'Left' : 'Right'}`;
-                let msg = `Target: ${puttTargetDist} yards, Aim: ${aimStr}${locStr}`;
+                
+                let isShort = puttTargetDist <= 5.0;
+                let unit = isShort ? "feet" : "yards";
+                let displayDist = isShort ? Math.round(puttTargetDist * 3) : Math.round(puttTargetDist);
+                
+                let msg = `Target: ${displayDist} ${unit}, Aim: ${aimStr}${locStr}`;
                 window.announce(msg);
                 window.updateDashboard();
             };
             
-            if (e.code === 'ArrowUp') { e.preventDefault(); puttTargetDist += 1; updatePuttTarget(); return; }
-            if (e.code === 'ArrowDown') { e.preventDefault(); puttTargetDist = Math.max(1, puttTargetDist - 1); updatePuttTarget(); return; }
+            if (e.code === 'ArrowUp') { e.preventDefault(); let inc = puttTargetDist <= 5.0 ? (1/3) : 1; puttTargetDist += inc; updatePuttTarget(); return; }
+            if (e.code === 'ArrowDown') { e.preventDefault(); let inc = puttTargetDist <= 5.0 ? (1/3) : 1; puttTargetDist = Math.max(1/3, puttTargetDist - inc); updatePuttTarget(); return; }
             if (e.code === 'ArrowRight') { e.preventDefault(); aimAngle += 1; updatePuttTarget(); return; }
             if (e.code === 'ArrowLeft') { e.preventDefault(); aimAngle -= 1; updatePuttTarget(); return; }
             
-            // v4.17.0 Putting Enter-to-Lock Consistency
+            // Putting Enter-to-Lock Consistency
             if (e.code === 'Enter' || e.code === 'Escape') {
                 e.preventDefault();
                 puttState = 1; // Switch to Swing Mode
-                let msg = `Putt target locked at ${puttTargetDist} yards. Swing Mode active. Press Down Arrow to start stroke.`;
+                let isShort = puttTargetDist <= 5.0;
+                let unit = isShort ? "feet" : "yards";
+                let displayDist = isShort ? Math.round(puttTargetDist * 3) : Math.round(puttTargetDist);
+                let msg = `Putt target locked at ${displayDist} ${unit}. Swing Mode active. Press Down Arrow to start stroke.`;
                 window.announce(msg);
                 document.getElementById('visual-output').innerText = msg;
                 window.updateDashboard();
