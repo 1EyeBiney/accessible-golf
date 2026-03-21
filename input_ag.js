@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.37.1)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.41.0)
 
 window.addEventListener('keydown', (e) => {
     // v4.25.0 Keyboard Explore Mode
@@ -308,6 +308,21 @@ window.addEventListener('keydown', (e) => {
             if (typeof window.trigger3DFlight === 'function') {
                 window.trigger3DFlight(0.6, 25, 0, 0, ball);
             }
+            return;
+        }
+
+        // v4.41.0 Shot Focus Toggle
+        if (e.code === 'KeyJ') {
+            e.preventDefault();
+            if (e.shiftKey) focusIndex = (focusIndex - 1 + focusModes.length) % focusModes.length;
+            else focusIndex = (focusIndex + 1) % focusModes.length;
+
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_07');
+            const focus = focusModes[focusIndex];
+            let msg = `Shot Focus: ${focus.name}. ${focus.desc}`;
+            window.announce(msg);
+            document.getElementById('visual-output').innerText = msg;
+            window.updateDashboard();
             return;
         }
 
@@ -837,6 +852,7 @@ window.addEventListener('keydown', (e) => {
                 }
 
                 if (gameMode === 'range') { pinY = club.baseDistance; pinX = 0; }
+                if (typeof window.autoSetFocus === 'function') window.autoSetFocus(true);
                 const setupReport = getSetupReport();
                 window.announce(setupReport); document.getElementById('visual-output').innerText = setupReport;
             }
@@ -854,6 +870,7 @@ window.addEventListener('keydown', (e) => {
                 }
 
                 if (gameMode === 'range') { pinY = club.baseDistance; pinX = 0; }
+                if (typeof window.autoSetFocus === 'function') window.autoSetFocus(true);
                 const setupReport = getSetupReport();
                 window.announce(setupReport); document.getElementById('visual-output').innerText = setupReport;
             }
@@ -886,7 +903,8 @@ window.addEventListener('keydown', (e) => {
             } else {
                 msg = `Holding ${club.name}. Expect ${Math.round(baseTotal)} yards at 100% power.`;
             }
-            
+            let focusName = typeof focusModes !== 'undefined' ? focusModes[focusIndex].name : "";
+            msg += ` Focus is set to ${focusName}.`;
             document.getElementById('visual-output').innerText = msg; window.announce(msg);
         }
         if (e.code === 'KeyZ' && gameMode === 'course') {
@@ -1077,6 +1095,7 @@ window.getKeyDescription = function(code, shift) {
         'PageUp': "Equips the previous club.",
         'PageDown': "Equips the next club.",
         'KeyZ': shift ? "Opens the Pin Finder grid." : "Cycles through tactical landing zones.",
+        'KeyJ': shift ? "Cycles Shot Focus backward." : "Cycles Shot Focus forward.",
         'KeyX': "Announces the active club and expected 100 percent distance.",
         'KeyS': shift ? "Cycles swing styles backward." : "Cycles swing styles forward.",
         'KeyV': "Toggles choked down grip for increased control.",

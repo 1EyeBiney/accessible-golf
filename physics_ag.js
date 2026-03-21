@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.40.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.41.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -95,16 +95,17 @@ function getSetupReport() {
     const baseTotal = club.baseDistance * style.distMod * chokeMod * loftDistMod;
     let gripReport = typeof isChokedDown !== 'undefined' && isChokedDown ? "Choked down. " : "";
 
+    let focusName = typeof focusModes !== 'undefined' ? focusModes[focusIndex].name : "";
     if (gameMode === 'course' && currentLie === 'Sand') {
         const minTotal = Math.round(baseTotal * 0.60);
         const maxTotal = Math.round(baseTotal * 0.80);
-        return `${club.name}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. In the sand. Style: ${style.name}.`;
+        return `${club.name}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. In the sand. Style: ${style.name}. Focus: ${focusName}.`;
     } else if ((gameMode === 'course' && currentLie === 'Light Rough') || (gameMode === 'range' && rangeLie === 'Rough')) {
         const minTotal = Math.round(baseTotal * 0.85);
         const maxTotal = Math.round(baseTotal * 0.95);
-        return `${club.name}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. In the rough. Style: ${style.name}.`;
+        return `${club.name}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. In the rough. Style: ${style.name}. Focus: ${focusName}.`;
     } else {
-        return `${club.name}. ${gripReport}100% power hits ${Math.round(baseTotal)} yards. Style: ${style.name}.`;
+        return `${club.name}. ${gripReport}100% power hits ${Math.round(baseTotal)} yards. Style: ${style.name}. Focus: ${focusName}.`;
     }
 }
 
@@ -184,13 +185,19 @@ function calculateShot(autoMiss = false) {
         let startDistToPin = Math.sqrt(Math.pow(ballX - pinX, 2) + Math.pow(ballY - pinY, 2));
         let slopeDampener = (startDistToPin <= 3.0) ? 0.1 : (startDistToPin <= 6.0) ? 0.35 : 1.0;
 
+        // v4.41.0 Risk/Reward Focus Scaling
         let absHinge = Math.abs(hingeDiff);
+        let focusEffect = 0;
+        if (focusIndex !== 0) { // Standard Focus has no effects
+            if (absHinge <= 50) focusEffect = 1.0;
+            else if (absHinge <= 150) focusEffect = 1.0 - ((absHinge - 50) / 100);
+            else if (absHinge <= 250) focusEffect = -((absHinge - 150) / 100);
+            else focusEffect = -1.0;
+        }
+
         let tempoBonus = 1.0;
-        if (absHinge <= 50) {
-            tempoBonus = 2.5; // Max Bonus
-        } else if (absHinge < 150) {
-            // Smoothly scale from 2.5 down to 1.0 over the 100ms gap
-            tempoBonus = 2.5 - ((absHinge - 50) / 100) * 1.5;
+        if (focusIndex === 2) { // Touch Focus
+            tempoBonus = Math.max(0.5, 1.0 + (1.5 * focusEffect)); // Max 2.5x, Min 0.5x
         }
 
         let baseHoleRadius = 0.15;
@@ -479,8 +486,28 @@ function calculateShot(autoMiss = false) {
         }
     }
 
+    // v4.41.0 Risk/Reward Focus Scaling (Fairway)
+    let absHinge = Math.abs(hingeDiff);
+    let focusEffect = 0;
+    if (focusIndex !== 0) {
+        if (absHinge <= 50) focusEffect = 1.0;
+        else if (absHinge <= 150) focusEffect = 1.0 - ((absHinge - 50) / 100);
+        else if (absHinge <= 250) focusEffect = -((absHinge - 150) / 100);
+        else focusEffect = -1.0;
+    }
+
+    // Recovery Focus (Index 5)
+    if (focusIndex === 5 && isStartingInRough) {
+        lieMod = lieMod + ((1.0 - lieMod) * 0.5 * focusEffect);
+        lieDispersionMod = lieDispersionMod - ((lieDispersionMod - 1.0) * 0.5 * focusEffect);
+        lieForgivenessMod = lieForgivenessMod + ((1.0 - lieForgivenessMod) * 0.5 * focusEffect);
+    }
+
     let forgiveness = finalPower <= 100 ? 1 + ((100 - finalPower) * 0.01) : Math.max(0.6, 1 - (powerOvercharge * 0.015));
     forgiveness *= lieForgivenessMod * (typeof isChokedDown !== 'undefined' && isChokedDown ? 1.2 : 1.0);
+
+    // Accuracy Focus (Index 4)
+    if (focusIndex === 4) forgiveness *= (1.0 + (0.5 * focusEffect));
 
     let absImpact = Math.abs(impactDiff);
     let adjustedImpact = absImpact / forgiveness;
@@ -520,15 +547,22 @@ function calculateShot(autoMiss = false) {
     let styleSideSpinMod = currentStyle.name === "Full" ? 1.0 : (currentStyle.distMod * 0.4);
 
     let backspinRPM = Math.max(400, Math.round((club.loft * 150) + (finalPower * 10) + (impactAcc * 7) + ((stanceIndex - 2) * 500) + currentStyle.spinMod));
+    // Spin Focus (Index 3)
+    if (focusIndex === 3) backspinRPM += (2500 * focusEffect);
     let sideSpinRPM = Math.round((impactDiff / 20) * 100 * spinPenalty * pressureDispersion * styleSideSpinMod) + (stanceAlignment * 800 * styleSideSpinMod);
     sideSpinRPM = Math.max(-4500, Math.min(4500, sideSpinRPM));
     
     let chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
     let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
-    let potentialDist = club.baseDistance * (finalPower / 100) * (1 + (hingeTimeBack / 2000 * 0.15)) * currentStyle.distMod * lieMod * loftDistMod * chokeMod;
+
+    // Power Focus (Index 1)
+    let powerFocusMod = 1.0 + (focusIndex === 1 ? (0.10 * focusEffect) : 0);
+
+    let potentialDist = club.baseDistance * (finalPower / 100) * (1 + (hingeTimeBack / 2000 * 0.15)) * currentStyle.distMod * lieMod * loftDistMod * chokeMod * powerFocusMod;
     let totalDistance = Math.round(potentialDist * dampening * Math.max(0.2, 1 - Math.pow(Math.abs(hingeDiff) / 400, 2)));
 
     let activeRollMod = currentStyle.rollMod;
+    if (focusIndex === 3) activeRollMod *= (1.0 - (0.5 * focusEffect)); // Positive halves roll, Negative adds 50% roll
     if (shotStyleIndex > 0 && isStartingInRough) {
         if (impactDiff < -25) { 
             backspinRPM = Math.round(backspinRPM * 0.4);
@@ -553,8 +587,19 @@ function calculateShot(autoMiss = false) {
     const userAimRad = aimAngle * (Math.PI / 180); 
     const finalRad = targetAngleRad + userAimRad; 
 
+    // v4.41.0 Natural Dispersion Circle (Base Scatter)
     const isPutt = club.name === "Putter";
-    const physicsX = isPutt ? 0 : (sideSpinRPM / 2400) * (club.maxDispersion * (typeof lieDispersionMod !== 'undefined' ? lieDispersionMod : 1) * pressureDispersion);
+    let scatterMult = 1.0;
+    if (focusIndex === 4) scatterMult = Math.max(0.0, 1.0 - (0.5 * focusEffect)); // Accuracy Focus cuts scatter
+
+    // Apply +/- 1.5% distance scatter
+    let distScatterMod = 1.0 + (((Math.random() * 0.03) - 0.015) * scatterMult);
+    if (!isPutt) totalDistance = Math.round(totalDistance * distScatterMod);
+
+    // Apply +/- 5% of maxDispersion lateral scatter
+    let naturalLatScatter = isPutt ? 0 : ((Math.random() * 0.1) - 0.05) * club.maxDispersion * scatterMult;
+
+    const physicsX = isPutt ? 0 : ((sideSpinRPM / 2400) * (club.maxDispersion * (typeof lieDispersionMod !== 'undefined' ? lieDispersionMod : 1) * pressureDispersion)) + naturalLatScatter;
     const lateralTotal = physicsX + windXEffect;
 
     const moveY = Math.cos(finalRad) * totalDistance - Math.sin(finalRad) * lateralTotal;
@@ -795,13 +840,9 @@ function calculateShot(autoMiss = false) {
         const finalRelX = ballX - pinX;
         const finalDistToPin = Math.sqrt(Math.pow(finalRelX, 2) + Math.pow(finalRelY, 2));
 
-        let absHinge = Math.abs(hingeDiff);
         let touchBonus = 1.0;
-        if (absHinge <= 50) {
-            touchBonus = 3.0; // Max Bonus
-        } else if (absHinge < 150) {
-            // Smoothly scale from 3.0 down to 1.0 over the 100ms gap
-            touchBonus = 3.0 - ((absHinge - 50) / 100) * 2.0;
+        if (focusIndex === 2) {
+            touchBonus = Math.max(0.5, 1.0 + (2.0 * focusEffect)); // Max 3.0x, Min 0.5x
         }
 
         let captureRadius = 0.15 * touchBonus;
@@ -925,7 +966,7 @@ function calculateShot(autoMiss = false) {
             const sideSpinShape = sideSpinRPM === 0 ? "Straight" : sideSpinRPM > 0 ? "Slice" : "Hook";
             // v3.82.0 Comprehensive Telemetry Capture
             const chokeStr = typeof isChokedDown !== 'undefined' && isChokedDown ? " (Choked 90%)" : "";
-            const setupMetrics = `Setup: ${club.name}${chokeStr} | Style: ${currentStyle.name} | Stance: ${stanceNames[stanceIndex]} / ${alignmentNames[stanceAlignment + 2]} | Aim: ${aimAngle}° | Wind: Y:${windY} X:${windX}`;
+            const setupMetrics = `Setup: ${club.name}${chokeStr} | Style: ${currentStyle.name} | Focus: ${focusModes[focusIndex].name} | Stance: ${stanceNames[stanceIndex]} / ${alignmentNames[stanceAlignment + 2]} | Aim: ${aimAngle}° | Wind: Y:${windY} X:${windX}`;
 
             let envMetrics = "";
             if (typeof synthTreeActive !== 'undefined' && synthTreeActive) {

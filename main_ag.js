@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.33.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.41.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -41,7 +41,38 @@ let synthTreeActive = false;
 let synthTreeX = 0;
 let synthTreeDist = 0;
 let synthTreeHeight = 0; // In feet
-let shotStyleIndex = 0, chippingRange = 'short', confirmingGreen = false, confirmingPutting = false;
+let shotStyleIndex = 0;
+
+// v4.41.0 Shot Focus States
+let focusIndex = 0;
+const focusModes = [
+    { name: "Standard", desc: "No special bonuses or penalties." },
+    { name: "Power", desc: "Perfect hinge adds a 10 percent distance overcharge. Poor hinge reduces distance by 10 percent." },
+    { name: "Touch", desc: "Perfect hinge expands the cup size. Poor hinge shrinks it." },
+    { name: "Spin", desc: "Perfect hinge adds massive backspin. Poor hinge removes backspin and adds roll." },
+    { name: "Accuracy", desc: "Perfect hinge expands sweet spot and cuts dispersion. Poor hinge shrinks sweet spot and multiplies dispersion." },
+    { name: "Recovery", desc: "Perfect hinge cuts lie penalties in half. Poor hinge doubles them." }
+];
+
+// Contextual Auto-Focus Logic
+window.autoSetFocus = function(silent = false) {
+    if (typeof isPutting !== 'undefined' && isPutting) { focusIndex = 2; return; }
+
+    let oldIndex = focusIndex;
+    let dist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 0;
+
+    if (currentLie === "Tee" && club.name === "Driver") focusIndex = 1; // Power
+    else if (club.name === "Putter" || club.name === "9 Iron" || club.name.includes("Wedge")) focusIndex = 2; // Touch
+    else if (dist <= 150 && club.name !== "Driver" && club.name !== "3 Wood") focusIndex = 4; // Accuracy
+    else if (currentLie === "Sand" || currentLie.includes("Rough")) focusIndex = 5; // Recovery
+    else focusIndex = 0; // Standard
+
+    if (!silent && oldIndex !== focusIndex && typeof window.announce === 'function') {
+        window.announce(`Auto-equipped ${focusModes[focusIndex].name} Focus.`);
+    }
+};
+
+let chippingRange = 'short', confirmingGreen = false, confirmingPutting = false;
 let caddyLevel = 3; // 1: Rookie, 2: Veteran, 3: Tour Pro
 let currentClubIndex = 0;
 // v4.31.5 Knock-Off Ball Brands
@@ -116,6 +147,7 @@ function loadHole(holeNumber) {
     if (currentClubIndex === -1) currentClubIndex = 0;
     club = clubs[currentClubIndex];
     shotStyleIndex = 0;
+    window.autoSetFocus(true);
     window.updateDashboard();
 
     // v4.29.0 Ambient Wind on Tee
@@ -401,7 +433,8 @@ window.updateDashboard = function() {
     
     // 4. Setup Info
     let aimStr = aimAngle === 0 ? "Center" : `${Math.abs(aimAngle)}° ${aimAngle < 0 ? 'Left' : 'Right'}`;
-    document.getElementById('dash-setup').innerText = `Aim: ${aimStr}\n${stanceNames[stanceIndex]}`;
+    let focusName = typeof focusModes !== 'undefined' ? focusModes[focusIndex].name : 'Std';
+    document.getElementById('dash-setup').innerText = `Aim: ${aimStr}\n${stanceNames[stanceIndex]}\n[${focusName} Focus]`;
 };
 
 // v4.10.0 Scorecard System
