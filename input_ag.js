@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.30.3)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.31.3)
 
 window.addEventListener('keydown', (e) => {
     // v4.25.0 Keyboard Explore Mode
@@ -249,6 +249,22 @@ window.addEventListener('keydown', (e) => {
     }
 
     if (swingState === 0 || isHoleComplete) {
+        // v4.31.3 Ball Equipment Selection
+        if (e.code === 'KeyY' && e.shiftKey) {
+            e.preventDefault();
+            activeBallIndex = (activeBallIndex + 1) % ballTypes.length;
+            let ball = ballTypes[activeBallIndex];
+            let msg = `Equipped Ball ${ball.name}`;
+            window.announce(msg);
+            document.getElementById('visual-output').innerText = msg;
+            
+            // Play a quick 0.6s preview of the ball's texture
+            if (typeof window.trigger3DFlight === 'function') {
+                window.trigger3DFlight(0.6, 25, 0, 0, ball);
+            }
+            return;
+        }
+
         // v4.13.0 Context-Sensitive Quit Trigger
         if (e.code === 'KeyQ') {
             e.preventDefault();

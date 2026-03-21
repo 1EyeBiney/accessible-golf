@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.30.1)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.31.4)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -728,6 +728,13 @@ function calculateShot(autoMiss = false) {
     document.getElementById('visual-output').innerText = "Ball is in the air...";
     playNoise(hangTimeSecs + 0.3, 0.3, false);
 
+    // v4.31.3 Live 3D Audio Flight Injection
+    // Calculate final lateral drift (35 yards offline = 100% hard pan into one ear)
+    let endPan = Math.max(-1, Math.min(1, lateralTotal / 35)); 
+    if (typeof window.trigger3DFlight === 'function') {
+        window.trigger3DFlight(hangTimeSecs, dynamicLoft, 0.0, endPan, ballTypes[activeBallIndex]);
+    }
+
     // v4.19.4 Track flight timeout
     stateTimeouts.push(setTimeout(() => {
         try {
@@ -736,7 +743,8 @@ function calculateShot(autoMiss = false) {
         const bounceCount = Math.max(1, baseBounceCount - loftPenalty);
         const bounceDurationMs = 0.12 * 1000;
         const bounceOffsets = [];
-        let bounceGapMs = Math.min(800, 350 + (rollDistance * 3));
+        // v4.31.3 Stretched Max Bounce Gap to 600ms
+        let bounceGapMs = Math.min(600, 250 + (rollDistance * 4));
         let bounceElapsedMs = 0, bounceSequenceMs = 0;
 
         for (let bounceIndex = 0; bounceIndex < bounceCount; bounceIndex++) {
@@ -762,14 +770,22 @@ function calculateShot(autoMiss = false) {
             bounceOffsets.forEach((bounceOffsetMs, bounceIndex) => {
                 stateTimeouts.push(setTimeout(() => {
                     const bounceVolume = Math.max(0.12, 1.0 * Math.pow(0.8, bounceIndex));
-                    playTone(180, 'sine', 0.12, bounceVolume);
+                    if (typeof window.playPannedTone === 'function') {
+                        window.playPannedTone(180, 'sine', 0.12, bounceVolume, endPan);
+                    } else {
+                        playTone(180, 'sine', 0.12, bounceVolume);
+                    }
                 }, bounceOffsetMs));
             });
 
             if (rollTimeSecs > 0 && currentLie !== "Sand") {
                 stateTimeouts.push(setTimeout(() => {
                     document.getElementById('visual-output').innerText = "Ball is bouncing and rolling...";
-                    playNoise(rollTimeSecs, 0.4, true); 
+                    if (typeof window.playPannedNoise === 'function') {
+                        window.playPannedNoise(rollTimeSecs, 0.4, true, endPan);
+                    } else {
+                        playNoise(rollTimeSecs, 0.4, true);
+                    }
                 }, bounceSequenceMs));
             }
         }

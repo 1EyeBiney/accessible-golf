@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.30.3)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.31.4)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -43,6 +43,16 @@ let synthTreeHeight = 0; // In feet
 let shotStyleIndex = 0, chippingRange = 'short', confirmingGreen = false, confirmingPutting = false;
 let caddyLevel = 3; // 1: Rookie, 2: Veteran, 3: Tour Pro
 let currentClubIndex = 0;
+// v4.31.3 Ball Equipment
+let activeBallIndex = 0;
+const ballTypes = [
+    { name: "Type 1: Balanced Fade", flightWave: 'triangle', landWave: 'square', landFreq: 100 },
+    { name: "Type 2: Heavy Hook", flightWave: 'sawtooth', landWave: 'sine', landFreq: 80 },
+    { name: "Type 3: Piercer", flightWave: 'sine', landWave: 'triangle', landFreq: 150 },
+    { name: "Type 4: Floaty Soft", flightWave: 'triangle', landWave: 'sine', landFreq: 120 },
+    { name: "Type 5: Biting Spin", flightWave: 'triangle', landWave: 'square', landFreq: 250 },
+    { name: "Type 6: Heavy Knuckle", flightWave: 'square', landWave: 'square', landFreq: 60 }
+];
 let club = clubs[currentClubIndex]; // Pulls from data_ag.js
 let lastShotReport = "No caddy report available yet.";
 let holeTelemetry = [];
@@ -964,4 +974,125 @@ window.drawMeter = function() {
             ctx.fillText(`IMPACT LOCKED: ${Math.abs(diff)}ms ${diff < 0 ? 'Early' : diff > 0 ? 'Late' : 'Perfect'}`, 15, 30);
         }
     }
+};
+
+// --- 3D FLIGHT AUDIO ENGINE INTEGRATION ---
+
+window.playFlightBlip = function(pitch, panValue, speedModifier, waveType = 'triangle') {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const panner = audioCtx.createStereoPanner();
+    const gain = audioCtx.createGain();
+
+    osc.frequency.value = pitch;
+    osc.type = waveType; 
+
+    panner.pan.value = Math.max(-1, Math.min(1, panValue));
+
+    let boost = typeof CONTINUOUS_GAIN_BOOST !== 'undefined' ? CONTINUOUS_GAIN_BOOST : 1.0;
+    gain.gain.setValueAtTime(0.0, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.3 * boost, audioCtx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+
+    osc.connect(panner); panner.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+};
+
+window.playPannedThud = function(panValue, waveType = 'square', baseFreq = 100) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const panner = audioCtx.createStereoPanner();
+    const gain = audioCtx.createGain();
+
+    osc.frequency.value = baseFreq;
+    osc.type = waveType;
+    panner.pan.value = Math.max(-1, Math.min(1, panValue));
+
+    let boost = typeof CONTINUOUS_GAIN_BOOST !== 'undefined' ? CONTINUOUS_GAIN_BOOST : 1.0;
+    gain.gain.setValueAtTime(0.6 * boost, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+
+    osc.connect(panner); panner.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+};
+
+window.playPannedTone = function(freq, type, duration, vol, panValue) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const panner = audioCtx.createStereoPanner();
+    const gain = audioCtx.createGain();
+
+    osc.frequency.value = freq;
+    osc.type = type;
+    panner.pan.value = Math.max(-1, Math.min(1, panValue));
+
+    let boost = typeof CONTINUOUS_GAIN_BOOST !== 'undefined' ? CONTINUOUS_GAIN_BOOST : 1.0;
+    let finalVol = Math.min(2.0, vol * 2.5 * boost); // Match engine scaling
+    gain.gain.setValueAtTime(finalVol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+    osc.connect(panner); panner.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + duration);
+};
+
+window.playPannedNoise = function(duration, vol, isBrown, panValue) {
+    if (!audioCtx) return;
+    const bufferSize = audioCtx.sampleRate * duration;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let lastOut = 0;
+    for (let i = 0; i < bufferSize; i++) {
+        let white = Math.random() * 2 - 1;
+        if (isBrown) {
+            lastOut = (lastOut + (0.02 * white)) / 1.02;
+            data[i] = lastOut * 3.5;
+        } else {
+            data[i] = white;
+        }
+    }
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    const panner = audioCtx.createStereoPanner();
+    const gain = audioCtx.createGain();
+    
+    panner.pan.value = Math.max(-1, Math.min(1, panValue));
+
+    let boost = typeof CONTINUOUS_GAIN_BOOST !== 'undefined' ? CONTINUOUS_GAIN_BOOST : 1.0;
+    let finalVol = Math.min(2.0, vol * 2.5 * boost);
+    gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(finalVol, audioCtx.currentTime + 0.1);
+    gain.gain.setValueAtTime(finalVol, audioCtx.currentTime + Math.max(0.1, duration - 0.3));
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+    noise.connect(panner); panner.connect(gain); gain.connect(audioCtx.destination);
+    noise.start();
+};
+
+window.trigger3DFlight = function(hangTimeSecs, dynamicLoft, startPan, endPan, ballType) {
+    let startTime = performance.now();
+    let basePitch = 150;
+    // Map loft directly to the apex frequency (e.g., 10 deg = ~400Hz, 50 deg = ~1150Hz)
+    let maxPitch = 200 + (dynamicLoft * 19); 
+    
+    function flightLoop() {
+        let elapsed = performance.now() - startTime;
+        let progress = Math.min(1.0, elapsed / (hangTimeSecs * 1000));
+
+        if (progress >= 1.0) {
+            window.playPannedThud(endPan, ballType.landWave, ballType.landFreq);
+            return;
+        }
+
+        let speedDelay = 30 + (Math.sin(progress * Math.PI) * 90); 
+        if (progress > 0.8) speedDelay -= 20; 
+
+        let heightPct = 1 - Math.pow((progress - 0.5) * 2, 2);
+        let currentPitch = basePitch + (heightPct * (maxPitch - basePitch));
+        
+        let currentPan = startPan + (progress * (endPan - startPan));
+
+        window.playFlightBlip(currentPitch, currentPan, speedDelay, ballType.flightWave);
+        setTimeout(flightLoop, speedDelay);
+    }
+    flightLoop();
 };
