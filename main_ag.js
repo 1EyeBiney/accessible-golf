@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.31.4)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.31.7)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -43,15 +43,15 @@ let synthTreeHeight = 0; // In feet
 let shotStyleIndex = 0, chippingRange = 'short', confirmingGreen = false, confirmingPutting = false;
 let caddyLevel = 3; // 1: Rookie, 2: Veteran, 3: Tour Pro
 let currentClubIndex = 0;
-// v4.31.3 Ball Equipment
+// v4.31.5 Knock-Off Ball Brands
 let activeBallIndex = 0;
 const ballTypes = [
-    { name: "Type 1: Balanced Fade", flightWave: 'triangle', landWave: 'square', landFreq: 100 },
-    { name: "Type 2: Heavy Hook", flightWave: 'sawtooth', landWave: 'sine', landFreq: 80 },
-    { name: "Type 3: Piercer", flightWave: 'sine', landWave: 'triangle', landFreq: 150 },
-    { name: "Type 4: Floaty Soft", flightWave: 'triangle', landWave: 'sine', landFreq: 120 },
-    { name: "Type 5: Biting Spin", flightWave: 'triangle', landWave: 'square', landFreq: 250 },
-    { name: "Type 6: Heavy Knuckle", flightWave: 'square', landWave: 'square', landFreq: 60 }
+    { name: "Title-ish", flightWave: 'triangle', landWave: 'square', landFreq: 100 },
+    { name: "Rock-Flite", flightWave: 'sawtooth', landWave: 'sine', landFreq: 80 },
+    { name: "Semi-Pro V1", flightWave: 'sine', landWave: 'triangle', landFreq: 150 },
+    { name: "Marshmallow X", flightWave: 'triangle', landWave: 'sine', landFreq: 120 },
+    { name: "Velcro Tour", flightWave: 'triangle', landWave: 'square', landFreq: 250 },
+    { name: "The Water Magnet", flightWave: 'square', landWave: 'square', landFreq: 60 }
 ];
 let club = clubs[currentClubIndex]; // Pulls from data_ag.js
 let lastShotReport = "No caddy report available yet.";
@@ -1040,32 +1040,70 @@ window.playPannedNoise = function(duration, vol, isBrown, panValue) {
     const bufferSize = audioCtx.sampleRate * duration;
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
     const data = buffer.getChannelData(0);
-    let lastOut = 0;
+    
+    // Generate raw white noise
     for (let i = 0; i < bufferSize; i++) {
-        let white = Math.random() * 2 - 1;
-        if (isBrown) {
-            lastOut = (lastOut + (0.02 * white)) / 1.02;
-            data[i] = lastOut * 3.5;
-        } else {
-            data[i] = white;
-        }
+        data[i] = Math.random() * 2 - 1; 
     }
+    
     const noise = audioCtx.createBufferSource();
     noise.buffer = buffer;
-    const panner = audioCtx.createStereoPanner();
-    const gain = audioCtx.createGain();
     
+    // v4.31.6 Native Biquad Filter to remove harsh clipping
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    // Muffle heavily for grass roll (Brown), keep it airy for flight wind
+    filter.frequency.value = isBrown ? 350 : 1200; 
+
+    const panner = audioCtx.createStereoPanner();
     panner.pan.value = Math.max(-1, Math.min(1, panValue));
 
+    const gain = audioCtx.createGain();
     let boost = typeof CONTINUOUS_GAIN_BOOST !== 'undefined' ? CONTINUOUS_GAIN_BOOST : 1.0;
-    let finalVol = Math.min(2.0, vol * 2.5 * boost);
+    // Lower the overall noise multiplier so it acts as a bed, not a spike
+    let finalVol = Math.min(1.0, vol * boost); 
+    
     gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(finalVol, audioCtx.currentTime + 0.1);
     gain.gain.setValueAtTime(finalVol, audioCtx.currentTime + Math.max(0.1, duration - 0.3));
     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
 
-    noise.connect(panner); panner.connect(gain); gain.connect(audioCtx.destination);
+    // Chain: Noise -> Filter -> Panner -> Gain -> Speakers
+    noise.connect(filter);
+    filter.connect(panner); 
+    panner.connect(gain); 
+    gain.connect(audioCtx.destination);
+    
     noise.start();
+};
+
+window.playPannedGreenRoll = function(rollTimeSecs, panValue) {
+    if (!audioCtx || rollTimeSecs <= 0) return;
+    let startTime = performance.now();
+    let durationMs = rollTimeSecs * 1000;
+    
+    function rollLoop() {
+        let elapsed = performance.now() - startTime;
+        if (elapsed >= durationMs) return;
+
+        let progress = elapsed / durationMs;
+        // Simulate speed dropping from 5.0 (fast) down to 0.5 (slow)
+        let simulatedSpeed = 5.0 * (1 - progress) + 0.5;
+        
+        if (typeof window.playRollingBlip === 'function') {
+            window.playRollingBlip(simulatedSpeed, panValue);
+        }
+
+        // Delay scales inversely with speed (matches the putting engine)
+        let delayMs = Math.max(100, 800 / Math.max(0.5, simulatedSpeed));
+        
+        if (typeof stateTimeouts !== 'undefined') {
+            stateTimeouts.push(setTimeout(rollLoop, delayMs));
+        } else {
+            setTimeout(rollLoop, delayMs);
+        }
+    }
+    rollLoop();
 };
 
 window.trigger3DFlight = function(hangTimeSecs, dynamicLoft, startPan, endPan, ballType) {
