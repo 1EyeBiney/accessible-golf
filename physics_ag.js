@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.39.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.40.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -199,7 +199,8 @@ function calculateShot(autoMiss = false) {
         let powerOvercharge = finalPower > 100 ? finalPower - 100 : 0;
 
         let distToPin = calculateDistanceToPin();
-        let broadcast = `Putt: ${finalPower}% Power. Target was ${puttTargetDist}y.`;
+        let displayTargetYds = Number.isInteger(puttTargetDist) ? puttTargetDist : puttTargetDist.toFixed(1);
+        let broadcast = `Putt: ${finalPower}% Power. Target was ${displayTargetYds}y.`;
 
         // v4.4.0 Gravity Engine (Step Simulation)
         let activeContours = [];
@@ -218,6 +219,8 @@ function calculateShot(autoMiss = false) {
 
         // v4.7.2 Find the actual angle to the pin!
         let baseHeading = Math.atan2(pinX - ballX, pinY - ballY);
+        let puttStartX = ballX;
+        let puttStartY = ballY;
 
         let distTraveled = 0;
         let simX = ballX, simY = ballY;
@@ -267,8 +270,16 @@ function calculateShot(autoMiss = false) {
 
             let step = playbackArray[stepIndex];
             
-            // Hyper-Pan: 3 yards left or right forces audio 100% into that ear
-            let panValue = (step.x - pinX) / 3.0; 
+            // v4.40.0 Perspective Audio Panning (Line of Sight Math)
+            let dx = step.x - puttStartX;
+            let dy = step.y - puttStartY;
+            let distFromStart = Math.sqrt(dx * dx + dy * dy);
+            let angleFromStart = Math.atan2(dx, dy);
+            let devAngle = angleFromStart - baseHeading;
+
+            // Calculate lateral distance left/right of the center aim line
+            let lateralDist = Math.sin(devAngle) * distFromStart;
+            let panValue = lateralDist / 2.0; // 2 yards of break = 100% hard pan into one ear
             if (window.playRollingBlip) window.playRollingBlip(step.speed, panValue);
 
             // v4.6.1 Dynamic Metronome: High speed = 100ms delay. Low speed stretches up to 1600ms.
@@ -362,7 +373,7 @@ function calculateShot(autoMiss = false) {
                     let vertStr = ballY < pinY ? "short" : "long";
                     resultMsg = `Missed a ${formattedDist} putt. Settled ${vertStr} and ${latStr}.`;
                 }
-                broadcast = `Putt: ${finalPower}% Power. ${resultMsg}`; // Override broadcast so it doesn't say "Target was 5y"
+                broadcast = `Putt: ${finalPower}% Power. ${resultMsg}`; // Override broadcast so it doesn't say "Target was ${displayTargetYds}y"
                 broadcast += ` ${calculateDistanceToPin()} yards left.`;
             }
 
@@ -1215,8 +1226,9 @@ window.getCaddyAdvice = function() {
         let bestAim = null;
         let bestPace = null;
 
-        // Oracle assumes perfect touch (Tempo Bonus = 2.5) for its baseline
-        let tempoBonus = 2.5;
+        // v4.40.0 Oracle Arrogance Fix
+        // Oracle assumes standard hole size (Tempo Bonus = 1.0) to force exact aim reads
+        let tempoBonus = 1.0;
         let baseHoleRadius = 0.15;
         let activeHoleRadius = ((distToPin <= 2.0) ? (baseHoleRadius * 3.0) : baseHoleRadius) * tempoBonus;
         let slopeDampener = (distToPin <= 3.0) ? 0.1 : (distToPin <= 6.0) ? 0.35 : 1.0;
