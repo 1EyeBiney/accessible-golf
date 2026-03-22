@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.43.1)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.45.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -416,18 +416,8 @@ function calculateShot(autoMiss = false) {
                     puttTargetDist = Math.round(calculateDistanceToPin());
                     window.announce(`${broadcast} Resetting ball to ${puttTargetDist} yards. Targeting Mode active. Press T for a new target.`);
                     window.updateDashboard();
-                } else if (isHoleComplete) {
-                    let totalRel = 0; roundData.forEach(r => totalRel += (r.strokes - r.par));
-                    let relStr = totalRel === 0 ? "Even Par" : totalRel > 0 ? `+${totalRel}` : `${totalRel}`;
-                    let compMsg = `Hole complete in ${strokes} strokes. You are ${relStr}. Press Enter to proceed to the next hole, or Shift + E for your scorecard.`;
-                    window.announce(compMsg);
-                    window.setCaddyPanelText(compMsg);
-                    swingState = 6;
-                } else {
-                    swingState = 0; puttState = 0; aimAngle = 0;
-                    puttTargetDist = Math.round(calculateDistanceToPin());
-                    window.announce(`${puttTargetDist} yards left. Targeting Mode active.`);
-                    window.updateDashboard();
+                } else if (gameMode === 'course') {
+                    window.advanceTurn();
                 }
                 if (typeof window.saveGame === 'function') window.saveGame();
             }, 3000));
@@ -1093,16 +1083,7 @@ function calculateShot(autoMiss = false) {
                     holeTelemetry.push(lastShotReport);
                     window.setCaddyPanelText(lastShotReport);
 
-                    // v4.30.0 Post-Round Transition
-                    if (hole >= courses[currentCourseIndex].holes.length) {
-                        gameMode = 'post_round';
-                        stateTimeouts.push(setTimeout(() => {
-                            viewingScorecard = true; window.showScorecard();
-                            window.announce("Round Complete! Full Scorecard open. Press Shift + N to copy your Round Summary to the clipboard, or Escape to return to the Clubhouse.");
-                        }, 4000));
-                    } else {
-                        swingState = 6;
-                    }
+                    window.advanceTurn();
                 } else {
                     if (gameMode === 'range') {
                         let finalProximity = distanceToPin;
@@ -1135,17 +1116,18 @@ function calculateShot(autoMiss = false) {
                             holeTelemetry.push(lastShotReport);
                             window.setCaddyPanelText(lastShotReport);
 
-                            // v4.8.0 Green Transition & Victory Arpeggio
                             if (gameMode === 'course' && currentLie === "Green") {
                                 playTone(440, 'sine', 0.1, 0.5);
                                 stateTimeouts.push(setTimeout(() => playTone(554, 'sine', 0.1, 0.5), 150));
                                 stateTimeouts.push(setTimeout(() => playTone(659, 'sine', 0.2, 0.5), 300));
-                                // Track transition delay
-                                stateTimeouts.push(setTimeout(() => { window.initPutting(); }, 3500)); // Wait for Caddy to finish reading approach shot
+                                stateTimeouts.push(setTimeout(() => {
+                                    window.initPutting();
+                                    window.advanceTurn(true);
+                                }, 3500));
                             } else {
                                 if (gameMode === 'course') window.updateTargetZone();
                                 driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
-                                window.updateDashboard();
+                                window.advanceTurn();
                             }
                         }, typeof isPutting !== 'undefined' && isPutting && club.name === "Putter" && strokes > 1 ? 1500 : 0));
 

@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.44.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.45.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -88,6 +88,72 @@ window.initPlayers = function() {
         });
     }
     currentPlayerIndex = 0;
+};
+
+window.resetRosterForHole = function() {
+    if (players.length === 0) window.initPlayers();
+    for (let i = 0; i < players.length; i++) {
+        players[i].strokes = 0;
+        players[i].puttsThisHole = 0;
+        players[i].ballX = 0;
+        players[i].ballY = 0;
+        players[i].currentLie = "Tee";
+        players[i].isHoleComplete = false;
+        players[i].isPutting = false;
+    }
+    currentPlayerIndex = 0; // Default to Player 1 honors for now
+};
+
+window.advanceTurn = function(isPuttingTransition = false) {
+    if (gameMode !== 'course') return;
+    window.saveActivePlayer();
+
+    let allDone = players.every(p => p.isHoleComplete);
+    if (allDone) {
+        let compMsg = `All players have finished Hole ${hole}. Press Enter to proceed to the next hole.`;
+        if (hole >= courses[currentCourseIndex].holes.length) {
+            gameMode = 'post_round';
+            compMsg = "Round Complete! All players have finished. Press Shift + N to copy summaries, or Escape to return to the Clubhouse.";
+        }
+        window.announce(compMsg);
+        window.setCaddyPanelText(compMsg);
+        swingState = 6;
+        return;
+    }
+
+    let furthestDist = -1;
+    let nextIndex = currentPlayerIndex;
+
+    // Find Away Player
+    for (let i = 0; i < players.length; i++) {
+        let p = players[i];
+        if (!p.isHoleComplete) {
+            let dist = Math.sqrt(Math.pow(pinX - p.ballX, 2) + Math.pow(pinY - p.ballY, 2));
+            // +0.1 prevents constant swapping on ties (e.g., the Tee Box)
+            if (dist > furthestDist + 0.1) {
+                furthestDist = dist;
+                nextIndex = i;
+            }
+        }
+    }
+
+    let oldIndex = currentPlayerIndex;
+    window.loadActivePlayer(nextIndex);
+    let pName = players[currentPlayerIndex].name;
+
+    let distMsg = `${Math.round(calculateDistanceToPin())} yards to pin. Lie: ${currentLie}.`;
+    if (isPutting) distMsg = `On the Green. ${puttTargetDist} yards to the cup.`;
+
+    if (nextIndex !== oldIndex || isPuttingTransition) {
+        let msg = `Swapped to ${pName}. ${distMsg}`;
+        window.announce(msg);
+        document.getElementById('visual-output').innerText = msg;
+        if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_07');
+    } else {
+        window.announce(`Still ${pName}'s turn. ${distMsg}`);
+    }
+
+    window.updateDashboard();
 };
 
 window.saveActivePlayer = function() {
@@ -226,8 +292,8 @@ function loadHole(holeNumber) {
     puttState = 0;
     isChokedDown = false;
 
-    // v4.44.0 Initialize the Roster for the new hole
-    window.initPlayers();
+    // v4.45.0 Reset roster state for the new hole
+    window.resetRosterForHole();
     window.loadActivePlayer(0);
 
     // v4.14.1 Reset targeting modes so they don't bleed into the next hole

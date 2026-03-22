@@ -221,20 +221,7 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Oracle Arrogance Fix:** The Putting Oracle forces `tempoBonus = 1.0` during its simulations, ensuring it provides exact micro-degrees of aim for a standard 5.4-inch cup rather than assuming the player will activate Touch Magnetism.
 
 ### 45. v4.41 Engine Addendum (Contextual Shot Focus & Natural Dispersion)
-- **Shot Focus Modes (Key J):** Players can equip 6 Focus modes (Standard, Power, Touch, Spin, Accuracy, Recovery). The engine auto-equips modes based on context (e.g., Driver = Power, Sand = Recovery). 
-- **Risk/Reward Hinge Scaling:** The Spacebar Hinge determines the `focusEffect`. `<50ms` yields 100% of the bonus. `50-150ms` bleeds down to standard physics. `150-250ms+` flips the bonus into a severe penalty.
-- **Natural Dispersion Circle:** Perfectly timed fairway shots inherently suffer a base scatter of +/- 1.5% distance and +/- 5% lateral drift based on the club's `maxDispersion`. Accuracy Focus cuts this scatter in half.
-
-### 46. v4.42 Engine Addendum (Global Difficulty Scaling)
-- **Difficulty Tiers (Key I):** Added 4 tiers (Casual, Amateur, Pro, Tour) that dynamically scale the engine's strictness.
-- **The Reflex Buffer:** Rebuilt the `powerOvercharge` penalty system. Lower difficulties safely absorb human auditory reaction times, allowing players to overswing up to 108% (Amateur) or 112% (Casual) without triggering pressure penalties.
-- **Dynamic Sweet Spots:** The Impact Window (Phase 4) and Hinge Window (Phase 1 & 3) dynamically expand up to 2.0x (Casual) or shrink down to 0.6x (Tour). Dispersion from hooks/slices is mathematically dampened on lower difficulties.
-### 44. v4.40 Engine Addendum (Perspective Audio & Oracle Polish)
-- **Line-of-Sight Audio Panning:** The putting audio engine (`panValue`) calculates lateral deviation relative to the player's aim vector, ensuring breaking putts accurately pan left or right of the player's center view, rather than relying on absolute world coordinates.
-- **Oracle Arrogance Fix:** The Putting Oracle forces `tempoBonus = 1.0` during its simulations, ensuring it provides exact micro-degrees of aim for a standard 5.4-inch cup rather than assuming the player will activate Touch Magnetism.
-
-### 45. v4.41 Engine Addendum (Contextual Shot Focus & Natural Dispersion)
-- **Shot Focus Modes (Key J):** Players can equip 6 Focus modes (Standard, Power, Touch, Spin, Accuracy, Recovery). The engine auto-equips modes based on context (e.g., Driver = Power, Sand = Recovery). 
+- **Shot Focus Modes (Key J):** Players can equip 6 Focus modes (Standard, Power, Touch, Spin, Accuracy, Recovery). The engine auto-equips modes based on context.
 - **Risk/Reward Hinge Scaling:** The Spacebar Hinge determines the `focusEffect`. `<50ms` yields 100% of the bonus. `50-150ms` bleeds down to standard physics. `150-250ms+` flips the bonus into a severe penalty.
 - **Natural Dispersion Circle:** Perfectly timed fairway shots inherently suffer a base scatter of +/- 1.5% distance and +/- 5% lateral drift based on the club's `maxDispersion`. Accuracy Focus cuts this scatter in half.
 
@@ -245,25 +232,9 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 
 ### 47. v4.43 Engine Addendum (Dynamic Timing Diagnostics)
 - **The Quick Check (Shift + Semicolon):** The engine maintains a secondary `lastTimingReport` variable isolated from the main Caddy broadcast.
-- **Backspin Delta Math:** The engine calculates a "sterile baseline" backspin for every shot based on the active club, stance, and style. The Diagnostic Report compares the player's actual generated RPM against this baseline to clearly demonstrate how their swing timing (or Spin Focus) mathematically altered the ball's stopping power.
-### 44. v4.40 Engine Addendum (Perspective Audio & Oracle Polish)
-- **Line-of-Sight Audio Panning:** The putting audio engine (`panValue`) calculates lateral deviation relative to the player's aim vector, ensuring breaking putts accurately pan left or right of the player's center view, rather than relying on absolute world coordinates.
-- **Oracle Arrogance Fix:** The Putting Oracle forces `tempoBonus = 1.0` during its simulations, ensuring it provides exact micro-degrees of aim for a standard 5.4-inch cup rather than assuming the player will activate Touch Magnetism.
+- **Backspin Delta Math:** Calculates a "sterile baseline" backspin for every shot. The Diagnostic Report compares actual generated RPM against this baseline to demonstrate how swing timing mathematically altered stopping power.
 
-### 45. v4.41 Engine Addendum (Contextual Shot Focus & Natural Dispersion)
-- **Shot Focus Modes (Key J):** Players can equip 6 Focus modes (Standard, Power, Touch, Spin, Accuracy, Recovery). The engine auto-equips modes based on context (e.g., Driver = Power, Sand = Recovery). 
-- **Risk/Reward Hinge Scaling:** The Spacebar Hinge determines the `focusEffect`. `<50ms` yields 100% of the bonus. `50-150ms` bleeds down to standard physics. `150-250ms+` flips the bonus into a severe penalty.
-- **Natural Dispersion Circle:** Perfectly timed fairway shots inherently suffer a base scatter of +/- 1.5% distance and +/- 5% lateral drift based on the club's `maxDispersion`. Accuracy Focus cuts this scatter in half.
-
-### 46. v4.42 Engine Addendum (Global Difficulty Scaling)
-- **Difficulty Tiers (Key I):** Added 4 tiers (Casual, Amateur, Pro, Tour) that dynamically scale the engine's strictness.
-- **The Reflex Buffer:** Rebuilt the `powerOvercharge` penalty system. Lower difficulties safely absorb human auditory reaction times, allowing players to overswing up to 108% (Amateur) or 112% (Casual) without triggering pressure penalties.
-- **Dynamic Sweet Spots:** The Impact Window (Phase 4) and Hinge Window (Phase 1 & 3) dynamically expand up to 2.0x (Casual) or shrink down to 0.6x (Tour). Dispersion from hooks/slices is mathematically dampened on lower difficulties.
-
-### 47. v4.43 Engine Addendum (Dynamic Timing Diagnostics)
-- **The Quick Check (Shift + Semicolon):** The engine maintains a secondary `lastTimingReport` variable isolated from the main Caddy broadcast.
-- **Backspin Delta Math:** The engine calculates a "sterile baseline" backspin for every shot based on the active club, stance, and style. The Diagnostic Report compares the player's actual generated RPM against this baseline to clearly demonstrate how their swing timing (or Spin Focus) mathematically altered the ball's stopping power.
-
-### 48. v4.44 Engine Addendum (Multiplayer Infrastructure)
-- **State Roster:** Converted global single-player sandbox into a `players` array. The engine tracks `ballX`, `ballY`, `strokes`, `aimAngle`, `stanceIndex`, and `focusIndex` independently for up to 4 players.
-- **Hot-Seat Swapping (Key M):** Manually cycles `currentPlayerIndex`, saving the active player's state and instantly loading the next player's coordinates and setup.
+### 48. v4.44 - v4.45 Engine Addendum (Multiplayer & Turn Manager)
+- **State Roster:** Converted global single-player sandbox into a `players` array. The engine tracks states independently for up to 4 players.
+- **Automated Turn Manager:** `window.advanceTurn()` enforces standard golf etiquette. After every shot, the engine calculates the absolute distance to the pin for all incomplete players and automatically swaps control to the "Away Player".
+- **Hot-Seat Swapping (Key M):** Manually cycles `currentPlayerIndex` to override the Turn Manager for playtesting.
