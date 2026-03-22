@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.43.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.44.0)
 
 window.addEventListener('keydown', (e) => {
     // v4.25.0 Keyboard Explore Mode
@@ -338,6 +338,29 @@ window.addEventListener('keydown', (e) => {
             window.announce(msg);
             document.getElementById('visual-output').innerText = msg;
             window.updateDashboard();
+            return;
+        }
+
+        // v4.44.0 Manual Player Swap (Hot Seat Testing)
+        if (e.code === 'KeyM') {
+            e.preventDefault();
+            if (gameMode !== 'course') {
+                window.announce("Multiplayer swap is only available on the course.");
+                return;
+            }
+
+            window.saveActivePlayer();
+            let nextIndex = (currentPlayerIndex + 1) % activePlayerCount;
+            window.loadActivePlayer(nextIndex);
+
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_07');
+
+            let pName = players[currentPlayerIndex].name;
+            let distMsg = players[currentPlayerIndex].isHoleComplete ? "Already in the hole." : `${Math.round(calculateDistanceToPin())} yards to pin. Lie: ${currentLie}.`;
+            let msg = `Swapped to ${pName}. ${distMsg} Holding ${club.name}.`;
+
+            window.announce(msg);
+            document.getElementById('visual-output').innerText = msg;
             return;
         }
 
@@ -1119,6 +1142,7 @@ window.getKeyDescription = function(code, shift) {
         'KeyZ': shift ? "Opens the Pin Finder grid." : "Cycles through tactical landing zones.",
         'KeyJ': shift ? "Cycles Shot Focus backward." : "Cycles Shot Focus forward.",
         'KeyI': shift ? "Cycles Difficulty backward." : "Cycles Difficulty forward.",
+        'KeyM': "Manually swaps control to the next player (Hot Seat).",
         'KeyX': "Announces the active club and expected 100 percent distance.",
         'KeyS': shift ? "Cycles swing styles backward." : "Cycles swing styles forward.",
         'KeyV': "Toggles choked down grip for increased control.",

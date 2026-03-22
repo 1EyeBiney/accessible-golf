@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.43.1)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.44.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -63,6 +63,80 @@ const difficultyLevels = [
     { name: "Tour", desc: "Tiny sweet spots. Penalties begin at 102 percent power. Slices are severe.", impactMod: 0.66, hingeMod: 0.6, reflexBuffer: 102, dispersionMod: 1.25 }
 ];
 
+// v4.44.0 Multiplayer Infrastructure
+let activePlayerCount = 2; // Default to 2 for Hot Seat playtesting
+let currentPlayerIndex = 0;
+let players = [];
+
+window.initPlayers = function() {
+    players = [];
+    for (let i = 0; i < activePlayerCount; i++) {
+        players.push({
+            name: `Player ${i + 1}`,
+            strokes: 0,
+            puttsThisHole: 0,
+            ballX: 0, ballY: 0,
+            currentLie: "Tee",
+            isHoleComplete: false,
+            isPutting: false,
+            puttTargetDist: 0,
+            aimAngle: 0,
+            stanceIndex: 2,
+            stanceAlignment: 0,
+            focusIndex: 0,
+            currentClubIndex: currentClubIndex // Players can hold different clubs
+        });
+    }
+    currentPlayerIndex = 0;
+};
+
+window.saveActivePlayer = function() {
+    if (players.length === 0) return;
+    let p = players[currentPlayerIndex];
+    p.strokes = strokes;
+    p.puttsThisHole = puttsThisHole;
+    p.ballX = ballX;
+    p.ballY = ballY;
+    p.currentLie = currentLie;
+    p.isHoleComplete = isHoleComplete;
+    p.isPutting = isPutting;
+    p.puttTargetDist = typeof puttTargetDist !== 'undefined' ? puttTargetDist : 0;
+    p.aimAngle = aimAngle;
+    p.stanceIndex = stanceIndex;
+    p.stanceAlignment = stanceAlignment;
+    p.focusIndex = focusIndex;
+    p.currentClubIndex = currentClubIndex;
+};
+
+window.loadActivePlayer = function(index) {
+    currentPlayerIndex = index;
+    let p = players[currentPlayerIndex];
+
+    strokes = p.strokes;
+    puttsThisHole = p.puttsThisHole;
+    ballX = p.ballX;
+    ballY = p.ballY;
+    currentLie = p.currentLie;
+    isHoleComplete = p.isHoleComplete;
+
+    // State Restoration
+    isPutting = p.isPutting;
+    if (typeof puttTargetDist !== 'undefined') puttTargetDist = p.puttTargetDist;
+    puttState = 0; // Always reset to targeting when swapping
+    swingState = isHoleComplete ? 6 : 0; // Lock out if they finished the hole
+
+    aimAngle = p.aimAngle;
+    stanceIndex = p.stanceIndex;
+    stanceAlignment = p.stanceAlignment;
+    focusIndex = p.focusIndex;
+
+    // Restore club
+    currentClubIndex = p.currentClubIndex;
+    if (typeof clubs !== 'undefined') club = clubs[currentClubIndex];
+
+    window.updateDashboard();
+};
+
 // Contextual Auto-Focus Logic
 window.autoSetFocus = function(silent = false) {
     if (typeof isPutting !== 'undefined' && isPutting) { focusIndex = 2; return; }
@@ -70,11 +144,21 @@ window.autoSetFocus = function(silent = false) {
     let oldIndex = focusIndex;
     let dist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 0;
 
-    if (currentLie === "Tee" && club.name === "Driver") focusIndex = 1; // Power
-    else if (club.name === "Putter" || club.name === "9 Iron" || club.name.includes("Wedge")) focusIndex = 2; // Touch
-    else if (dist <= 150 && club.name !== "Driver" && club.name !== "3 Wood") focusIndex = 4; // Accuracy
-    else if (currentLie === "Sand" || currentLie.includes("Rough")) focusIndex = 5; // Recovery
-    else focusIndex = 0; // Standard
+    // 1. Lie overrides everything. If you are in trouble, you need Recovery.
+    if (currentLie === "Sand" || currentLie.includes("Rough")) focusIndex = 5; 
+    
+    // 2. Power Focus (Tee and Fairway Bombs)
+    else if (currentLie === "Tee" && club.name === "Driver") focusIndex = 1; 
+    else if (currentLie === "Fairway" && club.name.includes("Wood")) focusIndex = 1;
+    
+    // 3. Touch Focus (Delicate short game < 50 yards)
+    else if (dist < 50 && (club.name === "Putter" || club.name === "9 Iron" || club.name.includes("Wedge"))) focusIndex = 2;
+    
+    // 4. Accuracy Focus (Approach shots <= 150 yards)
+    else if (dist <= 150 && club.name !== "Driver" && !club.name.includes("Wood")) focusIndex = 4;
+    
+    // 5. Baseline Standard
+    else focusIndex = 0; 
 
     if (!silent && oldIndex !== focusIndex && typeof window.announce === 'function') {
         window.announce(`Auto-equipped ${focusModes[focusIndex].name} Focus.`);
@@ -141,6 +225,10 @@ function loadHole(holeNumber) {
     isPutting = false;
     puttState = 0;
     isChokedDown = false;
+
+    // v4.44.0 Initialize the Roster for the new hole
+    window.initPlayers();
+    window.loadActivePlayer(0);
 
     // v4.14.1 Reset targeting modes so they don't bleed into the next hole
     activeTargetType = 'pin';
@@ -265,7 +353,8 @@ window.updateDashboard = function() {
     if (!document.getElementById('dashboard-panel')) return;
     
     // 1. Hole / Target Info
-    let holeStr = gameMode === 'course' ? `Hole ${hole} (Par ${par})\n${calculateDistanceToPin()}y to Pin` :
+    let pName = typeof players !== 'undefined' && players.length > 0 ? players[currentPlayerIndex].name + "\n" : "";
+    let holeStr = gameMode === 'course' ? `${pName}Hole ${hole} (Par ${par})\n${calculateDistanceToPin()}y to Pin` :
                   gameMode === 'range' ? `Driving Range\n${pinY}y Target` : `Chipping Green\n${calculateDistanceToPin()}y Target`;
     if ((gameMode === 'range' || (gameMode === 'chipping' && chippingRange === 'long')) && synthTreeActive) {
         let latStr = synthTreeX === 0 ? 'Center' : `${Math.abs(synthTreeX)}y ${synthTreeX > 0 ? 'R' : 'L'}`;
