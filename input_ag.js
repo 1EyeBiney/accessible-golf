@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.42.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.43.0)
 
 window.addEventListener('keydown', (e) => {
     // v4.25.0 Keyboard Explore Mode
@@ -456,6 +456,13 @@ window.addEventListener('keydown', (e) => {
                 if (e.code === 'Equal') { e.preventDefault(); synthTreeDist += 5; window.announce(`Synth Tree moved back to ${synthTreeDist} yards.`); window.updateDashboard(); return; }
                 if (e.code === 'Minus') { e.preventDefault(); synthTreeDist = Math.max(5, synthTreeDist - 5); window.announce(`Synth Tree moved closer to ${synthTreeDist} yards.`); window.updateDashboard(); return; }
             }
+        }
+        // v4.43.0 Dynamic Timing Diagnostics (Shift + ;)
+        if (e.code === 'Semicolon' && e.shiftKey) { 
+            e.preventDefault(); 
+            document.getElementById('visual-output').innerText = lastTimingReport; 
+            window.announce(lastTimingReport);
+            return;
         }
         if (e.code === 'KeyC') {
             e.preventDefault();
@@ -1122,6 +1129,7 @@ window.getKeyDescription = function(code, shift) {
         'KeyA': shift ? "Cycles the Caddy skill level." : "Asks the Caddy for strategic advice.",
         'KeyF': "Reads the fairway description.",
         'KeyH': "Opens the navigable Hazard and Tree list.",
+        'Semicolon': shift ? "Reads your quick timing and spin diagnostics." : "Unassigned key.",
         'KeyC': shift ? "Copies your telemetry to the clipboard." : "Repeats the last shot report.",
         'KeyB': "Reads the green elevation and break when putting.",
         'KeyU': "Takes an unplayable lie penalty and drops the ball in the fairway.",

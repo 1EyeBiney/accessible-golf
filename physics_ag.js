@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.42.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.43.1)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -399,6 +399,11 @@ function calculateShot(autoMiss = false) {
 
             let advancedTelemetry = `\n\n[Putting Diagnostics]\nTarget Cursor: ${targDistDisp} ${targUnit}, Aim: ${aimDisp}\nAuto-Read: ${autoGreenRead}\nOracle Says: ${autoOracle}\nExecution: Power ${finalPower}%, Impact ${impactDiff}ms, Touch (Hinge) ${hingeDiff}ms\nTouch Magnetism: ${tempoBonus.toFixed(2)}x Multiplier\nEffective Hole Radius: ${(activeHoleRadius * 36).toFixed(1)} inches (Base: ${(baseHoleRadius * 36).toFixed(1)}in)\nSlope Dampener: ${(slopeDampener * 100).toFixed(0)}% applied (100% = Full Break)\nAccuracy Score: ${Math.round(accuracyScore)}/100`;
 
+            // v4.43.0 Putting Timing Report
+            let hingeWord = hingeDiff < 0 ? 'early' : hingeDiff > 0 ? 'late' : 'perfect';
+            let impactWord = impactDiff < 0 ? 'early' : impactDiff > 0 ? 'late' : 'perfect';
+            lastTimingReport = `Putting Diagnostics. Power ${finalPower} percent. Touch tempo ${Math.abs(hingeDiff)}ms ${hingeWord}. Impact ${Math.abs(impactDiff)}ms ${impactWord}.`;
+
             lastShotReport = broadcast + advancedTelemetry;
             holeTelemetry.push(lastShotReport);
             window.announce(broadcast);
@@ -565,6 +570,17 @@ function calculateShot(autoMiss = false) {
     let sideSpinRPM = Math.round((impactDiff / 20) * 100 * spinPenalty * pressureDispersion * styleSideSpinMod * diffScale.dispersionMod) + (stanceAlignment * 800 * styleSideSpinMod);
     sideSpinRPM = Math.max(-4500, Math.min(4500, sideSpinRPM));
     
+    // v4.43.1 Dynamic Timing Diagnostics (Delta Math Restored)
+    let baselineBackspin = Math.max(400, Math.round((club.loft * 150) + 1000 + 700 + ((stanceIndex - 2) * 500) + currentStyle.spinMod));
+    let spinDelta = backspinRPM - baselineBackspin;
+    let deltaStr = spinDelta === 0 ? "matching baseline" : spinDelta > 0 ? `which is ${spinDelta} above baseline` : `which is ${Math.abs(spinDelta)} below baseline`;
+
+    let hingeWord = hingeDiff < 0 ? 'early' : hingeDiff > 0 ? 'late' : 'perfect';
+    let impactWord = impactDiff < 0 ? 'early' : impactDiff > 0 ? 'late' : 'perfect';
+    let sideSpinShape = sideSpinRPM === 0 ? "Straight" : sideSpinRPM > 0 ? "Slice" : "Hook";
+
+    lastTimingReport = `Timing Check. Power ${finalPower} percent. Hinge ${Math.abs(hingeDiff)}ms ${hingeWord}. Impact ${Math.abs(impactDiff)}ms ${impactWord}. Side Spin: ${Math.abs(sideSpinRPM)} RPM ${sideSpinShape}. Backspin: ${backspinRPM} RPM, ${deltaStr}.`;
+
     let chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
     let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
 

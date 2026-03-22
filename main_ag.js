@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.42.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.43.1)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -96,6 +96,7 @@ const ballTypes = [
 ];
 let club = clubs[currentClubIndex]; // Pulls from data_ag.js
 let lastShotReport = "No caddy report available yet.";
+let lastTimingReport = "No swing data available.";
 let holeTelemetry = [];
 
 function loadHole(holeNumber) {
@@ -760,6 +761,11 @@ window.evaluatePracticeSwing = function() {
     let msg = `[Practice] ${powerStr} ${hingeStr} ${impactStr}`;
     window.announce(msg);
     document.getElementById('visual-output').innerText = msg;
+    
+    // v4.43.1 Practice Swing Diagnostics
+    let hWord = hingeDiff < 0 ? 'early' : hingeDiff > 0 ? 'late' : 'perfect';
+    let iWord = impactDiff < 0 ? 'early' : impactDiff > 0 ? 'late' : 'perfect';
+    lastTimingReport = `Practice Swing. Power ${finalPower} percent. Hinge ${Math.abs(hingeDiff)}ms ${hWord}. Impact ${Math.abs(impactDiff)}ms ${iWord}.`;
 
     swingState = 0;
     isPracticeSwing = false;
