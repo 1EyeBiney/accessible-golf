@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.41.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.42.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -52,6 +52,15 @@ const focusModes = [
     { name: "Spin", desc: "Perfect hinge adds massive backspin. Poor hinge removes backspin and adds roll." },
     { name: "Accuracy", desc: "Perfect hinge expands sweet spot and cuts dispersion. Poor hinge shrinks sweet spot and multiplies dispersion." },
     { name: "Recovery", desc: "Perfect hinge cuts lie penalties in half. Poor hinge doubles them." }
+];
+
+// v4.42.0 Global Difficulty States
+let difficultyIndex = 2; // Default to Pro
+const difficultyLevels = [
+    { name: "Casual", desc: "Massive sweet spots. No penalty up to 112 percent power. Slices are cut in half.", impactMod: 2.0, hingeMod: 2.0, reflexBuffer: 112, dispersionMod: 0.5 },
+    { name: "Amateur", desc: "Larger sweet spots. No penalty up to 108 percent power. Slices are reduced.", impactMod: 1.5, hingeMod: 1.5, reflexBuffer: 108, dispersionMod: 0.75 },
+    { name: "Pro", desc: "Standard difficulty. Penalties begin at 105 percent power.", impactMod: 1.0, hingeMod: 1.0, reflexBuffer: 105, dispersionMod: 1.0 },
+    { name: "Tour", desc: "Tiny sweet spots. Penalties begin at 102 percent power. Slices are severe.", impactMod: 0.66, hingeMod: 0.6, reflexBuffer: 102, dispersionMod: 1.25 }
 ];
 
 // Contextual Auto-Focus Logic
@@ -200,151 +209,6 @@ window.updateTargetZone = function() {
     }
 };
 
-window.getCaddyAdvice = function() {
-    if (gameMode !== 'course') return "Oracle mode is available on the course only.";
-
-    if (typeof isPutting !== 'undefined' && isPutting) {
-        let distToPin = Math.round(calculateDistanceToPin());
-        const holeData = courses[currentCourseIndex].holes[hole - 1];
-        let activeContours = [];
-        if (holeData.greenType && typeof greenDictionary !== 'undefined') {
-            activeContours = greenDictionary[holeData.greenType] || [];
-        }
-
-        if (caddyLevel === 1) return `[Rookie]: ${distToPin} yards to the cup. It's on the green.`;
-        if (caddyLevel === 2) return `[Veteran]: ${distToPin} yards out. Read the slopes carefully.`;
-
-        // v4.25.0 Brute-Force Oracle Simulation
-        let bestAim = 0;
-        let bestPace = distToPin;
-        let minMiss = 9999;
-        let baseHeading = Math.atan2(pinX - ballX, pinY - ballY);
-
-        for (let testPace = distToPin; testPace <= distToPin + 30; testPace++) {
-            for (let testAim = -45; testAim <= 45; testAim++) {
-                let simX = ballX, simY = ballY;
-                let speedRemaining = testPace;
-                let currentHeading = baseHeading + (testAim * (Math.PI / 180));
-                let distTraveled = 0;
-                let madeIt = false;
-
-                while (speedRemaining > 0 && distTraveled < 100) {
-                    let stepDist = Math.min(1.0, speedRemaining);
-                    let currentDistToHole = Math.sqrt(Math.pow(pinX - simX, 2) + Math.pow(pinY - simY, 2));
-
-                    if (currentDistToHole <= 0.8) {
-                        if (speedRemaining <= 6.0) { madeIt = true; break; }
-                    }
-
-                    let zone = activeContours.find(z => currentDistToHole <= z.startY && currentDistToHole > z.endY);
-                    let sx = zone ? zone.slopeX : 0, sy = zone ? zone.slopeY : 0;
-
-                    currentHeading -= (sx * 0.05);
-                    simX += Math.sin(currentHeading) * stepDist;
-                    simY += Math.cos(currentHeading) * stepDist;
-                    distTraveled += stepDist;
-                    speedRemaining -= (1.0 + (sy * 0.15));
-                }
-
-                let missDist = Math.sqrt(Math.pow(pinX - simX, 2) + Math.pow(pinY - simY, 2));
-                if (madeIt) missDist = 0;
-
-                if (missDist < minMiss) {
-                    minMiss = missDist;
-                    bestAim = testAim;
-                    bestPace = testPace;
-                }
-                if (madeIt) break;
-            }
-            if (minMiss === 0) break;
-        }
-
-        // v4.29.0 Oracle Chime
-        if (typeof window.playGolfSound === 'function') window.playGolfSound('caddy_02');
-
-        let aimStr = bestAim === 0 ? "Dead Center" : `${Math.abs(bestAim)} degrees ${bestAim < 0 ? 'Left' : 'Right'}`;
-        return `[Oracle Putting]: ${distToPin} yards. To sink it, aim ${aimStr} and hit it with ${bestPace} yards of pace.`;
-    }
-
-    // --- v4.14.1 Fairway Oracle Below ---
-    const holeData = courses[currentCourseIndex].holes[hole - 1];
-    let targetPoint = { x: pinX, y: pinY, label: "Pin" };
-
-    if (activeTargetType === 'grid') {
-        targetPoint = { x: pinX + gridX, y: pinY + gridY, label: "Grid Target" };
-    } else if (activeTargetType === 'zone') {
-        const landingZones = holeData.landingZones || [];
-        if (landingZones.length === 0) return "No landing zones are configured on this hole.";
-        if (targetZoneIndex < 0 || targetZoneIndex >= landingZones.length) targetZoneIndex = 0;
-        const z = landingZones[targetZoneIndex];
-        targetPoint = { x: z.x, y: z.y, label: z.name };
-    }
-
-    const dx = targetPoint.x - ballX;
-    const dy = targetPoint.y - ballY;
-    const baseHeading = Math.atan2(dx, dy);
-    const targetDist = Math.round(Math.sqrt((dx * dx) + (dy * dy)));
-
-    const style = shotStyles[0]; 
-    let lieMultiplier = currentLie === 'Sand' ? 0.70 : (currentLie === 'Light Rough' || currentLie === 'Rough') ? 0.90 : 1.0;
-
-    const simulatedClubs = [];
-    for (let i = 0; i < 14; i++) simulatedClubs.push(clubs[i % clubs.length]);
-
-    let best = null;
-
-    simulatedClubs.forEach(simClub => {
-        if (simClub.name === "Putter") return; 
-        
-        for (let simStance = 0; simStance < 5; simStance++) {
-            let dynamicLoft = Math.max(0, simClub.loft + style.loftMod + ((2 - simStance) * 5));
-            let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
-            let totalDist = simClub.baseDistance * style.distMod * loftDistMod * lieMultiplier;
-            
-            let backspinRPM = Math.max(400, Math.round((simClub.loft * 150) + 1000 + ((simStance - 2) * 500) + style.spinMod));
-            let spinRollMod = Math.max(0.1, 1 - ((backspinRPM - 4000) / 10000));
-            let rollDist = totalDist * simClub.rollPct * style.rollMod * spinRollMod;
-            let carryDist = Math.max(1, totalDist - rollDist);
-
-            let hangTime = Math.min(6, Math.max(0.5, (totalDist / 60) + (dynamicLoft / 15)));
-            let windForward = windY * (hangTime / 2.5) * style.windMod;
-            let windCross = windX * (hangTime / 2.5) * style.windMod;
-
-            let desiredHeading = Math.atan2((targetPoint.x - ballX) - windCross, (targetPoint.y - ballY) - windForward);
-            let aimDeg = Math.round((desiredHeading - baseHeading) * (180 / Math.PI));
-            aimDeg = Math.max(-45, Math.min(45, aimDeg)); 
-
-            let heading = baseHeading + (aimDeg * Math.PI / 180);
-            let effectiveCarry = carryDist + windForward;
-
-            let landX = Math.sin(heading) * effectiveCarry + Math.cos(heading) * windCross;
-            let landY = Math.cos(heading) * effectiveCarry - Math.sin(heading) * windCross;
-            let finalX = ballX + landX + (Math.sin(heading) * rollDist * 0.8);
-            let finalY = ballY + landY + (Math.cos(heading) * rollDist * 0.8);
-
-            let miss = Math.sqrt(Math.pow(targetPoint.x - finalX, 2) + Math.pow(targetPoint.y - finalY, 2));
-            if (!best || miss < best.miss || (miss === best.miss && Math.abs(aimDeg) < Math.abs(best.aimDeg))) {
-                best = {
-                    clubName: simClub.name,
-                    stanceName: stanceNames[simStance],
-                    aimDeg,
-                    miss
-                };
-            }
-        }
-    });
-
-    if (!best) return "Oracle unavailable. Unable to compute tactical targeting right now.";
-
-    const aimStr = best.aimDeg === 0 ? "Center" : `${Math.abs(best.aimDeg)} degrees ${best.aimDeg < 0 ? 'Left' : 'Right'}`;
-    
-    // v4.29.0 Oracle Chime
-    if (typeof window.playGolfSound === 'function') window.playGolfSound('caddy_02');
-    
-    // v4.16.0 Concise Fairway Oracle
-    return `[Oracle]: To hit ${targetPoint.label} (${targetDist}y), equip ${best.clubName}, ${best.stanceName} stance, aim ${aimStr}.`;
-};
-
 window.announceGridPosition = function(initElevation = "") {
     targetX = pinX + gridX;
     targetY = pinY + gridY;
@@ -434,7 +298,8 @@ window.updateDashboard = function() {
     // 4. Setup Info
     let aimStr = aimAngle === 0 ? "Center" : `${Math.abs(aimAngle)}° ${aimAngle < 0 ? 'Left' : 'Right'}`;
     let focusName = typeof focusModes !== 'undefined' ? focusModes[focusIndex].name : 'Std';
-    document.getElementById('dash-setup').innerText = `Aim: ${aimStr}\n${stanceNames[stanceIndex]}\n[${focusName} Focus]`;
+    let diffName = typeof difficultyLevels !== 'undefined' ? difficultyLevels[difficultyIndex].name : 'Pro';
+    document.getElementById('dash-setup').innerText = `Aim: ${aimStr}\n${stanceNames[stanceIndex]}\n[${focusName} / ${diffName}]`;
 };
 
 // v4.10.0 Scorecard System

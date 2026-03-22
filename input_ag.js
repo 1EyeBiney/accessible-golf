@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.41.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.42.0)
 
 window.addEventListener('keydown', (e) => {
     // v4.25.0 Keyboard Explore Mode
@@ -320,6 +320,21 @@ window.addEventListener('keydown', (e) => {
             if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_07');
             const focus = focusModes[focusIndex];
             let msg = `Shot Focus: ${focus.name}. ${focus.desc}`;
+            window.announce(msg);
+            document.getElementById('visual-output').innerText = msg;
+            window.updateDashboard();
+            return;
+        }
+
+        // v4.42.0 Global Difficulty Toggle
+        if (e.code === 'KeyI') {
+            e.preventDefault();
+            if (e.shiftKey) difficultyIndex = (difficultyIndex - 1 + difficultyLevels.length) % difficultyLevels.length;
+            else difficultyIndex = (difficultyIndex + 1) % difficultyLevels.length;
+
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_07');
+            const diff = difficultyLevels[difficultyIndex];
+            let msg = `Difficulty: ${diff.name}. ${diff.desc}`;
             window.announce(msg);
             document.getElementById('visual-output').innerText = msg;
             window.updateDashboard();
@@ -1096,6 +1111,7 @@ window.getKeyDescription = function(code, shift) {
         'PageDown': "Equips the next club.",
         'KeyZ': shift ? "Opens the Pin Finder grid." : "Cycles through tactical landing zones.",
         'KeyJ': shift ? "Cycles Shot Focus backward." : "Cycles Shot Focus forward.",
+        'KeyI': shift ? "Cycles Difficulty backward." : "Cycles Difficulty forward.",
         'KeyX': "Announces the active club and expected 100 percent distance.",
         'KeyS': shift ? "Cycles swing styles backward." : "Cycles swing styles forward.",
         'KeyV': "Toggles choked down grip for increased control.",
