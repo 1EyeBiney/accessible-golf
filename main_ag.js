@@ -1,8 +1,11 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.47.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.48.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
 let devPower = false, devHinge = false, devImpact = false;
+let pacingModeIndex = 0; // 0: Fast, 1: Medium, 2: Slow, 3: Manual
+let pacingModes = ["Fast", "Medium", "Slow", "Manual"];
+window.waitingForBot = false;
 let stateTimeouts = [];
 
 let backswingStartTime = 0, downswingStartTime = 0, impactStartTime = 0, powerStartTime = 0;
@@ -167,18 +170,22 @@ window.advanceTurn = function(isPuttingTransition = false) {
 
     window.updateDashboard();
 
-    // v4.47.0 Ghost Swing AI Trigger
+    // v4.48.0 Pacing-Aware Ghost Swing Trigger
     if (players[currentPlayerIndex].isBot) {
+        let baseDelay = 4500; // Fast (+1000ms over old baseline)
+        if (pacingModeIndex === 1) baseDelay += 1500; // Medium
+        if (pacingModeIndex === 2) baseDelay += 3000; // Slow
+
         stateTimeouts.push(setTimeout(() => {
             if (typeof window.takeAITurn === 'function') window.takeAITurn();
-        }, 3500)); // Wait for turn announcement to finish
+        }, baseDelay));
     }
 };
 
- // v4.47.0 AI Brain
+// v4.48.0 AI Brain & Short Game Logic
 window.takeAITurn = function() {
     let p = players[currentPlayerIndex];
-    let blueprint = typeof window.getOracleBlueprint === 'function' ? window.getOracleBlueprint() : { aimDeg: 0, pace: typeof puttTargetDist !== 'undefined' ? puttTargetDist : 10, clubIndex: 0, stanceIndex: 2 };
+    let blueprint = typeof window.getOracleBlueprint === 'function' ? window.getOracleBlueprint() : { aimDeg: 0, pace: typeof puttTargetDist !== 'undefined' ? puttTargetDist : 10, clubIndex: 0, stanceIndex: 2, styleIndex: 0, power: 100 };
     
     if (isPutting) {
         aimAngle = blueprint.aimDeg !== null ? blueprint.aimDeg : 0;
@@ -189,10 +196,10 @@ window.takeAITurn = function() {
         club = clubs[currentClubIndex];
         stanceIndex = blueprint.stanceIndex !== null ? blueprint.stanceIndex : 2;
         aimAngle = blueprint.aimDeg !== null ? blueprint.aimDeg : 0;
-        p.botPower = 100;
+        shotStyleIndex = blueprint.styleIndex !== undefined ? blueprint.styleIndex : 0;
+        p.botPower = blueprint.power !== undefined ? blueprint.power : 100;
     }
 
-    // Roll Execution Variance (Skill 3 = +/- 15ms. Skill 2 = +/- 45ms. Skill 1 = +/- 100ms)
     let variance = p.botSkill === 3 ? 15 : p.botSkill === 2 ? 45 : 100;
     p.botImpact = Math.floor((Math.random() * variance * 2) - variance);
     p.botHinge = Math.floor((Math.random() * variance * 2) - variance);
@@ -201,13 +208,20 @@ window.takeAITurn = function() {
     window.updateDashboard();
     
     let setupMsg = isPutting ? `${p.name} is reading the green...` : `${p.name} equips ${club.name} and lines up the shot...`;
-    window.announce(setupMsg);
-    document.getElementById('visual-output').innerText = setupMsg;
     
-    stateTimeouts.push(setTimeout(() => {
-        swingState = 4; // Trick the engine into bypassing the metronome
-        if (typeof calculateShot === 'function') calculateShot(false);
-    }, 2500));
+    if (pacingModeIndex === 3) {
+        setupMsg += " Press Spacebar to let them strike.";
+        window.waitingForBot = true;
+        window.announce(setupMsg);
+        document.getElementById('visual-output').innerText = setupMsg;
+    } else {
+        window.announce(setupMsg);
+        document.getElementById('visual-output').innerText = setupMsg;
+        stateTimeouts.push(setTimeout(() => {
+            swingState = 4;
+            if (typeof calculateShot === 'function') calculateShot(false);
+        }, 2500));
+    }
 };
 
 window.saveActivePlayer = function() {

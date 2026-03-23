@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.44.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.48.0)
 
 window.addEventListener('keydown', (e) => {
     // v4.25.0 Keyboard Explore Mode
@@ -338,6 +338,16 @@ window.addEventListener('keydown', (e) => {
             window.announce(msg);
             document.getElementById('visual-output').innerText = msg;
             window.updateDashboard();
+            return;
+        }
+
+        // v4.48.0 Pacing Mode Toggle
+        if (e.code === 'KeyP') {
+            e.preventDefault();
+            pacingModeIndex = (pacingModeIndex + 1) % pacingModes.length;
+            window.announce(`Game Pacing set to ${pacingModes[pacingModeIndex]}.`);
+            document.getElementById('visual-output').innerText = `Pacing: ${pacingModes[pacingModeIndex]}`;
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_02');
             return;
         }
 
@@ -762,6 +772,15 @@ window.addEventListener('keydown', (e) => {
     }
 
     if (e.code === 'Space') {
+        // v4.48.0 Manual Bot Trigger
+        if (typeof window.waitingForBot !== 'undefined' && window.waitingForBot) {
+            e.preventDefault();
+            window.waitingForBot = false;
+            swingState = 4;
+            if (typeof calculateShot === 'function') calculateShot(false);
+            return;
+        }
+
         e.preventDefault();
         playTone(880, 'sine', 0.1, 0.25);
         if (swingState === 1) hingeTimeBack = performance.now() - backswingStartTime;
@@ -1159,6 +1178,7 @@ window.getKeyDescription = function(code, shift) {
         'KeyU': "Takes an unplayable lie penalty and drops the ball in the fairway.",
         'KeyE': shift ? "Opens the full scorecard." : "Announces your quick score summary.",
         'KeyN': shift ? "Copies the Post-Round Summary to your clipboard." : "Reads the narrative of the last completed hole.",
+        'KeyP': "Cycles through the Multiplayer Game Pacing modes.",
         'KeyQ': "Opens the Quit and Save menu.",
         'F1': "Toggles Dev Power.",
         'F2': "Toggles Dev Hinge.",
