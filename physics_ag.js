@@ -27,8 +27,8 @@ window.initPutting = function() {
     isPutting = true; swingState = 0; puttState = 0;
     currentClubIndex = clubs.findIndex(c => c.name === "Putter");
     if (currentClubIndex !== -1) club = clubs[currentClubIndex];
-    
-    let dist = Math.round(calculateDistanceToPin());
+    let rawDist = calculateDistanceToPin();
+    let dist = Math.max(1/3, Math.round(rawDist));
     puttTargetDist = dist; aimAngle = 0;
     
     let locationStr = gameMode === 'putting' ? "Welcome to the Practice Putting Green." : "On the green!";
@@ -1339,7 +1339,7 @@ window.getCaddyAdvice = function() {
             let distDisplay = isShort ? `${Math.round(distToPin * 3)}` : `${Math.round(distToPin)}`;
             return `[Oracle Putting]: ${distDisplay} ${unit}. To sink it with perfect timing, aim ${aimStr} and hit it with ${paceDisplay} ${unit} of pace.`;
         } else {
-            return `[Oracle Putting]: This putt is extremely difficult. I cannot find a guaranteed line. Best guess is to lay up.`;
+            return `[Oracle Putting]: This putt is extremely difficult. I cannot find a guaranteed line. Best guess is to lag it close.`;
         }
     }
 

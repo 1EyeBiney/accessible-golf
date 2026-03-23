@@ -1,6 +1,16 @@
 // input_ag.js - Keyboard Controls and Event Listeners (v4.48.2)
 
+window.confirmingUnplayable = false;
+
 window.addEventListener('keydown', (e) => {
+    // v4.49.0 Unplayable penalty cancel interceptor
+    if (window.confirmingUnplayable && e.code !== 'KeyU') {
+        e.preventDefault();
+        window.confirmingUnplayable = false;
+        window.announce("Unplayable penalty cancelled.");
+        return;
+    }
+
     // v4.25.0 Keyboard Explore Mode
     if (e.code === 'F12') {
         e.preventDefault();
@@ -531,6 +541,13 @@ window.addEventListener('keydown', (e) => {
         }
         if (e.code === 'KeyU' && gameMode === 'course') {
             e.preventDefault();
+            if (!window.confirmingUnplayable) {
+                window.confirmingUnplayable = true;
+                window.announce("Unplayable penalty armed. Press U again to confirm, or any other key to cancel.");
+                return;
+            }
+
+            window.confirmingUnplayable = false;
             strokes++;
             ballX = 0; // Drop in center of fairway
             currentLie = 'Fairway';
@@ -806,8 +823,9 @@ window.addEventListener('keydown', (e) => {
     if (swingState === 0) {
         if (e.code === 'Tab') {
             e.preventDefault();
+            let playerName = (typeof players !== 'undefined' && players.length > 0 && players[currentPlayerIndex]) ? players[currentPlayerIndex].name : "Player";
             let dist = calculateDistanceToPin();
-            let msg = `Hole ${hole}. Stroke ${strokes + 1}. ${dist} yards to pin. Lie: ${currentLie}.`;
+            let msg = `${playerName}. Hole ${hole}. Stroke ${strokes + 1}. ${dist} yards to pin. Lie: ${currentLie}.`;
             window.announce(msg);
             document.getElementById('visual-output').innerText = msg;
             return;

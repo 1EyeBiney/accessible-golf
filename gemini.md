@@ -247,3 +247,7 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **The Short Game Brain:** For targets inside 100 yards, the `getOracleBlueprint()` iterates through all wedge `shotStyles` (Pitch, Chip, Flop) and calculates fractional `botPower` (e.g., 62%) rather than relying solely on full swings.
 - **Long Putt Fallback:** If a putt is too mathematically complex/long for the Oracle to solve, it defaults to a straight aim at the exact target distance pace to guarantee a safe lag putt.
 - **Dynamic Cursor Snap:** The AI automatically snaps its `puttTargetDist` to its actual physical distance before calculating putting power to prevent fractional 0% power loops near the hole.
+### 51. v4.48.2 Engine Addendum (Multiplayer Polish)
+- **Bot Input Lock:** The engine actively blocks human players from pressing `ArrowDown` or `ArrowUp` to initiate swings while it is a bot's turn, preventing sequence breaks and state desynchronization.
+- **True Honors:** `resetRosterForHole()` automatically evaluates the scorecard from the previous hole and awards the first tee shot to the player with the lowest score.
+- **Roster Persistence:** The `players` array, bot settings, and `currentPlayerIndex` are natively serialized into `localStorage` during `saveGame()`, allowing multiplayer sessions to survive browser refreshes.

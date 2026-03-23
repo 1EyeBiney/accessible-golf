@@ -404,7 +404,7 @@ function loadHole(holeNumber) {
 
     // v4.45.0 Reset roster state for the new hole
     window.resetRosterForHole();
-    window.loadActivePlayer(0);
+    window.loadActivePlayer(currentPlayerIndex);
 
     // v4.14.1 Reset targeting modes so they don't bleed into the next hole
     activeTargetType = 'pin';
@@ -420,14 +420,48 @@ function loadHole(holeNumber) {
     currentClubIndex = clubs.findIndex(c => c.name === defaultClub);
     if (currentClubIndex === -1) currentClubIndex = 0;
     club = clubs[currentClubIndex];
+
+    // v4.49.0 Force per-player club/putting reset to prevent hole-to-hole leakage
+    for (let i = 0; i < players.length; i++) {
+        players[i].currentClubIndex = currentClubIndex;
+        players[i].isPutting = false;
+    }
+
     shotStyleIndex = 0;
     window.autoSetFocus(true);
     window.updateDashboard();
+
+    // v4.49.0 Automated hole briefing and honors callout
+    let holeDist = typeof calculateDistanceToPin === 'function'
+        ? calculateDistanceToPin()
+        : Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
+    let honorsName = (players[currentPlayerIndex] && players[currentPlayerIndex].name)
+        ? players[currentPlayerIndex].name
+        : `Player ${currentPlayerIndex + 1}`;
+    let holeDesc = holeData.description || "";
+    let fairwayDesc = holeData.fairwayDescription || "";
+    let briefing = `Hole ${hole}. Par ${par}. ${holeDesc} ${fairwayDesc} ${holeDist} yards. Honors: ${honorsName}.`;
+    briefing = briefing.replace(/\s+/g, ' ').trim();
+    window.announce(briefing);
+    document.getElementById('visual-output').innerText = briefing;
 
     // v4.29.0 Ambient Wind on Tee
     if (windLevelIndex >= 2 && typeof window.playGolfSound === 'function') {
         window.playGolfSound('env_02');
     }
+
+    // v4.49.0 Auto-trigger bot honors turn with pacing-aware delay
+    if (players[currentPlayerIndex] && players[currentPlayerIndex].isBot) {
+        let baseDelay = 2500;
+        if (pacingModeIndex === 1) baseDelay += 1500;
+        if (pacingModeIndex === 2) baseDelay += 3000;
+        if (pacingModeIndex === 3) baseDelay = 1500;
+
+        stateTimeouts.push(setTimeout(() => {
+            if (typeof window.takeAITurn === 'function') window.takeAITurn();
+        }, baseDelay));
+    }
+
     if (typeof window.saveGame === 'function') window.saveGame(); // Save when starting new hole
 }
 

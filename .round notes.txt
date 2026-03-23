@@ -1,81 +1,84 @@
-[Player 1] Driver. Flushed. A standard straight shot that wrapped past the Maple Tree, shaving the right edge by 9 yards.. Wind pushed it 5 yds short, and 10 yds right. Carries 298, rolls 44 forward and rolls straight for a total of 342. Settles in the Fairway, 8.6 yards left of center. Stroke 2. 78 yards to the pin.
+skipped to hole 4:
+[Player 1] Driver. Flushed. A high straight shot that wrapped past the Left Woods, shaving the right edge by 14 yards.. Wind pushed it 0 yds nowhere, and 8 yds left. Carries 286, rolls 45 forward and rolls straight for a total of 331. Landed 44 yards short. Rolled 45 yards forward, settling past the cup. Finished 40 feet, 11 inches from the pin, 40 feet, 10 inches to the right. Stroke 2. 14 yards to the pin.
 
 Telemetry:
-Setup: Driver | Style: Full | Focus: Power | Stance: Neutral / Neutral | Aim: -3° | Wind: Y:-2 X:4
-Execution: Power 100%. Hinge Diff -15ms. Impact Offset 0ms. Accuracy Score 98%. Backspin: 3200 RPM. Side Spin: 0 RPM (Straight).
-[Maple Tree bypassed laterally by 9 yards.]
+Setup: Driver | Style: Full | Focus: Power | Stance: Forward / Neutral | Aim: 4° | Wind: Y:0 X:-3
+Execution: Power 100%. Hinge Diff 26ms. Impact Offset 0ms. Accuracy Score 97%. Backspin: 2700 RPM. Side Spin: 0 RPM (Straight).
+[Left Woods bypassed laterally by 14 yards.]
 
 ---
 
-[Bot Woods] 3 Wood. Flushed. A low straight shot that wrapped past the Oak Tree, shaving the left edge by 8 yards.. Wind pushed it 4 yds short, and 6 yds right. Carries 244, rolls 20 forward and rolls straight for a total of 264. Settles in the Fairway, 2.6 yards right of center. Stroke 2. 156 yards to the pin.
+[Bot Woods] Driver. Flushed. A piercing straight shot that wrapped past the Left Woods, shaving the right edge by 2 yards.. Wind pushed it 0 yds nowhere, and 7 yds left. Carries 310, rolls 41 forward and rolls straight for a total of 351. Settles in the Sand, 2.6 yards left of center. Stroke 2. 21 yards to the pin.
 
 Telemetry:
-Setup: 3 Wood | Style: Full | Focus: Standard | Stance: Back / Neutral | Aim: -1° | Wind: Y:-2 X:3
-Execution: Power 97%. Hinge Diff -4ms. Impact Offset 10ms. Accuracy Score 98%. Backspin: 4393 RPM. Side Spin: 35 RPM (Slice).
-[Oak Tree bypassed laterally by 8 yards.]
+Setup: Driver | Style: Full | Focus: Power | Stance: Far Back / Neutral | Aim: 1° | Wind: Y:0 X:-3
+Execution: Power 100%. Hinge Diff -5ms. Impact Offset 4ms. Accuracy Score 99%. Backspin: 4189 RPM. Side Spin: 12 RPM (Slice).
+[Left Woods bypassed laterally by 2 yards.]
 
 ---
 
-[Bot Woods] 5 Iron. Flushed. A piercing straight shot. Wind pushed it 0 yds nowhere, and 0 yds nowhere. Carries 24, rolls 3 forward and rolls straight for a total of 27. Settles in the Fairway, 2 yards right of center. Stroke 3. 129 yards to the pin.
+[Bot Woods] 4 Iron. Hacked it out of the rough. Flushed. A piercing straight shot. Wind pushed it 0 yds nowhere, and 0 yds nowhere. Carries 26, rolls 3 forward and rolls straight for a total of 29. Landed 14 feet, 4 inches short. Rolled 8 feet, 11 inches back, settling short of the cup. Finished 23 feet, 4 inches from the pin, 1 feet, 4 inches to the right. Stroke 3. 8 yards to the pin.
 
 Telemetry:
-Setup: 5 Iron | Style: Chip | Focus: Standard | Stance: Far Back / Neutral | Aim: 0° | Wind: Y:-2 X:4
-Execution: Power 48%. Hinge Diff 13ms. Impact Offset 11ms. Accuracy Score 97%. Backspin: 5560 RPM. Side Spin: 4 RPM (Slice).
-
-
----
-
-[Bot Woods] 4 Iron. Flushed. A piercing straight shot. Wind pushed it 0 yds nowhere, and 0 yds nowhere. Carries 51, rolls 6 forward and rolls straight for a total of 57. Settles in the Fairway, 1.4 yards right of center. Stroke 4. 72 yards to the pin.
-
-Telemetry:
-Setup: 4 Iron | Style: Chip | Focus: Accuracy | Stance: Back / Neutral | Aim: 0° | Wind: Y:-1 X:3
-Execution: Power 94%. Hinge Diff 0ms. Impact Offset -7ms. Accuracy Score 99%. Backspin: 4928 RPM. Side Spin: -2 RPM (Hook).
+Setup: 4 Iron | Style: Chip | Focus: Recovery | Stance: Back / Neutral | Aim: -1° | Wind: Y:1 X:-4
+Execution: Power 56%. Hinge Diff -11ms. Impact Offset -3ms. Accuracy Score 98%. Backspin: 4553 RPM. Side Spin: -1 RPM (Hook).
 
 
 ---
 
-[Player 1] 7 Iron. Fat. A towering straight shot. Wind pushed it 1 yds short, and 1 yds right. Carries 68, rolls 7 forward and rolls straight for a total of 75. Landed 30 feet short. Rolled 21 feet forward, settling short of the cup. Finished 21 feet, 11 inches from the pin, 19 feet, 11 inches to the left. Stroke 3. 7 yards to the pin.
+[Player 1] Putt: 100% Power. Target was 14y. Missed a 42 feet putt. Settled short and straight. 0 yards left.
 
-Telemetry:
-Setup: 7 Iron | Style: Pitch | Focus: Accuracy | Stance: Forward / Neutral | Aim: -5° | Wind: Y:-2 X:4
-Execution: Power 100%. Hinge Diff 142ms. Impact Offset 0ms. Accuracy Score 82%. Backspin: 7800 RPM. Side Spin: 0 RPM (Straight).
-
-
----
-
-[Bot Woods] 7 Iron. Flushed. A low straight shot. Wind pushed it 0 yds nowhere, and 1 yds right. Carries 74, rolls 6 forward and rolls straight for a total of 80. Landed 6 feet, 3 inches long. Rolled 18 feet forward, settling past the cup. Finished 24 feet, 3 inches from the pin, 6 inches to the left. Stroke 5. 8 yards to the pin.
-
-Telemetry:
-Setup: 7 Iron | Style: Pitch | Focus: Accuracy | Stance: Far Back / Neutral | Aim: -1° | Wind: Y:-2 X:4
-Execution: Power 86%. Hinge Diff 14ms. Impact Offset 10ms. Accuracy Score 97%. Backspin: 9144 RPM. Side Spin: 7 RPM (Slice).
-
+[Putting Diagnostics]
+Target Cursor: 14 yds, Aim: Straight
+Auto-Read: Flat, Breaks Straight
+Oracle Says: This putt is extremely difficult. I cannot find a guaranteed line. Best guess is to lay up.
+Execution: Power 100%, Impact 0ms, Touch (Hinge) -66ms
+Touch Magnetism: 2.26x Multiplier
+Effective Hole Radius: 12.2 inches (Base: 5.4in)
+Slope Dampener: 100% applied (100% = Full Break)
+Accuracy Score: 100/100
 
 ---
 
-[Bot Woods] Putt: 103% Power. Target was 8y. You sank a putt from 24 feet away! IT'S IN THE HOLE!
+[Bot Woods] Putt: 100% Power. Target was 8y. Missed a 24 feet putt. Settled long and straight. 0 yards left.
 
 [Putting Diagnostics]
 Target Cursor: 8 yds, Aim: Straight
-Auto-Read: 10in Uphill, Breaks Straight
-Oracle Says: 8 yards. To sink it with perfect timing, aim straight and hit it with 8.25 yards of pace.
-Execution: Power 103%, Impact -1ms, Touch (Hinge) -4ms
+Auto-Read: Flat, Breaks Straight
+Oracle Says: This putt is extremely difficult. I cannot find a guaranteed line. Best guess is to lay up.
+Execution: Power 100%, Impact -2ms, Touch (Hinge) -8ms
 Touch Magnetism: 2.50x Multiplier
 Effective Hole Radius: 13.5 inches (Base: 5.4in)
 Slope Dampener: 100% applied (100% = Full Break)
+Accuracy Score: 99/100
+
+---
+
+[Player 1] Putt: 100% Power. Target was 0.3y. You sank a putt from 1 feet away! IT'S IN THE HOLE!
+
+[Putting Diagnostics]
+Target Cursor: 1 ft, Aim: Straight
+Auto-Read: Flat, Breaks Straight
+Oracle Says: This putt is extremely difficult. I cannot find a guaranteed line. Best guess is to lay up.
+Execution: Power 100%, Impact 0ms, Touch (Hinge) 75ms
+Touch Magnetism: 2.13x Multiplier
+Effective Hole Radius: 34.4 inches (Base: 5.4in)
+Slope Dampener: 10% applied (100% = Full Break)
 Accuracy Score: 100/100
 
 ---
 
-[Player 1] Putt: 100% Power. Target was 8y. You sank a putt from 24 feet away! IT'S IN THE HOLE!
+[Bot Woods] Putt: 1% Power. Target was 1y. You sank a putt from 3 feet away! IT'S IN THE HOLE!
 
 [Putting Diagnostics]
-Target Cursor: 8 yds, Aim: Straight
-Auto-Read: 8in Uphill, Breaks Straight
+Target Cursor: 3 ft, Aim: Straight
+Auto-Read: Flat, Breaks Straight
 Oracle Says: This putt is extremely difficult. I cannot find a guaranteed line. Best guess is to lay up.
-Execution: Power 100%, Impact 0ms, Touch (Hinge) -67ms
-Touch Magnetism: 2.25x Multiplier
-Effective Hole Radius: 12.1 inches (Base: 5.4in)
-Slope Dampener: 100% applied (100% = Full Break)
-Accuracy Score: 100/100
+Execution: Power 1%, Impact -6ms, Touch (Hinge) 14ms
+Touch Magnetism: 2.50x Multiplier
+Effective Hole Radius: 40.5 inches (Base: 5.4in)
+Slope Dampener: 10% applied (100% = Full Break)
+Accuracy Score: 98/100
+when my last putt was 0 feet, the target cursor did not update at all, I could not find the cup so was a little confused, I think I had to use Z to find the target and figure out I was 0 yards away, i just aimed straight at 1 foot and hit it in.
 
-***hole2:
+hole 5:
