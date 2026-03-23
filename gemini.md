@@ -237,3 +237,13 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **State Roster:** Converted global single-player sandbox into a `players` array. The engine tracks states independently for up to 4 players.
 - **Automated Turn Manager:** `window.advanceTurn()` enforces standard golf etiquette. After every shot, the engine calculates absolute distance to the pin and automatically swaps to the "Away Player".
 - **Asymmetric Profiles:** `difficultyIndex`, `caddyLevel`, `activeBallIndex`, `shotStyleIndex`, `isChokedDown`, and the `devPower`/`Hinge`/`Impact` shortcuts are isolated per player.
+### 49. v4.47 Engine Addendum (Ghost Swing AI)
+- **Bot Profiles:** `initPlayers()` supports `isBot` and `botSkill` (1: Amateur, 2: Pro, 3: Tour).
+- **AI Brain (`takeAITurn`):** The Turn Manager automatically detects bot players and queries a silent `getOracleBlueprint()` to determine the optimal club, stance, and aim angle.
+- **Automated Execution:** The engine mathematically rolls `botImpact` and `botHinge` variances based on skill level and directly triggers `calculateShot()`.
+
+### 50. v4.48 - v4.48.1 Engine Addendum (AI Intelligence & Pacing)
+- **Game Pacing Modes (Key P):** Cycles between Fast, Medium, Slow, and Manual pacing for bot turns. Manual requires the player to press `Spacebar` to let the bot swing, completely preventing ARIA TTS overlap.
+- **The Short Game Brain:** For targets inside 100 yards, the `getOracleBlueprint()` iterates through all wedge `shotStyles` (Pitch, Chip, Flop) and calculates fractional `botPower` (e.g., 62%) rather than relying solely on full swings.
+- **Long Putt Fallback:** If a putt is too mathematically complex/long for the Oracle to solve, it defaults to a straight aim at the exact target distance pace to guarantee a safe lag putt.
+- **Dynamic Cursor Snap:** The AI automatically snaps its `puttTargetDist` to its actual physical distance before calculating putting power to prevent fractional 0% power loops near the hole.

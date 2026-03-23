@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.48.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.48.1)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -188,9 +188,16 @@ window.takeAITurn = function() {
     let blueprint = typeof window.getOracleBlueprint === 'function' ? window.getOracleBlueprint() : { aimDeg: 0, pace: typeof puttTargetDist !== 'undefined' ? puttTargetDist : 10, clubIndex: 0, stanceIndex: 2, styleIndex: 0, power: 100 };
     
     if (isPutting) {
+        // v4.48.1 AI Target Cursor & Zero-Power Fix
+        let actualDist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 10;
+        puttTargetDist = Math.max(1, Math.ceil(actualDist)); // Snap cursor to actual distance (min 1 yard)
+        p.puttTargetDist = puttTargetDist;
+        
         aimAngle = blueprint.aimDeg !== null ? blueprint.aimDeg : 0;
-        let pace = blueprint.pace !== null ? blueprint.pace : puttTargetDist;
-        p.botPower = Math.round((pace / puttTargetDist) * 100);
+        let pace = blueprint.pace !== null ? blueprint.pace : actualDist;
+        
+        // Calculate power, ensuring it never drops below 1% to prevent infinite loops
+        p.botPower = Math.max(1, Math.round((pace / puttTargetDist) * 100)); 
     } else {
         currentClubIndex = blueprint.clubIndex !== null ? blueprint.clubIndex : 0;
         club = clubs[currentClubIndex];
