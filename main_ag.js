@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.45.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.46.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -84,7 +84,16 @@ window.initPlayers = function() {
             stanceIndex: 2,
             stanceAlignment: 0,
             focusIndex: 0,
-            currentClubIndex: currentClubIndex // Players can hold different clubs
+            currentClubIndex: currentClubIndex,
+            // v4.46.0 Asymmetric Profiles
+            difficultyIndex: typeof difficultyIndex !== 'undefined' ? difficultyIndex : 2,
+            caddyLevel: typeof caddyLevel !== 'undefined' ? caddyLevel : 1,
+            activeBallIndex: typeof activeBallIndex !== 'undefined' ? activeBallIndex : 0,
+            shotStyleIndex: 0,
+            isChokedDown: false,
+            devPower: false,
+            devHinge: false,
+            devImpact: false
         });
     }
     currentPlayerIndex = 0;
@@ -172,6 +181,16 @@ window.saveActivePlayer = function() {
     p.stanceAlignment = stanceAlignment;
     p.focusIndex = focusIndex;
     p.currentClubIndex = currentClubIndex;
+    
+    // v4.46.0 Asymmetric Profiles
+    p.difficultyIndex = difficultyIndex;
+    p.caddyLevel = caddyLevel;
+    p.activeBallIndex = activeBallIndex;
+    p.shotStyleIndex = shotStyleIndex;
+    p.isChokedDown = isChokedDown;
+    p.devPower = devPower;
+    p.devHinge = devHinge;
+    p.devImpact = devImpact;
 };
 
 window.loadActivePlayer = function(index) {
@@ -185,21 +204,29 @@ window.loadActivePlayer = function(index) {
     currentLie = p.currentLie;
     isHoleComplete = p.isHoleComplete;
 
-    // State Restoration
     isPutting = p.isPutting;
     if (typeof puttTargetDist !== 'undefined') puttTargetDist = p.puttTargetDist;
-    puttState = 0; // Always reset to targeting when swapping
-    swingState = isHoleComplete ? 6 : 0; // Lock out if they finished the hole
+    puttState = 0; 
+    swingState = isHoleComplete ? 6 : 0; 
 
     aimAngle = p.aimAngle;
     stanceIndex = p.stanceIndex;
     stanceAlignment = p.stanceAlignment;
     focusIndex = p.focusIndex;
 
-    // Restore club
     currentClubIndex = p.currentClubIndex;
     if (typeof clubs !== 'undefined') club = clubs[currentClubIndex];
 
+    // v4.46.0 Asymmetric Profiles
+    difficultyIndex = p.difficultyIndex !== undefined ? p.difficultyIndex : 2;
+    caddyLevel = p.caddyLevel !== undefined ? p.caddyLevel : 1;
+    activeBallIndex = p.activeBallIndex !== undefined ? p.activeBallIndex : 0;
+    shotStyleIndex = p.shotStyleIndex !== undefined ? p.shotStyleIndex : 0;
+    isChokedDown = p.isChokedDown !== undefined ? p.isChokedDown : false;
+    devPower = p.devPower !== undefined ? p.devPower : false;
+    devHinge = p.devHinge !== undefined ? p.devHinge : false;
+    devImpact = p.devImpact !== undefined ? p.devImpact : false;
+    
     window.updateDashboard();
 };
 
@@ -920,7 +947,9 @@ window.evaluatePracticeSwing = function() {
     // v4.43.1 Practice Swing Diagnostics
     let hWord = hingeDiff < 0 ? 'early' : hingeDiff > 0 ? 'late' : 'perfect';
     let iWord = impactDiff < 0 ? 'early' : impactDiff > 0 ? 'late' : 'perfect';
-    lastTimingReport = `Practice Swing. Power ${finalPower} percent. Hinge ${Math.abs(hingeDiff)}ms ${hWord}. Impact ${Math.abs(impactDiff)}ms ${iWord}.`;
+    // v4.45.1 Telemetry Ownership
+    let pName = typeof players !== 'undefined' && players.length > 0 ? players[currentPlayerIndex].name : "Player";
+    lastTimingReport = `[${pName}] Practice Swing. Power ${finalPower} percent. Hinge ${Math.abs(hingeDiff)}ms ${hWord}. Impact ${Math.abs(impactDiff)}ms ${iWord}.`;
 
     swingState = 0;
     isPracticeSwing = false;

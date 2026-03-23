@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.45.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.45.1)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -212,7 +212,9 @@ function calculateShot(autoMiss = false) {
 
         let distToPin = calculateDistanceToPin();
         let displayTargetYds = Number.isInteger(puttTargetDist) ? puttTargetDist : puttTargetDist.toFixed(1);
-        let broadcast = `Putt: ${finalPower}% Power. Target was ${displayTargetYds}y.`;
+        // v4.45.1 Telemetry Ownership (Putting)
+        let pName = typeof players !== 'undefined' && players.length > 0 ? players[currentPlayerIndex].name : "Player";
+        let broadcast = `[${pName}] Putt: ${finalPower}% Power. Target was ${displayTargetYds}y.`;
 
         // v4.4.0 Gravity Engine (Step Simulation)
         let activeContours = [];
@@ -402,7 +404,7 @@ function calculateShot(autoMiss = false) {
             // v4.43.0 Putting Timing Report
             let hingeWord = hingeDiff < 0 ? 'early' : hingeDiff > 0 ? 'late' : 'perfect';
             let impactWord = impactDiff < 0 ? 'early' : impactDiff > 0 ? 'late' : 'perfect';
-            lastTimingReport = `Putting Diagnostics. Power ${finalPower} percent. Touch tempo ${Math.abs(hingeDiff)}ms ${hingeWord}. Impact ${Math.abs(impactDiff)}ms ${impactWord}.`;
+            lastTimingReport = `[${pName}] Putting Diagnostics. Power ${finalPower} percent. Touch tempo ${Math.abs(hingeDiff)}ms ${hingeWord}. Impact ${Math.abs(impactDiff)}ms ${impactWord}.`;
 
             lastShotReport = broadcast + advancedTelemetry;
             holeTelemetry.push(lastShotReport);
@@ -568,8 +570,10 @@ function calculateShot(autoMiss = false) {
     let hingeWord = hingeDiff < 0 ? 'early' : hingeDiff > 0 ? 'late' : 'perfect';
     let impactWord = impactDiff < 0 ? 'early' : impactDiff > 0 ? 'late' : 'perfect';
     let sideSpinShape = sideSpinRPM === 0 ? "Straight" : sideSpinRPM > 0 ? "Slice" : "Hook";
-
-    lastTimingReport = `Timing Check. Power ${finalPower} percent. Hinge ${Math.abs(hingeDiff)}ms ${hingeWord}. Impact ${Math.abs(impactDiff)}ms ${impactWord}. Side Spin: ${Math.abs(sideSpinRPM)} RPM ${sideSpinShape}. Backspin: ${backspinRPM} RPM, ${deltaStr}.`;
+    
+    // v4.45.1 Telemetry Ownership (Fairway)
+    let pName = typeof players !== 'undefined' && players.length > 0 ? players[currentPlayerIndex].name : "Player";
+    lastTimingReport = `[${pName}] Timing Check. Power ${finalPower} percent. Hinge ${Math.abs(hingeDiff)}ms ${hingeWord}. Impact ${Math.abs(impactDiff)}ms ${impactWord}. Side Spin: ${Math.abs(sideSpinRPM)} RPM ${sideSpinShape}. Backspin: ${backspinRPM} RPM, ${deltaStr}.`;
 
     let chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
     let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
@@ -1045,7 +1049,7 @@ function calculateShot(autoMiss = false) {
                 proximityDesc = `Landed ${window.formatProximity(landRelY)} ${landDir}. Rolled ${window.formatProximity(finalRelY - landRelY)} ${finalVertDir}, settling ${cupRelDir} the cup. Finished ${window.formatProximity(finalDistToPin)} from the pin, ${window.formatProximity(finalRelX)} to the ${finalSideDir}.`;
             }
 
-            const shotBroadcast = `${club.name}. ${roughDesc}${shotDesc} ${windDesc} Carries ${carryDistance}, rolls ${rollDistance} forward and ${kickDesc} for a total of ${totalDistance}. ${proximityDesc}`;
+            const shotBroadcast = `[${pName}] ${club.name}. ${roughDesc}${shotDesc} ${windDesc} Carries ${carryDistance}, rolls ${rollDistance} forward and ${kickDesc} for a total of ${totalDistance}. ${proximityDesc}`;
 
             if (gameMode === 'chipping') {
                 let finalProximity = distanceToPin;
@@ -1127,7 +1131,11 @@ function calculateShot(autoMiss = false) {
                             } else {
                                 if (gameMode === 'course') window.updateTargetZone();
                                 driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
-                                window.advanceTurn();
+                                
+                                // v4.45.1 ARIA Interruption Fix (Wait 4 seconds before advancing turn)
+                                stateTimeouts.push(setTimeout(() => {
+                                    window.advanceTurn();
+                                }, 4000));
                             }
                         }, typeof isPutting !== 'undefined' && isPutting && club.name === "Putter" && strokes > 1 ? 1500 : 0));
 
