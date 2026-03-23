@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.45.1)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.47.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -174,9 +174,12 @@ function calculateShot(autoMiss = false) {
         stateTimeouts.forEach(clearTimeout);
         strokes++;
         puttsThisHole++;
-        if (devPower) finalPower = 100; // v4.4.2 FIX: Enforce dev power for putts
-        let impactDiff = devImpact ? 0 : Math.round((performance.now() - impactStartTime) - dropDurationMs);
-        let hingeDiff = devHinge ? 0 : Math.round(hingeTimeDown - hingeTimeBack);
+        // v4.47.0 Bot Interceptor (Putting)
+        let isBotTurn = typeof players !== 'undefined' && players.length > 0 && players[currentPlayerIndex].isBot;
+        if (devPower && !isBotTurn) finalPower = 100; 
+        let impactDiff = isBotTurn ? players[currentPlayerIndex].botImpact : (devImpact ? 0 : Math.round((performance.now() - impactStartTime) - dropDurationMs));
+        let hingeDiff = isBotTurn ? players[currentPlayerIndex].botHinge : (devHinge ? 0 : Math.round(hingeTimeDown - hingeTimeBack));
+        if (isBotTurn) finalPower = players[currentPlayerIndex].botPower;
         
         // Touch Mechanic (Spacebar Hinge becomes Tempo)
         let accuracyScore = Math.max(10, 100 - (Math.abs(impactDiff) / 2.5));
@@ -462,10 +465,13 @@ function calculateShot(autoMiss = false) {
         return;
     }
 
-    if (devPower) finalPower = 100;
-    if (devHinge) { hingeTimeBack = 1000; hingeTimeDown = 1000; }
-    let impactDiff = devImpact ? 0 : Math.round((performance.now() - impactStartTime) - dropDurationMs);
-    let hingeDiff = devHinge ? 0 : Math.round(hingeTimeDown - hingeTimeBack);
+    // v4.47.0 Bot Interceptor (Fairway)
+    let isBotTurn = typeof players !== 'undefined' && players.length > 0 && players[currentPlayerIndex].isBot;
+    if (devPower && !isBotTurn) finalPower = 100;
+    if (devHinge && !isBotTurn) { hingeTimeBack = 1000; hingeTimeDown = 1000; }
+    let impactDiff = isBotTurn ? players[currentPlayerIndex].botImpact : (devImpact ? 0 : Math.round((performance.now() - impactStartTime) - dropDurationMs));
+    let hingeDiff = isBotTurn ? players[currentPlayerIndex].botHinge : (devHinge ? 0 : Math.round(hingeTimeDown - hingeTimeBack));
+    if (isBotTurn) finalPower = players[currentPlayerIndex].botPower;
 
     // v4.42.0 Difficulty Scaling (Fairway)
     let diffScale = typeof difficultyLevels !== 'undefined' ? difficultyLevels[difficultyIndex] : { impactMod: 1.0, hingeMod: 1.0, reflexBuffer: 105, dispersionMod: 1.0 };
@@ -1415,4 +1421,112 @@ window.getCaddyAdvice = function() {
     if (typeof window.playGolfSound === 'function') window.playGolfSound('caddy_02');
     
     return `[Oracle]: To hit ${targetPoint.label} (${targetDist}y), equip ${best.clubName}, ${best.stanceName} stance, aim ${aimStr}.`;
+};
+
+// v4.47.0 Silent Oracle for AI Brain
+window.getOracleBlueprint = function() {
+    if (isPutting || (gameMode === 'course' && currentLie === "Green")) {
+        let distToPin = calculateDistanceToPin();
+        const holeData = courses[currentCourseIndex].holes[hole - 1];
+        let activeContours = [];
+        if (gameMode === 'course' && holeData.greenType && typeof greenDictionary !== 'undefined') {
+            activeContours = greenDictionary[holeData.greenType] || [];
+        } else if (gameMode === 'putting') {
+            activeContours = [
+                { startY: 45, endY: 25, slopeX: 0.8, slopeY: 0.4 },
+                { startY: 25, endY: 10, slopeX: -0.3, slopeY: 0.0 },
+                { startY: 10, endY: 0, slopeX: 0.6, slopeY: -0.3 }
+            ];
+        }
+
+        let bestAim = null; let bestPace = null;
+        let baseHoleRadius = 0.15;
+        let activeHoleRadius = ((distToPin <= 2.0) ? (baseHoleRadius * 3.0) : baseHoleRadius);
+        let slopeDampener = (distToPin <= 3.0) ? 0.1 : (distToPin <= 6.0) ? 0.35 : 1.0;
+        let baseHeading = Math.atan2(pinX - ballX, pinY - ballY);
+
+        for (let p = Math.max(0.5, distToPin * 0.5); p <= distToPin * 2.5; p += 0.25) {
+            for (let a = -45; a <= 45; a += 1) {
+                let simX = ballX, simY = ballY;
+                let speedRemaining = p; let distTraveled = 0;
+                let currentHeading = baseHeading + (a * (Math.PI / 180));
+                let madeIt = false;
+                let captureSpeedLimit = (distToPin <= 2) ? 6.0 : 2.5;
+
+                while (speedRemaining > 0 && distTraveled < 100) {
+                    let stepDist = Math.min(1.0, speedRemaining);
+                    let currentDistToHole = Math.sqrt(Math.pow(pinX - simX, 2) + Math.pow(pinY - simY, 2));
+
+                    if (currentDistToHole <= activeHoleRadius && speedRemaining <= captureSpeedLimit) {
+                        madeIt = true; break;
+                    }
+
+                    let zone = activeContours.find(z => currentDistToHole <= z.startY && currentDistToHole > z.endY);
+                    let sx = (zone ? zone.slopeX : 0) * slopeDampener;
+                    let sy = (zone ? zone.slopeY : 0) * slopeDampener;
+
+                    currentHeading -= (sx * 0.05);
+                    simX += Math.sin(currentHeading) * stepDist;
+                    simY += Math.cos(currentHeading) * stepDist;
+                    distTraveled += stepDist;
+                    speedRemaining -= (1.0 + (sy * 0.15));
+                }
+                if (madeIt) {
+                    if (bestPace === null || p < bestPace || (p === bestPace && Math.abs(a) < Math.abs(bestAim))) {
+                        bestAim = a; bestPace = p;
+                    }
+                }
+            }
+        }
+        return { aimDeg: bestAim, pace: bestPace };
+    } else {
+        const holeData = courses[currentCourseIndex].holes[hole - 1];
+        let targetPoint = { x: pinX, y: pinY };
+        if (activeTargetType === 'grid') targetPoint = { x: pinX + gridX, y: pinY + gridY };
+        else if (activeTargetType === 'zone') {
+            const landingZones = holeData.landingZones || [];
+            if (landingZones.length > 0) targetPoint = { x: landingZones[targetZoneIndex].x, y: landingZones[targetZoneIndex].y };
+        }
+
+        const dx = targetPoint.x - ballX;
+        const dy = targetPoint.y - ballY;
+        const baseHeading = Math.atan2(dx, dy);
+        const style = shotStyles[0]; 
+        let lieMultiplier = currentLie === 'Sand' ? 0.70 : (currentLie === 'Light Rough' || currentLie === 'Rough') ? 0.90 : 1.0;
+        let best = null;
+
+        for (let i = 0; i < clubs.length; i++) {
+            let simClub = clubs[i];
+            if (simClub.name === "Putter") continue; 
+            for (let simStance = 0; simStance < 5; simStance++) {
+                let dynamicLoft = Math.max(0, simClub.loft + style.loftMod + ((2 - simStance) * 5));
+                let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
+                let totalDist = simClub.baseDistance * style.distMod * loftDistMod * lieMultiplier;
+                let backspinRPM = Math.max(400, Math.round((simClub.loft * 150) + 1000 + ((simStance - 2) * 500) + style.spinMod));
+                let spinRollMod = Math.max(0.1, 1 - ((backspinRPM - 4000) / 10000));
+                let rollDist = totalDist * simClub.rollPct * style.rollMod * spinRollMod;
+                let carryDist = Math.max(1, totalDist - rollDist);
+
+                let hangTime = Math.min(6, Math.max(0.5, (totalDist / 60) + (dynamicLoft / 15)));
+                let windForward = windY * (hangTime / 2.5) * style.windMod;
+                let windCross = windX * (hangTime / 2.5) * style.windMod;
+                let desiredHeading = Math.atan2((targetPoint.x - ballX) - windCross, (targetPoint.y - ballY) - windForward);
+                let aimDeg = Math.round((desiredHeading - baseHeading) * (180 / Math.PI));
+                aimDeg = Math.max(-45, Math.min(45, aimDeg)); 
+
+                let heading = baseHeading + (aimDeg * Math.PI / 180);
+                let effectiveCarry = carryDist + windForward;
+                let landX = Math.sin(heading) * effectiveCarry + Math.cos(heading) * windCross;
+                let landY = Math.cos(heading) * effectiveCarry - Math.sin(heading) * windCross;
+                let finalX = ballX + landX + (Math.sin(heading) * rollDist * 0.8);
+                let finalY = ballY + landY + (Math.cos(heading) * rollDist * 0.8);
+
+                let miss = Math.sqrt(Math.pow(targetPoint.x - finalX, 2) + Math.pow(targetPoint.y - finalY, 2));
+                if (!best || miss < best.miss || (miss === best.miss && Math.abs(aimDeg) < Math.abs(best.aimDeg))) {
+                    best = { clubIndex: i, stanceIndex: simStance, aimDeg, miss };
+                }
+            }
+        }
+        return best || { clubIndex: 0, stanceIndex: 2, aimDeg: 0 };
+    }
 };

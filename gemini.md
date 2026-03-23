@@ -217,24 +217,23 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Automatic Diagnostic Memory:** To facilitate playtesting, the engine silently runs the Green Reading algorithm and polls the God Caddy at the exact millisecond a putt is struck. 
 - **Advanced Putting Telemetry:** The `Shift + C` clipboard export injects these captured reads into a `[Putting Diagnostics]` block alongside the exact Target Cursor location, Touch Magnetism multiplier, Slope Dampener percentage, and Effective Hole Radius (converted to inches).
 ### 44. v4.40 Engine Addendum (Perspective Audio & Oracle Polish)
-- **Line-of-Sight Audio Panning:** The putting audio engine (`panValue`) calculates lateral deviation relative to the player's aim vector, ensuring breaking putts accurately pan left or right of the player's center view, rather than relying on absolute world coordinates.
-- **Oracle Arrogance Fix:** The Putting Oracle forces `tempoBonus = 1.0` during its simulations, ensuring it provides exact micro-degrees of aim for a standard 5.4-inch cup rather than assuming the player will activate Touch Magnetism.
+- **Line-of-Sight Audio Panning:** The putting audio engine (`panValue`) calculates lateral deviation relative to the player's aim vector, ensuring breaking putts accurately pan left or right of the player's center view.
+- **Oracle Arrogance Fix:** The Putting Oracle forces `tempoBonus = 1.0` during its simulations.
 
 ### 45. v4.41 Engine Addendum (Contextual Shot Focus & Natural Dispersion)
-- **Shot Focus Modes (Key J):** Players can equip 6 Focus modes (Standard, Power, Touch, Spin, Accuracy, Recovery). The engine auto-equips modes based on context.
-- **Risk/Reward Hinge Scaling:** The Spacebar Hinge determines the `focusEffect`. `<50ms` yields 100% of the bonus. `50-150ms` bleeds down to standard physics. `150-250ms+` flips the bonus into a severe penalty.
-- **Natural Dispersion Circle:** Perfectly timed fairway shots inherently suffer a base scatter of +/- 1.5% distance and +/- 5% lateral drift based on the club's `maxDispersion`. Accuracy Focus cuts this scatter in half.
+- **Shot Focus Modes (Key J):** Players can equip 6 Focus modes. The engine auto-equips modes based on context.
+- **Risk/Reward Hinge Scaling:** The Spacebar Hinge determines the `focusEffect`. `<50ms` yields 100% of the bonus. `150-250ms+` flips the bonus into a severe penalty.
+- **Natural Dispersion Circle:** Perfectly timed fairway shots inherently suffer a base scatter of +/- 1.5% distance and +/- 5% lateral drift based on the club's `maxDispersion`.
 
 ### 46. v4.42 Engine Addendum (Global Difficulty Scaling)
 - **Difficulty Tiers (Key I):** Added 4 tiers (Casual, Amateur, Pro, Tour) that dynamically scale the engine's strictness.
-- **The Reflex Buffer:** Rebuilt the `powerOvercharge` penalty system. Lower difficulties safely absorb human auditory reaction times, allowing players to overswing up to 108% (Amateur) or 112% (Casual) without triggering pressure penalties.
-- **Dynamic Sweet Spots:** The Impact Window (Phase 4) and Hinge Window (Phase 1 & 3) dynamically expand up to 2.0x (Casual) or shrink down to 0.6x (Tour). Dispersion from hooks/slices is mathematically dampened on lower difficulties.
+- **The Reflex Buffer:** Lower difficulties safely absorb human auditory reaction times, allowing players to overswing up to 108% (Amateur) or 112% (Casual) without triggering pressure penalties.
 
 ### 47. v4.43 Engine Addendum (Dynamic Timing Diagnostics)
 - **The Quick Check (Shift + Semicolon):** The engine maintains a secondary `lastTimingReport` variable isolated from the main Caddy broadcast.
-- **Backspin Delta Math:** Calculates a "sterile baseline" backspin for every shot. The Diagnostic Report compares actual generated RPM against this baseline to demonstrate how swing timing mathematically altered stopping power.
+- **Backspin Delta Math:** Calculates a "sterile baseline" backspin for every shot. The Diagnostic Report compares actual generated RPM against this baseline.
 
-### 48. v4.44 - v4.45 Engine Addendum (Multiplayer & Turn Manager)
+### 48. v4.44 - v4.46 Engine Addendum (Multiplayer & Asymmetric Profiles)
 - **State Roster:** Converted global single-player sandbox into a `players` array. The engine tracks states independently for up to 4 players.
-- **Automated Turn Manager:** `window.advanceTurn()` enforces standard golf etiquette. After every shot, the engine calculates the absolute distance to the pin for all incomplete players and automatically swaps control to the "Away Player".
-- **Hot-Seat Swapping (Key M):** Manually cycles `currentPlayerIndex` to override the Turn Manager for playtesting.
+- **Automated Turn Manager:** `window.advanceTurn()` enforces standard golf etiquette. After every shot, the engine calculates absolute distance to the pin and automatically swaps to the "Away Player".
+- **Asymmetric Profiles:** `difficultyIndex`, `caddyLevel`, `activeBallIndex`, `shotStyleIndex`, `isChokedDown`, and the `devPower`/`Hinge`/`Impact` shortcuts are isolated per player.
