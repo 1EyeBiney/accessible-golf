@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.48.1)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.48.2)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -107,16 +107,27 @@ window.initPlayers = function() {
 
 window.resetRosterForHole = function() {
     if (players.length === 0) window.initPlayers();
+    
+    // v4.48.2 True Golf Honors (Lowest score goes first)
+    let bestScore = 9999;
+    let honorIndex = currentPlayerIndex; 
+    for (let i = 0; i < players.length; i++) {
+        if (players[i].strokes > 0 && players[i].strokes < bestScore) {
+            bestScore = players[i].strokes;
+            honorIndex = i;
+        }
+    }
+    
     for (let i = 0; i < players.length; i++) {
         players[i].strokes = 0;
         players[i].puttsThisHole = 0;
-        players[i].ballX = 0;
+        players[i].ballX = 0; 
         players[i].ballY = 0;
         players[i].currentLie = "Tee";
         players[i].isHoleComplete = false;
         players[i].isPutting = false;
     }
-    currentPlayerIndex = 0; // Default to Player 1 honors for now
+    currentPlayerIndex = honorIndex; 
 };
 
 window.advanceTurn = function(isPuttingTransition = false) {
@@ -170,11 +181,12 @@ window.advanceTurn = function(isPuttingTransition = false) {
 
     window.updateDashboard();
 
-    // v4.48.0 Pacing-Aware Ghost Swing Trigger
+    // v4.48.2 Optimized Pacing Trigger
     if (players[currentPlayerIndex].isBot) {
-        let baseDelay = 4500; // Fast (+1000ms over old baseline)
+        let baseDelay = 2500; // Fast (Reduced from 4500ms)
         if (pacingModeIndex === 1) baseDelay += 1500; // Medium
         if (pacingModeIndex === 2) baseDelay += 3000; // Slow
+        if (pacingModeIndex === 3) baseDelay = 1500; // Manual (Short wait before Spacebar prompt)
 
         stateTimeouts.push(setTimeout(() => {
             if (typeof window.takeAITurn === 'function') window.takeAITurn();
@@ -740,7 +752,8 @@ window.saveGame = function() {
         windX, windY, windLevelIndex,
         holeTelemetry, lastShotReport,
         currentClubIndex, shotStyleIndex,
-        roundData, puttsThisHole, currentHoleStats, roundHighlights
+        roundData, puttsThisHole, currentHoleStats, roundHighlights,
+        players, currentPlayerIndex, activePlayerCount // v4.48.2 Roster Persistence
     };
     try { localStorage.setItem('ag_save_state', JSON.stringify(state)); } catch(e) {}
 };
@@ -764,6 +777,11 @@ window.loadGame = function() {
         roundHighlights = state.roundHighlights || { drives: [], approaches: [], putts: [] };
         puttsThisHole = state.puttsThisHole || 0;
         currentHoleStats = state.currentHoleStats || { fir: null, gir: false };
+
+        // v4.48.2 Roster Persistence
+        players = state.players || [];
+        currentPlayerIndex = state.currentPlayerIndex || 0;
+        activePlayerCount = state.activePlayerCount || 2;
 
         club = clubs[currentClubIndex];
         return true;

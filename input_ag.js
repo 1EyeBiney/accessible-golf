@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.48.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.48.2)
 
 window.addEventListener('keydown', (e) => {
     // v4.25.0 Keyboard Explore Mode
@@ -756,14 +756,30 @@ window.addEventListener('keydown', (e) => {
 
     if (e.code === 'ArrowDown') {
         e.preventDefault();
+
+        // v4.48.2 Bot Turn Input Lock
+        let isBotTurn = typeof players !== 'undefined' && players.length > 0 && players[currentPlayerIndex].isBot;
+        if (isBotTurn) {
+            window.announce("It is the bot's turn. Please wait.");
+            return;
+        }
+
         if (swingState === 0) startBackswing(false);
         else if (swingState === 4) {
-            if (typeof calculateShot === 'function') calculateShot(false); // Success!
+            if (typeof calculateShot === 'function') calculateShot(false); 
         }
     }
 
     if (e.code === 'ArrowUp') {
         e.preventDefault();
+
+        // v4.48.2 Bot Turn Input Lock
+        let isBotTurn = typeof players !== 'undefined' && players.length > 0 && players[currentPlayerIndex].isBot;
+        if (isBotTurn) {
+            window.announce("It is the bot's turn. Please wait.");
+            return;
+        }
+
         if (swingState === 0) startBackswing(true);
         else if (swingState === 4) {
             lockedImpactTime = performance.now() - impactStartTime;
