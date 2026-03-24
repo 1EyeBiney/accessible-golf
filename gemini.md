@@ -323,3 +323,8 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 
 ### 67. v4.89.0 Engine Addendum (Master Telemetry Dump)
 - **Scorecard Export:** Pressing `Shift + C` inside the Scorecard UI now loops through the entire `players` array and concatenates every player's `roundData` into a single unified Markdown export, rather than only grabbing the actively viewed player.
+
+### 68. v4.90.0 Engine Addendum (Clubhouse Setup Wizard)
+- **State Machine Navigation:** `buildClubhouseMenu` now utilizes `clubhouseState` to render a drill-down wizard (Course -> Size -> Roster -> Match Settings). `input_ag.js` maps `ArrowUp/Down` to UI sweep tones (`bunker_03/04`) and maps `Escape` to step backward through the states.
+- **Pacing Failsafe:** Initializing a new round explicitly resets `pacingModeIndex = 0` to prevent users from accidentally triggering silent Simulation mode.
+- **Round Parameters:** Added `wizardWind`, `wizardStimp`, and `roughConditionIndex` global variables dynamically applied during the "Start Round" sequence.

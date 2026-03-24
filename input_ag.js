@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.89.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.90.0)
 
 window.confirmingUnplayable = false;
 
@@ -235,14 +235,25 @@ window.addEventListener('keydown', (e) => {
         }
 
         if (e.code === 'ArrowDown') {
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('bunker_04');
             if (clubhouseIndex < clubhouseMenu.length - 1) clubhouseIndex++;
             window.announceClubhouse(false);
         } else if (e.code === 'ArrowUp') {
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('bunker_03');
             if (clubhouseIndex > 0) clubhouseIndex--;
             window.announceClubhouse(false);
         } else if (e.code === 'Enter') {
             if (typeof window.playGolfSound === 'function') window.playGolfSound('menu_01');
             clubhouseMenu[clubhouseIndex].action();
+        } else if (e.code === 'Escape') {
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('menu_02'); // Back Cancel
+            if (typeof clubhouseState !== 'undefined') {
+                if (clubhouseState === 'settings') { clubhouseState = 'roster'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
+                else if (clubhouseState === 'roster_slot') { clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true); }
+                else if (clubhouseState === 'roster') { clubhouseState = 'size'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
+                else if (clubhouseState === 'size') { clubhouseState = 'course'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
+                else if (clubhouseState === 'course') { clubhouseState = 'root'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
+            }
         }
         return; 
     }
