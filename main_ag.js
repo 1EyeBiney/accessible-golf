@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.61.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.62.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -178,7 +178,7 @@ window.advanceTurn = function(isPuttingTransition = false) {
         if (isPutting) {
             try {
                 let actualDist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 10;
-                puttTargetDist = Math.max(1/3, Math.round(actualDist));
+                puttTargetDist = Math.max(1/3, Math.round(actualDist * 3) / 3);
                 players[currentPlayerIndex].puttTargetDist = puttTargetDist;
                 aimAngle = 0;
                 players[currentPlayerIndex].aimAngle = 0;
@@ -246,7 +246,7 @@ window.takeAITurn = function() {
     if (isPutting) {
         // v4.48.1 AI Target Cursor & Zero-Power Fix
         let actualDist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 10;
-        puttTargetDist = Math.max(1, Math.ceil(actualDist)); // Snap cursor to actual distance (min 1 yard)
+        puttTargetDist = Math.max(1/3, Math.round(actualDist * 3) / 3); // Snap cursor to exact feet (min 1 foot)
         p.puttTargetDist = puttTargetDist;
         
         aimAngle = blueprint.aimDeg !== null ? blueprint.aimDeg : 0;
@@ -424,7 +424,7 @@ function loadHole(holeNumber) {
         stateTimeouts.forEach(clearTimeout);
         stateTimeouts = [];
 
-        // v4.61.0 Telemetry Archiving
+        // v4.62.0 Telemetry Archiving
         if (typeof holeTelemetry !== 'undefined' && holeTelemetry.length > 0 && typeof roundData !== 'undefined') {
             let record = roundData.find(r => r.hole === hole);
             if (record) {

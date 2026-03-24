@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.61.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.62.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -28,7 +28,7 @@ window.initPutting = function() {
     currentClubIndex = clubs.findIndex(c => c.name === "Putter");
     if (currentClubIndex !== -1) club = clubs[currentClubIndex];
     let rawDist = calculateDistanceToPin();
-    let dist = Math.max(1/3, Math.round(rawDist));
+    let dist = Math.max(1/3, Math.round(rawDist * 3) / 3);
     puttTargetDist = dist; aimAngle = 0;
     
     let locationStr = gameMode === 'putting' ? "Welcome to the Practice Putting Green." : "On the green!";

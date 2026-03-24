@@ -138,9 +138,9 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **The Caddy Panel:** The massive `lastShotReport` (including carry, roll, proximity, and hidden telemetry) is routed to a persistent, stylized DOM element upon hole/shot completion, separating it from the core swing prompts.
 - **Real-Time Telemetry Dashboard:** A 4-column visual grid permanently displays Target Info, Environment (Wind/Lie), Equipment (Club/Style), and Setup (Aim/Stance). 
 - **Input Binding:** `window.updateDashboard()` is wired into every State 0 keydown listener (`PageUp`, `ArrowLeft`, `Home`, `W`, etc.) and the `driftWind()` loop to provide instant, real-time visual feedback to sighted spectators as the player makes adjustments.
-### 28. v3.70 - v4.61 Engine Addendum (The Launch Monitor & Physics Parity)
+### 28. v3.70 - v4.62 Engine Addendum (The Launch Monitor & Physics Parity)
 - **The Parabolic Arc:** Tree/Obstacle clearance uses true parabolic projectile motion `(tan(loft) / carry) * dist * (carry - dist)`. The engine correctly alters distance based on Stance Index. `loftDistMod` adds carry for Back stances (delofted, penetrating flight) and reduces carry for Forward stances (high loft, pop-up) by +/- 3% per tick.
-- **Base Club Scaling (v4.61.0):** Club `baseDistances` are scaled down (Driver = 230y) to balance against stacking multipliers (110% Power, +10% Power Focus, +6% Stance), keeping maximum human drives around 330 yards.
+- **Base Club Scaling (v4.62.0):** Club `baseDistances` are scaled down (Driver = 230y) to balance against stacking multipliers (110% Power, +10% Power Focus, +6% Stance), keeping maximum human drives around 330 yards.
 - **The Predictive Caddy (Level 3):** The `getCaddyAdvice` function runs a "Ghost Simulation." It calculates `loftDistMod`, subtracts spin-induced roll, evaluates wind drift, and applies Stance Alignment side-spin to predict if a shot will clear or curve into an obstacle mid-flight.
 - **Flight Path Narratives:** The engine interpolates the ball's mid-air coordinates `(projectedX, projectedY, ballHeightFeet)` exactly as it crosses an obstacle's distance, generating highly specific narratives (e.g., "shaved the left edge by 3 yards").
 
@@ -270,6 +270,9 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Power Cap Reduction:** Maximum physical swing power is hard-capped at `110%` (down from 120%). This prevents arcade-style 400+ yard drives, capping mathematically perfect power-focus drives around 330 yards (PGA reality).
 - **Massive AI Pacing Buffers:** The base delay before an AI takes its turn is expanded by +5000ms across all pacing modes (Slow pacing now waits 16.5 seconds). This guarantees the ARIA screen reader has ample time to finish reading the long Markdown telemetry before the bot swings.
 
-### 55. v4.57 - v4.61 Engine Addendum (Dynamic TTS Pacing & Telemetry Archives)
+### 55. v4.57 - v4.62 Engine Addendum (Dynamic TTS Pacing & Telemetry Archives)
 - **Character-Length Polling:** The engine dynamically scales AI turn delays to perfectly fit ARIA screen reader output. It calculates the `.length` of the `lastShotReport` (or hole description) and multiplies it by a millisecond variable based on `pacingModeIndex` (Fast: 20ms/char, Medium: 35ms/char, Slow: 55ms/char) to prevent audio clipping or dead silence.
 - **Scorecard Archives:** `loadHole()` intercepts and saves the active `holeTelemetry` array directly into `roundData` before wiping the slate. Pressing `C` or `Shift+C` in the Scorecard allows the user to export specific historical hole reports.
+
+### 56. v4.62.0 Engine Addendum (Putting Granularity)
+- **Exact Foot Snapping:** To prevent the UI from locking short putts into factors of 3 (3ft, 6ft, 9ft), the Turn Manager and `initPutting` functions now snap to the nearest exact foot using `Math.round(actualDist * 3) / 3`. This preserves decimal yardage for the physics engine while allowing dynamic UI readouts like 4ft or 7ft.
