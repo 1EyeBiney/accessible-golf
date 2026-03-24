@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.51.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.52.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -345,6 +345,17 @@ window.loadActivePlayer = function(index) {
     devHinge = p.devHinge !== undefined ? p.devHinge : false;
     devImpact = p.devImpact !== undefined ? p.devImpact : false;
     
+    let distToPin = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 10;
+    const holeData = typeof courses !== 'undefined' ? courses[currentCourseIndex].holes[hole - 1] : null;
+    const greenSize = holeData && holeData.greenRadius ? holeData.greenRadius : 20;
+    
+    if (distToPin <= greenSize) {
+        isPutting = true;
+        p.isPutting = true;
+        currentClubIndex = clubs.findIndex(c => c.name === "Putter");
+        if (currentClubIndex !== -1) club = clubs[currentClubIndex];
+    }
+
     window.updateDashboard();
 };
 
@@ -525,7 +536,7 @@ function getSightReport() {
         currentHole.hazards.forEach(h => {
             let hAngleRad = Math.atan2(h.offset - ballX, h.distance - ballY) * (180 / Math.PI);
             if (Math.abs(hAngleRad - aimDeg) < 15 && h.distance > ballY) {
-                warnings.push(`${h.type} is in your line of sight, ${Math.round(h.distance - ballY)} yards ahead.`);
+                warnings.push(`${h.type} is in your line of sight, ${Math.round(Math.sqrt(Math.pow(h.offset - ballX, 2) + Math.pow(h.distance - ballY, 2)))} yards ahead.`);
             }
         });
     }

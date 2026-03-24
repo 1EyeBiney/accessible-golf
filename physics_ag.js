@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.51.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.52.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -1424,7 +1424,7 @@ window.getCaddyAdvice = function() {
     });
 
     // Aggression Bias for Par 4/5
-    if (best && holeData.par > 3 && (currentLie === "Tee" || currentLie === "Fairway")) {
+    if (best && holeData.par > 3 && targetDist > 150 && (currentLie === "Tee" || currentLie === "Fairway")) {
          let longestSafeClub = best;
          simulatedClubs.forEach(simClub => {
              // Re-run simple straight simulation to see if a longer club is safe
