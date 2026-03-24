@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.48.2)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.49.7)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -131,73 +131,102 @@ window.resetRosterForHole = function() {
 };
 
 window.advanceTurn = function(isPuttingTransition = false) {
-    if (gameMode !== 'course') return;
-    window.saveActivePlayer();
+    try {
+        if (gameMode !== 'course') return;
+        window.saveActivePlayer();
 
-    let allDone = players.every(p => p.isHoleComplete);
-    if (allDone) {
-        let compMsg = `All players have finished Hole ${hole}. Press Enter to proceed to the next hole.`;
-        if (hole >= courses[currentCourseIndex].holes.length) {
-            gameMode = 'post_round';
-            compMsg = "Round Complete! All players have finished. Press Shift + N to copy summaries, or Escape to return to the Clubhouse.";
+        let allDone = players.every(p => p.isHoleComplete);
+        if (allDone) {
+            let compMsg = `All players have finished Hole ${hole}. Press Enter to proceed to the next hole.`;
+            if (hole >= courses[currentCourseIndex].holes.length) {
+                gameMode = 'post_round';
+                compMsg = "Round Complete! All players have finished. Press Shift + N to copy summaries, or Escape to return to the Clubhouse.";
+            }
+            window.announce(compMsg);
+            window.setCaddyPanelText(compMsg);
+            swingState = 6;
+            return;
         }
-        window.announce(compMsg);
-        window.setCaddyPanelText(compMsg);
-        swingState = 6;
-        return;
-    }
 
-    let furthestDist = -1;
-    let nextIndex = currentPlayerIndex;
+        let furthestDist = -1;
+        let nextIndex = currentPlayerIndex;
 
-    // Find Away Player
-    for (let i = 0; i < players.length; i++) {
-        let p = players[i];
-        if (!p.isHoleComplete) {
-            let dist = Math.sqrt(Math.pow(pinX - p.ballX, 2) + Math.pow(pinY - p.ballY, 2));
-            // +0.1 prevents constant swapping on ties (e.g., the Tee Box)
-            if (dist > furthestDist + 0.1) {
-                furthestDist = dist;
-                nextIndex = i;
+        for (let i = 0; i < players.length; i++) {
+            let p = players[i];
+            if (!p.isHoleComplete) {
+                let dist = Math.sqrt(Math.pow(pinX - p.ballX, 2) + Math.pow(pinY - p.ballY, 2));
+                if (dist > furthestDist + 0.1) {
+                    furthestDist = dist;
+                    nextIndex = i;
+                }
             }
         }
-    }
 
-    let oldIndex = currentPlayerIndex;
-    window.loadActivePlayer(nextIndex);
-    let pName = players[currentPlayerIndex].name;
+        let oldIndex = currentPlayerIndex;
+        window.loadActivePlayer(nextIndex);
+        let pName = players[currentPlayerIndex].name;
 
-    let distMsg = `${Math.round(calculateDistanceToPin())} yards to pin. Lie: ${currentLie}.`;
-    if (isPutting) distMsg = `On the Green. ${puttTargetDist} yards to the cup.`;
+        let distMsg = "Distance unknown.";
+        try { distMsg = `${Math.round(calculateDistanceToPin())} yards to pin. Lie: ${currentLie}.`; } catch(e){}
 
-    if (nextIndex !== oldIndex || isPuttingTransition) {
-        let msg = `Swapped to ${pName}. ${distMsg}`;
-        window.announce(msg);
-        document.getElementById('visual-output').innerText = msg;
-        if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_07');
-    } else {
-        window.announce(`Still ${pName}'s turn. ${distMsg}`);
-    }
+        if (isPutting) {
+            try {
+                let actualDist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 10;
+                puttTargetDist = Math.max(1/3, Math.round(actualDist));
+                players[currentPlayerIndex].puttTargetDist = puttTargetDist;
+                aimAngle = 0;
+                players[currentPlayerIndex].aimAngle = 0;
+                
+                let isShort = puttTargetDist <= 5.0;
+                let unit = isShort ? "feet" : "yards";
+                let displayDist = isShort ? Math.round(puttTargetDist * 3) : Math.round(puttTargetDist);
+                distMsg = `On the Green. ${displayDist} ${unit} to the cup.`;
+            } catch(e){}
+        }
 
-    window.updateDashboard();
+        try {
+            if (nextIndex !== oldIndex || isPuttingTransition) {
+                let msg = `Swapped to ${pName}. ${distMsg}`;
+                setTimeout(() => { window.announce(msg); }, 300);
+                let vis = document.getElementById('visual-output');
+                if(vis) vis.innerText = msg;
+                if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_07');
+            } else {
+                setTimeout(() => { window.announce(`Still ${pName}'s turn. ${distMsg}`); }, 300);
+            }
+        } catch(e){}
 
-    // v4.48.2 Optimized Pacing Trigger
-    if (players[currentPlayerIndex].isBot) {
-        let baseDelay = 2500; // Fast (Reduced from 4500ms)
-        if (pacingModeIndex === 1) baseDelay += 1500; // Medium
-        if (pacingModeIndex === 2) baseDelay += 3000; // Slow
-        if (pacingModeIndex === 3) baseDelay = 1500; // Manual (Short wait before Spacebar prompt)
+        try { window.updateDashboard(); } catch(e){}
 
-        stateTimeouts.push(setTimeout(() => {
-            if (typeof window.takeAITurn === 'function') window.takeAITurn();
-        }, baseDelay));
+        if (players[currentPlayerIndex].isBot) {
+            window.waitingForBot = false;
+            let baseDelay = 2500; 
+            if (pacingModeIndex === 1) baseDelay += 1500;
+            if (pacingModeIndex === 2) baseDelay += 3000;
+            if (pacingModeIndex === 3) baseDelay = 1500;
+
+            stateTimeouts.push(setTimeout(() => {
+                if (typeof window.takeAITurn === 'function') window.takeAITurn();
+            }, baseDelay));
+        }
+    } catch (fatalError) {
+        console.error("CRITICAL TURN MANAGER CRASH:", fatalError);
     }
 };
 
 // v4.48.0 AI Brain & Short Game Logic
 window.takeAITurn = function() {
     let p = players[currentPlayerIndex];
-    let blueprint = typeof window.getOracleBlueprint === 'function' ? window.getOracleBlueprint() : { aimDeg: 0, pace: typeof puttTargetDist !== 'undefined' ? puttTargetDist : 10, clubIndex: 0, stanceIndex: 2, styleIndex: 0, power: 100 };
+    let rawBlueprint = null;
+    try {
+        if (typeof window.getOracleBlueprint === 'function') {
+            rawBlueprint = window.getOracleBlueprint();
+        }
+    } catch (e) {
+        console.warn("Oracle exception caught. Falling back to default blueprint.");
+        rawBlueprint = null;
+    }
+    let blueprint = rawBlueprint || { aimDeg: 0, pace: typeof puttTargetDist !== 'undefined' ? puttTargetDist : 10, clubIndex: currentClubIndex, stanceIndex: 2, styleIndex: 0, power: 100 };
     
     if (isPutting) {
         // v4.48.1 AI Target Cursor & Zero-Power Fix
@@ -211,10 +240,10 @@ window.takeAITurn = function() {
         // Calculate power, ensuring it never drops below 1% to prevent infinite loops
         p.botPower = Math.max(1, Math.round((pace / puttTargetDist) * 100)); 
     } else {
-        currentClubIndex = blueprint.clubIndex !== null ? blueprint.clubIndex : 0;
-        club = clubs[currentClubIndex];
-        stanceIndex = blueprint.stanceIndex !== null ? blueprint.stanceIndex : 2;
-        aimAngle = blueprint.aimDeg !== null ? blueprint.aimDeg : 0;
+        currentClubIndex = blueprint.clubIndex !== undefined && blueprint.clubIndex !== null ? blueprint.clubIndex : 0;
+        if (typeof clubs !== 'undefined' && clubs[currentClubIndex]) { club = clubs[currentClubIndex]; }
+        stanceIndex = blueprint.stanceIndex !== undefined && blueprint.stanceIndex !== null ? blueprint.stanceIndex : 2;
+        aimAngle = blueprint.aimDeg !== undefined && blueprint.aimDeg !== null ? blueprint.aimDeg : 0;
         shotStyleIndex = blueprint.styleIndex !== undefined ? blueprint.styleIndex : 0;
         p.botPower = blueprint.power !== undefined ? blueprint.power : 100;
     }
@@ -225,6 +254,8 @@ window.takeAITurn = function() {
     
     window.autoSetFocus(true);
     window.updateDashboard();
+
+    if (!club && typeof clubs !== 'undefined') club = clubs[0];
     
     let setupMsg = isPutting ? `${p.name} is reading the green...` : `${p.name} equips ${club.name} and lines up the shot...`;
     
@@ -234,8 +265,10 @@ window.takeAITurn = function() {
         window.announce(setupMsg);
         document.getElementById('visual-output').innerText = setupMsg;
     } else {
-        window.announce(setupMsg);
+        setTimeout(() => { window.announce(setupMsg); }, 300);
         document.getElementById('visual-output').innerText = setupMsg;
+        if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_01');
+
         stateTimeouts.push(setTimeout(() => {
             swingState = 4;
             if (typeof calculateShot === 'function') calculateShot(false);
@@ -360,109 +393,114 @@ let lastTimingReport = "No swing data available.";
 let holeTelemetry = [];
 
 function loadHole(holeNumber) {
-    // v4.19.4 Critical State Clearing (Kill all ghost timers)
-    stateTimeouts.forEach(clearTimeout);
-    stateTimeouts = [];
-    if (typeof powerOscillator !== 'undefined' && powerOscillator) {
-        try { powerOscillator.stop(); } catch (e) {}
+    try {
+        stateTimeouts.forEach(clearTimeout);
+        stateTimeouts = [];
+        holeTelemetry = [];
+        if (typeof powerOscillator !== 'undefined' && powerOscillator) {
+            try { powerOscillator.stop(); } catch (e) {}
+        }
+
+        window.initAudio(); 
+        if (typeof window.playEcho === 'function') {
+            window.playEcho('sine', 600, 800, 0.2, 0.3, 0.2);
+        }
+
+        const course = courses[currentCourseIndex];
+        if (holeNumber > course.holes.length) holeNumber = 1; 
+        const holeData = course.holes[holeNumber - 1];
+
+        if (!holeData.landingZones || holeData.landingZones.length === 0) {
+            holeData.landingZones = [{ name: "Green Approach", x: holeData.pinX, y: holeData.pinY - 15 }];
+        }
+        
+        hole = holeData.number;
+        par = holeData.par;
+        pinX = holeData.pinX;
+        pinY = holeData.pinY;
+        
+        ballX = 0; ballY = 0; strokes = 0; isHoleComplete = false;
+        puttsThisHole = 0;
+        currentHoleStats = { fir: holeData.par > 3 ? false : null, gir: false, driveDistance: null, approachStart: null, approachProx: null, puttDistance: null };
+        currentLie = "Tee";
+        aimAngle = 0; stanceIndex = 2; stanceAlignment = 0;
+        swingState = 0; 
+
+        isPutting = false;
+        puttState = 0;
+        isChokedDown = false;
+        window.waitingForBot = false;
+
+        window.resetRosterForHole();
+
+        // FIX: Establish default club BEFORE loading the player profile
+        let defaultClub = holeData.par === 3 ? "7 Iron" : "Driver";
+        currentClubIndex = clubs.findIndex(c => c.name === defaultClub);
+        if (currentClubIndex === -1) currentClubIndex = 0;
+        club = clubs[currentClubIndex];
+
+        // FIX: Scrub putting state and assign correct club for ALL players
+        for (let i = 0; i < players.length; i++) {
+            players[i].currentClubIndex = currentClubIndex;
+            players[i].isPutting = false;
+            players[i].shotStyleIndex = 0;
+            players[i].aimAngle = 0;
+        }
+
+        // Safe to load active player now
+        window.loadActivePlayer(currentPlayerIndex);
+
+        activeTargetType = 'pin';
+        gridX = 0; gridY = 0;
+        targetZoneIndex = 0;
+        isGridNavigating = false; 
+
+        window.updateTargetZone();
+        viewingHazards = false;
+        
+        shotStyleIndex = 0;
+        window.autoSetFocus(true);
+        window.updateDashboard();
+
+        if (windLevelIndex >= 2 && typeof window.playGolfSound === 'function') {
+            window.playGolfSound('env_02');
+        }
+        if (typeof window.saveGame === 'function') window.saveGame();
+
+        let holeDist = typeof calculateDistanceToPin === 'function'
+            ? calculateDistanceToPin()
+            : Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
+        let honorsName = (players[currentPlayerIndex] && players[currentPlayerIndex].name)
+            ? players[currentPlayerIndex].name
+            : `Player ${currentPlayerIndex + 1}`;
+        let holeDesc = holeData.description || "";
+        let fairwayDesc = holeData.fairwayDescription || "";
+        let briefing = `Hole ${hole}. Par ${par}. ${holeDesc} ${fairwayDesc} ${holeDist} yards. Honors: ${honorsName}.`;
+        briefing = briefing.replace(/\s+/g, ' ').trim();
+
+        setTimeout(() => {
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_03');
+            window.announce(briefing);
+            let vis = document.getElementById('visual-output');
+            if (vis) vis.innerText = briefing;
+        }, 1000);
+
+        if (players[currentPlayerIndex] && players[currentPlayerIndex].isBot) {
+            let baseDelay = 2500;
+            if (pacingModeIndex === 1) baseDelay += 1500;
+            if (pacingModeIndex === 2) baseDelay += 3000;
+            if (pacingModeIndex === 3) baseDelay = 1500;
+
+            stateTimeouts.push(setTimeout(() => {
+                if (typeof window.takeAITurn === 'function') window.takeAITurn();
+            }, baseDelay));
+        }
+    } catch (fatalError) {
+        console.error("LOAD HOLE CRASH:", fatalError);
+        window.announce("Critical error loading hole: " + fatalError.message);
+        let vis = document.getElementById('visual-output');
+        if (vis) vis.innerText = "CRASH: " + fatalError.message;
     }
-
-    window.initAudio(); // Ensure context is alive
-    // v4.18.2 Audio Priming (Sound 37: Bouncing Confirm)
-    if (typeof window.playEcho === 'function') {
-        window.playEcho('sine', 600, 800, 0.2, 0.3, 0.2);
-    }
-
-    const course = courses[currentCourseIndex];
-    if (holeNumber > course.holes.length) holeNumber = 1; 
-    const holeData = course.holes[holeNumber - 1];
-
-    // v4.19.2 Dynamic Landing Zone Fallback (Par 3 Safety)
-    if (!holeData.landingZones || holeData.landingZones.length === 0) {
-        holeData.landingZones = [
-            { name: "Green Approach", x: holeData.pinX, y: holeData.pinY - 15 }
-        ];
-    }
-    
-    hole = holeData.number;
-    par = holeData.par;
-    pinX = holeData.pinX;
-    pinY = holeData.pinY;
-    
-    ballX = 0; ballY = 0; strokes = 0; isHoleComplete = false;
-    puttsThisHole = 0;
-    // v4.30.1 Add approachStart and approachProx to the tracker
-    currentHoleStats = { fir: holeData.par > 3 ? false : null, gir: false, driveDistance: null, approachStart: null, approachProx: null, puttDistance: null };
-    currentLie = "Tee";
-    aimAngle = 0; stanceIndex = 2; stanceAlignment = 0;
-    swingState = 0; // FIX: Added state reset
-
-    // v4.10.1 Explicitly wipe short-game states for the new hole
-    isPutting = false;
-    puttState = 0;
-    isChokedDown = false;
-
-    // v4.45.0 Reset roster state for the new hole
-    window.resetRosterForHole();
-    window.loadActivePlayer(currentPlayerIndex);
-
-    // v4.14.1 Reset targeting modes so they don't bleed into the next hole
-    activeTargetType = 'pin';
-    gridX = 0; gridY = 0;
-    targetZoneIndex = 0;
-    isGridNavigating = false; // v4.16.1 Grid Warp Safety Lock
-
-    holeTelemetry = [];
-    window.updateTargetZone();
-    viewingHazards = false;
-    
-    let defaultClub = holeData.par === 3 ? "7 Iron" : "Driver";
-    currentClubIndex = clubs.findIndex(c => c.name === defaultClub);
-    if (currentClubIndex === -1) currentClubIndex = 0;
-    club = clubs[currentClubIndex];
-
-    // v4.49.0 Force per-player club/putting reset to prevent hole-to-hole leakage
-    for (let i = 0; i < players.length; i++) {
-        players[i].currentClubIndex = currentClubIndex;
-        players[i].isPutting = false;
-    }
-
-    shotStyleIndex = 0;
-    window.autoSetFocus(true);
-    window.updateDashboard();
-
-    // v4.49.0 Automated hole briefing and honors callout
-    let holeDist = typeof calculateDistanceToPin === 'function'
-        ? calculateDistanceToPin()
-        : Math.round(Math.sqrt(Math.pow(pinX - ballX, 2) + Math.pow(pinY - ballY, 2)));
-    let honorsName = (players[currentPlayerIndex] && players[currentPlayerIndex].name)
-        ? players[currentPlayerIndex].name
-        : `Player ${currentPlayerIndex + 1}`;
-    let holeDesc = holeData.description || "";
-    let fairwayDesc = holeData.fairwayDescription || "";
-    let briefing = `Hole ${hole}. Par ${par}. ${holeDesc} ${fairwayDesc} ${holeDist} yards. Honors: ${honorsName}.`;
-    briefing = briefing.replace(/\s+/g, ' ').trim();
-    window.announce(briefing);
-    document.getElementById('visual-output').innerText = briefing;
-
-    // v4.29.0 Ambient Wind on Tee
-    if (windLevelIndex >= 2 && typeof window.playGolfSound === 'function') {
-        window.playGolfSound('env_02');
-    }
-
-    // v4.49.0 Auto-trigger bot honors turn with pacing-aware delay
-    if (players[currentPlayerIndex] && players[currentPlayerIndex].isBot) {
-        let baseDelay = 2500;
-        if (pacingModeIndex === 1) baseDelay += 1500;
-        if (pacingModeIndex === 2) baseDelay += 3000;
-        if (pacingModeIndex === 3) baseDelay = 1500;
-
-        stateTimeouts.push(setTimeout(() => {
-            if (typeof window.takeAITurn === 'function') window.takeAITurn();
-        }, baseDelay));
-    }
-
-    if (typeof window.saveGame === 'function') window.saveGame(); // Save when starting new hole
 }
 
 function getSightReport() {

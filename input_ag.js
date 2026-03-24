@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.48.2)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.49.4)
 
 window.confirmingUnplayable = false;
 
@@ -511,6 +511,11 @@ window.addEventListener('keydown', (e) => {
             e.preventDefault();
             if (e.shiftKey) {
                 let exportData = holeTelemetry.length > 0 ? holeTelemetry.join('\n\n---\n\n') : lastShotReport;
+                if (gameMode === 'course') {
+                    const holeData = courses[currentCourseIndex].holes[hole - 1];
+                    const header = `--- HOLE ${hole} (${holeData.distance}y, Par ${par}. Pin: ${holeData.pinLocation}.) ---\n\n`;
+                    exportData = header + exportData;
+                }
                 navigator.clipboard.writeText(exportData).then(() => {
                     const msg = `Copied ${holeTelemetry.length} shots to clipboard.`;
                     document.getElementById('visual-output').innerText = msg; window.announce(msg);
@@ -585,11 +590,6 @@ window.addEventListener('keydown', (e) => {
 
             strokes = 0; holeTelemetry = [];
             loadHole(targetHole);
-
-            let targetDist = calculateDistanceToPin();
-            let msg = `Warping to Hole ${hole}. Par ${par}. ${targetDist} yards.`;
-            window.announce(msg); 
-            document.getElementById('visual-output').innerText = msg;
             return;
         }
     }
@@ -648,9 +648,6 @@ window.addEventListener('keydown', (e) => {
             const course = courses[currentCourseIndex];
             if (hole < course.holes.length) {
                 loadHole(hole + 1);
-                let targetDist = calculateDistanceToPin();
-                let msg = `Hole ${hole}. Par ${par}. ${targetDist} yards.`;
-                window.announce(msg); document.getElementById('visual-output').innerText = msg;
             } else {
                 window.announce("Round Complete! Press Shift E to view your final scorecard.");
             }
@@ -777,7 +774,11 @@ window.addEventListener('keydown', (e) => {
         // v4.48.2 Bot Turn Input Lock
         let isBotTurn = typeof players !== 'undefined' && players.length > 0 && players[currentPlayerIndex].isBot;
         if (isBotTurn) {
-            window.announce("It is the bot's turn. Please wait.");
+            if (typeof window.waitingForBot !== 'undefined' && window.waitingForBot) {
+                window.announce("It is the bot's turn. Press Spacebar to let them strike.");
+            } else {
+                window.announce("It is the bot's turn. Please wait.");
+            }
             return;
         }
 
@@ -793,7 +794,11 @@ window.addEventListener('keydown', (e) => {
         // v4.48.2 Bot Turn Input Lock
         let isBotTurn = typeof players !== 'undefined' && players.length > 0 && players[currentPlayerIndex].isBot;
         if (isBotTurn) {
-            window.announce("It is the bot's turn. Please wait.");
+            if (typeof window.waitingForBot !== 'undefined' && window.waitingForBot) {
+                window.announce("It is the bot's turn. Press Spacebar to let them strike.");
+            } else {
+                window.announce("It is the bot's turn. Please wait.");
+            }
             return;
         }
 
@@ -1079,36 +1084,49 @@ window.addEventListener('keydown', (e) => {
         }
         if (e.code === 'KeyT') {
             e.preventDefault(); 
-            let distToPin = calculateDistanceToPin();
-            let distMsg = "";
-            if (gameMode === 'course') {
-                const holeData = courses[currentCourseIndex].holes[hole - 1];
-                if (targetY !== holeData.pinY || targetX !== holeData.pinX) {
-                    let distToTarget = Math.round(Math.sqrt(Math.pow(targetX - ballX, 2) + Math.pow(targetY - ballY, 2)));
-                    distMsg += `Aiming at target, ${distToTarget} yards away. `;
-                }
-                distMsg += `${distToPin} yards to the pin.`;
-                if (holeData.pinLocation) distMsg += ` Pin is ${holeData.pinLocation}.`;
-
-                // v4.14.3 Macro Elevation Report
-                // (Stubbed for future fairway contours. Currently reads Green elevation if close)
-                let elevationMsg = " Plays flat.";
-                if (distToPin <= 50 && holeData.greenType && typeof greenDictionary !== 'undefined') {
-                    let activeContours = greenDictionary[holeData.greenType] || [];
-                    let zone = activeContours.find(z => distToPin <= z.startY && distToPin > z.endY);
-                    if (zone) {
-                        if (zone.slopeY > 0) elevationMsg = " Plays Uphill.";
-                        if (zone.slopeY < 0) elevationMsg = " Plays Downhill.";
+            if (!e.shiftKey) {
+                let distToPin = calculateDistanceToPin();
+                let distMsg = "";
+                if (gameMode === 'course') {
+                    const holeData = courses[currentCourseIndex].holes[hole - 1];
+                    if (targetY !== holeData.pinY || targetX !== holeData.pinX) {
+                        let distToTarget = Math.round(Math.sqrt(Math.pow(targetX - ballX, 2) + Math.pow(targetY - ballY, 2)));
+                        distMsg += `Aiming at target, ${distToTarget} yards away. `;
                     }
+                    distMsg += `${distToPin} yards to the pin.`;
+                    if (holeData.pinLocation) distMsg += ` Pin is ${holeData.pinLocation}.`;
+
+                    // v4.14.3 Macro Elevation Report
+                    // (Stubbed for future fairway contours. Currently reads Green elevation if close)
+                    let elevationMsg = " Plays flat.";
+                    if (distToPin <= 50 && holeData.greenType && typeof greenDictionary !== 'undefined') {
+                        let activeContours = greenDictionary[holeData.greenType] || [];
+                        let zone = activeContours.find(z => distToPin <= z.startY && distToPin > z.endY);
+                        if (zone) {
+                            if (zone.slopeY > 0) elevationMsg = " Plays Uphill.";
+                            if (zone.slopeY < 0) elevationMsg = " Plays Downhill.";
+                        }
+                    }
+                    distMsg += elevationMsg;
+                    distMsg += getSightReport(); 
+                } else {
+                    distMsg = `${distToPin} yards to the pin.`;
                 }
-                distMsg += elevationMsg;
-                distMsg += getSightReport(); 
+                
+                document.getElementById('visual-output').innerText = distMsg; 
+                window.announce(distMsg);
             } else {
-                distMsg = `${distToPin} yards to the pin.`;
+                let p = typeof players !== 'undefined' ? players[currentPlayerIndex] : null;
+                let pName = p ? p.name : 'None';
+                let isB = p ? p.isBot : false;
+                let qLen = typeof stateTimeouts !== 'undefined' ? stateTimeouts.length : 0;
+                let pMode = typeof pacingModes !== 'undefined' ? pacingModes[pacingModeIndex] : 'Unknown';
+                let diag = `Turn Diagnostic. Index: ${currentPlayerIndex}. Name: ${pName}. Bot: ${isB}. Waiting: ${window.waitingForBot}. Pacing: ${pMode}. Timeouts: ${qLen}.`;
+                window.announce(diag);
+                document.getElementById('visual-output').innerText = diag;
             }
             
-            document.getElementById('visual-output').innerText = distMsg; 
-            window.announce(distMsg);
+            return;
         }
     }
 });
