@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.72.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.80.0)
 
 window.confirmingUnplayable = false;
 
@@ -1030,7 +1030,7 @@ window.addEventListener('keydown', (e) => {
             let gripStr = isChokedDown ? "Choked " : "";
             let focusStr = typeof focusModes !== 'undefined' ? focusModes[focusIndex].name : "Standard";
 
-            // v4.72.0 Verbosity Reduction Array
+            // v4.80.0 Verbosity Reduction Array
             let reportParts = [
                 `${gripStr}${club.name}`,
                 `${expectedDist} expected clear`,

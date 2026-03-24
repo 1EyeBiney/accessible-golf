@@ -1,4 +1,4 @@
-// audio_ag.js - Audio Engine and Screen Reader Announcer (v4.72.0)
+// audio_ag.js - Audio Engine and Screen Reader Announcer (v4.80.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;

@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.72.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.80.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -428,7 +428,7 @@ function loadHole(holeNumber) {
         stateTimeouts.forEach(clearTimeout);
         stateTimeouts = [];
 
-        // v4.72.0 Telemetry Archiving
+        // v4.80.0 Telemetry Archiving
         if (typeof holeTelemetry !== 'undefined' && holeTelemetry.length > 0 && typeof roundData !== 'undefined') {
             let record = roundData.find(r => r.hole === hole);
             if (record) {
@@ -669,7 +669,12 @@ window.updateDashboard = function() {
     document.getElementById('dash-hole').innerText = holeStr;
     
     // 2. Environment Info
-    let windStr = windX === 0 && windY === 0 ? "Calm" : `${Math.abs(windY)}y ${windY>0?'Tail':'Head'}\n${Math.abs(windX)}y ${windX>0?'Right':'Left'}`;
+    const targetAngleRad = Math.atan2(targetX - ballX, targetY - ballY);
+    const finalRad = targetAngleRad + (aimAngle * (Math.PI / 180));
+    let relWindY = Math.round((windY * Math.cos(finalRad)) + (windX * Math.sin(finalRad)));
+    let relWindX = Math.round((windX * Math.cos(finalRad)) - (windY * Math.sin(finalRad)));
+    
+    let windStr = windX === 0 && windY === 0 ? "Calm" : `${Math.abs(relWindY)}y ${relWindY>0?'Tail':'Head'}\n${Math.abs(relWindX)}y ${relWindX>0?'Right':'Left'}`;
     let activeLie = gameMode === 'range' ? rangeLie : currentLie;
     document.getElementById('dash-env').innerText = `${activeLie}\n${windStr}`;
     

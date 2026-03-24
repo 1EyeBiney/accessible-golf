@@ -281,11 +281,15 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Front-Loading Data:** The `X` key report strictly outputs data in order of importance to reduce ARIA fatigue: Club, Distance, Focus, then Alignment/Address.
 - **Omitting Defaults:** Stance Alignment and Ball Address variables are completely omitted from the `X` key TTS broadcast if they are currently set to Neutral. 
 
-### 58. v4.72.0 Engine Addendum (3D Topography Engine)
+### 58. v4.80.0 Engine Addendum (3D Topography Engine)
 - **Elevation (`ballZ`, `targetZ`):** Modifies carry distance directly. 1 yard of elevation gain reduces carry by 1 yard.
 - **Uneven Lies (`lieTilt`):** Alters clubface dynamics. Ball above feet generates hook spin (-80 RPM per degree); ball below feet generates slice spin.
 - **Slope Roll (`landingSlope`):** Alters ground friction. Downslopes (negative values) multiply roll out; upslopes (positive values) act as backboards and dampen roll distance by 5% per degree.
 
-### 59. v4.72.0 Engine Addendum (Driver Off Deck & AI Logic)
+### 59. v4.72.0 - v4.80.0 Engine Addendum (Driver Off Deck & AI Logic)
 - **Physics Penalty:** Hitting a Driver from the Fairway triggers a severe penalty: Carry x0.7, Roll x1.5, SideSpin x2.5.
 - **AI Selection:** The Oracle searches clubs backwards (Wedges first). Driver is strictly forbidden from the Rough. The AI applies a +50 Danger Penalty to Driver-off-deck shots, making it a desperation-only club.
+- **Fractional Power Penalty:** The Oracle adds +20 to the miss score of any Full Swing (Style 0) that requires < 85% power, forcing the AI to select wedges for short yardages.
+
+### 60. v4.80.0 Engine Addendum (3D Coordinate Transformations)
+- **Global Wind Matrix:** `windX` and `windY` are permanent global map coordinates. The engine uses `relWindY = (windY * Math.cos(finalRad)) + (windX * Math.sin(finalRad))` to dynamically convert map wind into Relative Headwinds/Crosswinds based on the player's active line of sight.

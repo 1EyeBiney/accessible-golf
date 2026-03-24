@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.72.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.80.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -71,8 +71,16 @@ function driftWind() {
 
 function getWindReport() {
     if (windX === 0 && windY === 0) return 'Wind is calm.';
-    const verticalWind = windY === 0 ? 'Calm' : `${Math.abs(windY)} mph ${windY > 0 ? 'Tailwind' : 'Headwind'}`;
-    const horizontalWind = windX === 0 ? '0 mph Center' : `${Math.abs(windX)} mph ${windX > 0 ? 'Right' : 'Left'}`;
+    
+    // v4.80.0 Global to Relative Wind Rotation
+    const targetAngleRad = Math.atan2(targetX - ballX, targetY - ballY);
+    const finalRad = targetAngleRad + (aimAngle * (Math.PI / 180));
+    
+    let relWindY = Math.round((windY * Math.cos(finalRad)) + (windX * Math.sin(finalRad)));
+    let relWindX = Math.round((windX * Math.cos(finalRad)) - (windY * Math.sin(finalRad)));
+
+    const verticalWind = relWindY === 0 ? 'Calm' : `${Math.abs(relWindY)} mph ${relWindY > 0 ? 'Tailwind' : 'Headwind'}`;
+    const horizontalWind = relWindX === 0 ? '0 mph Center' : `${Math.abs(relWindX)} mph ${relWindX > 0 ? 'Right' : 'Left'}`;
     return `Wind is ${verticalWind}, pushing ${horizontalWind}.`;
 }
 
@@ -567,7 +575,7 @@ function calculateShot(autoMiss = false) {
     // Spin Focus (Index 3)
     if (focusIndex === 3) backspinRPM += (2500 * focusEffect);
     let sideSpinRPM = Math.round((impactDiff / 20) * 100 * spinPenalty * pressureDispersion * styleSideSpinMod * diffScale.dispersionMod) + (stanceAlignment * 800 * styleSideSpinMod);
-    // v4.72.0 Uneven Lie Physics
+    // v4.80.0 Uneven Lie Physics
     if (typeof lieTilt !== 'undefined' && lieTilt !== 0) {
         // Ball above feet (positive) induces a hook (negative spin)
         sideSpinRPM += (lieTilt * -80);
@@ -608,17 +616,21 @@ function calculateShot(autoMiss = false) {
     }
 
     let hangTimeSecs = Math.min(6, Math.max(0.5, (totalDistance / 60) + (dynamicLoft / 15)));
-    let baseWindY = windY * (hangTimeSecs / 2.5) * currentStyle.windMod;
-    let baseWindX = windX * (hangTimeSecs / 2.5) * currentStyle.windMod;
-    let gyroMod = Math.max(0.6, Math.min(1.3, 1 - ((backspinRPM - 4000) / 10000)));
-    let spinWindInteraction = (windX * sideSpinRPM) / 10000; 
-
-    let windYEffect = Math.round(baseWindY * gyroMod);
-    let windXEffect = Math.round((baseWindX * gyroMod) + spinWindInteraction);
-
+    // v4.80.0 Aerodynamic Transformation
     const targetAngleRad = Math.atan2(targetX - ballX, targetY - ballY); 
     const userAimRad = aimAngle * (Math.PI / 180); 
     const finalRad = targetAngleRad + userAimRad; 
+
+    let relWindY = (windY * Math.cos(finalRad)) + (windX * Math.sin(finalRad));
+    let relWindX = (windX * Math.cos(finalRad)) - (windY * Math.sin(finalRad));
+
+    let baseWindY = relWindY * (hangTimeSecs / 2.5) * currentStyle.windMod;
+    let baseWindX = relWindX * (hangTimeSecs / 2.5) * currentStyle.windMod;
+    let gyroMod = Math.max(0.6, Math.min(1.3, 1 - ((backspinRPM - 4000) / 10000)));
+    let spinWindInteraction = (relWindX * sideSpinRPM) / 10000; 
+
+    let windYEffect = Math.round(baseWindY * gyroMod);
+    let windXEffect = Math.round((baseWindX * gyroMod) + spinWindInteraction);
 
     // v4.41.0 Natural Dispersion Circle (Base Scatter)
     const isPutt = club.name === "Putter";
@@ -648,7 +660,7 @@ function calculateShot(autoMiss = false) {
     // Backspin affects rollout: every 1000 RPM above 4000 reduces roll by 10%
     let spinRollMod = Math.max(0.1, 1 - ((backspinRPM - 4000) / 10000));
     let rollDistance = Math.round(totalDistance * club.rollPct * activeRollMod * spinRollMod);
-    // v4.72.0 Slope Roll Math
+    // v4.80.0 Slope Roll Math
     if (typeof landingSlope !== 'undefined' && landingSlope !== 0) {
         // 5% change in roll distance per degree of slope
         rollDistance *= (1 - (landingSlope * 0.05));
@@ -663,11 +675,14 @@ function calculateShot(autoMiss = false) {
     }
     carryDistance = Math.max(0, totalDistance - rollDistance);
     if (focusIndex === 1 && Math.abs(hingeDiff) <= 50) carryDistance *= 1.10;
-    // v4.72.0 Elevation Math
+    // v4.80.0 Elevation Math
     let elevationDiff = (typeof targetZ !== 'undefined' && typeof ballZ !== 'undefined') ? (targetZ - ballZ) : 0;
     carryDistance -= elevationDiff; // Uphill reduces carry, downhill extends carry
     carryDistance = Math.max(0, carryDistance);
-    // v4.72.0 Driver Off Deck Physics Penalty
+    // v4.80.0 Apply missing relative wind effect to carry
+    carryDistance += windYEffect; 
+    carryDistance = Math.max(0, carryDistance);
+    // v4.80.0 Driver Off Deck Physics Penalty
     if (club.name === "Driver" && currentLie === "Fairway") {
         carryDistance *= 0.7; // Low launch
         rollDistance *= 1.5;  // Hot roll
@@ -1574,7 +1589,7 @@ window.getOracleBlueprint = function() {
             let style = shotStyles[sIdx];
             for (let i = clubs.length - 1; i >= 0; i--) {
                 let simClub = clubs[i];
-                // v4.72.0 Driver Simulation Logic
+                // v4.80.0 Driver Simulation Logic
                 if (clubs[i].name === "Driver") {
                     // Strictly forbid Driver from the rough/sand
                     if (currentLie !== "Tee" && currentLie !== "Fairway") continue;
@@ -1594,8 +1609,11 @@ window.getOracleBlueprint = function() {
                     let fractionalDist = totalDist * (requiredPower / 100);
 
                     let hangTime = Math.min(6, Math.max(0.5, (fractionalDist / 60) + (dynamicLoft / 15)));
-                    let windForward = windY * (hangTime / 2.5) * style.windMod;
-                    let windCross = windX * (hangTime / 2.5) * style.windMod;
+                    let relWindY = (windY * Math.cos(baseHeading)) + (windX * Math.sin(baseHeading));
+                    let relWindX = (windX * Math.cos(baseHeading)) - (windY * Math.sin(baseHeading));
+
+                    let windForward = relWindY * (hangTime / 2.5) * style.windMod;
+                    let windCross = relWindX * (hangTime / 2.5) * style.windMod;
                     let desiredHeading = Math.atan2((targetPoint.x - ballX) - windCross, (targetPoint.y - ballY) - windForward);
                     let aimDeg = Math.round((desiredHeading - baseHeading) * (180 / Math.PI));
                     aimDeg = Math.max(-45, Math.min(45, aimDeg)); 
@@ -1613,6 +1631,11 @@ window.getOracleBlueprint = function() {
 
                     // Loft Bias: Subtract up to 3 yards from the miss score based on club loft to prioritize Wedges/Short Irons
                     let adjustedMiss = miss - (simClub.loft * 0.05);
+                    // v4.80.0 Fractional Power Penalty
+                    // Force the AI to avoid awkward half-swings with long/mid irons
+                    if (sIdx === 0 && requiredPower < 85 && !simClub.name.includes("Wedge")) {
+                        adjustedMiss += 20;
+                    }
                     if (clubs[i].name === "Driver" && currentLie === "Fairway") {
                         adjustedMiss += 50; // Massive artificial penalty so AI only uses it in desperation
                     }
