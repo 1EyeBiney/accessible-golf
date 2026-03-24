@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.56.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.57.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -207,10 +207,19 @@ window.advanceTurn = function(isPuttingTransition = false) {
 
         if (players[currentPlayerIndex].isBot) {
             window.waitingForBot = false;
-            let baseDelay = 10500; 
-            if (pacingModeIndex === 1) baseDelay += 3000;
-            if (pacingModeIndex === 2) baseDelay += 6000;
-            if (pacingModeIndex === 3) baseDelay = 1500;
+            const textToRead = (window.lastShotReport || '').replace(/\s+/g, ' ').trim();
+            const textLength = textToRead.length;
+            let baseDelay = 2500;
+
+            if (pacingModeIndex === 3) {
+                baseDelay = 1500;
+            } else if (pacingModeIndex === 2) {
+                baseDelay += textLength * 40;
+            } else if (pacingModeIndex === 1) {
+                baseDelay += textLength * 25;
+            } else {
+                baseDelay += textLength * 15;
+            }
 
             stateTimeouts.push(setTimeout(() => {
                 if (typeof window.takeAITurn === 'function') window.takeAITurn();
@@ -506,10 +515,18 @@ function loadHole(holeNumber) {
         }, 1000);
 
         if (players[currentPlayerIndex] && players[currentPlayerIndex].isBot) {
-            let baseDelay = 10500;
-            if (pacingModeIndex === 1) baseDelay += 3000;
-            if (pacingModeIndex === 2) baseDelay += 6000;
-            if (pacingModeIndex === 3) baseDelay = 1500;
+            const holeTextLength = `${holeDesc} ${fairwayDesc}`.replace(/\s+/g, ' ').trim().length;
+            let baseDelay = 3500;
+
+            if (pacingModeIndex === 3) {
+                baseDelay = 1500;
+            } else if (pacingModeIndex === 2) {
+                baseDelay += holeTextLength * 40;
+            } else if (pacingModeIndex === 1) {
+                baseDelay += holeTextLength * 25;
+            } else {
+                baseDelay += holeTextLength * 15;
+            }
 
             stateTimeouts.push(setTimeout(() => {
                 if (typeof window.takeAITurn === 'function') window.takeAITurn();

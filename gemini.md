@@ -268,3 +268,8 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Wedge Spin Exemption:** Wedges and 9-Irons bypass the forced 10% minimum roll-out rule on Pitch and Chip shots, allowing their extreme backspin to properly check the ball up or spin backward.
 - **Power Cap Reduction:** Maximum physical swing power is hard-capped at `110%` (down from 120%). This prevents arcade-style 400+ yard drives, capping mathematically perfect power-focus drives around 330 yards (PGA reality).
 - **Massive AI Pacing Buffers:** The base delay before an AI takes its turn is expanded by +5000ms across all pacing modes (Slow pacing now waits 16.5 seconds). This guarantees the ARIA screen reader has ample time to finish reading the long Markdown telemetry before the bot swings.
+
+### 55. v4.57 Engine Addendum (Dynamic TTS Pacing)
+- **Adaptive Turn Delay:** The AI Turn Manager now computes bot wait time from the character length of `lastShotReport` in `advanceTurn()`. The delay uses a `2500ms` base and scales by pacing mode: Fast `+15ms/char`, Medium `+25ms/char`, Slow `+40ms/char`, while Manual mode remains a fixed `1500ms` on explicit user release.
+- **Adaptive Hole Briefing Delay:** The same text-length pacing model is applied in `loadHole()` using the combined Hole/Fairway description length. The initial bot tee-shot delay now uses a `3500ms` base with identical pacing multipliers, preventing overlap between long hole briefings and bot execution.
+- **Accessibility Timing Integrity:** This removes one-size-fits-all static waits and synchronizes AI execution to actual TTS payload size, preserving readability for screen readers without forcing excessive dead air on short reports.
