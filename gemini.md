@@ -315,3 +315,8 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 ### 65. v4.87.0 Engine Addendum (Pine Straw Physics)
 - **Terrain Friction:** Hitting off `currentLie === 'Pine Needles'` applies `lieMod = 0.85`, `lieForgivenessMod = 0.7`, and slashes `backspinRPM` by 90% (x0.1) to simulate the lack of friction on the clubface.
 - **Roll Physics:** If the hazard AABB collision loop detects the ball intersecting "Pine Needles", the `rollDistance` is multiplied by 1.8 to simulate the slick, frictionless slide of dead pine straw.
+
+### 66. v4.88.0 Engine Addendum (Edge-Weighted Dispersion)
+- **Deterministic Spin:** `sideSpinRPM` is no longer a purely random value within an error cone. It is deterministically locked to `impactDiff` (`baseSideSpin = impactDiff * spinMultiplier`), guaranteeing that late impacts slice and early impacts hook.
+- **Donut RNG:** Remaining random scatter uses `1.0 - Math.pow(Math.random(), 2)` to push standard deviation toward the outer edges of the error radius, preventing the "Lucky Center" flaw.
+- **Hinge Distance Caps:** `hingeDiff > 40` strictly caps `hingeDistanceMod` at 0.85 or lower, preventing the engine's distance RNG from overriding "Fat" shots.

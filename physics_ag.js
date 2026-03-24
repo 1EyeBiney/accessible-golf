@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.87.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.88.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -541,12 +541,18 @@ function calculateShot(autoMiss = false) {
 
     let absImpact = Math.abs(impactDiff);
     let adjustedImpact = absImpact / forgiveness;
-    let spinPenalty = 0.5 + (adjustedImpact / 50); 
-    if (adjustedImpact > 160) spinPenalty = 5 + ((adjustedImpact - 160) / 20);
-
-    let tempSideSpin = Math.abs(Math.round((impactDiff / 20) * 100 * spinPenalty * pressureDispersion));
-    let dampening = Math.max(0.25, 1 - (tempSideSpin / 20000)); 
     let impactAcc = Math.max(10, 100 - (adjustedImpact / 2.5));
+
+    // v4.88.0 Deterministic Edge-Weighted Physics
+    let diffMod = typeof difficultyLevels !== 'undefined' ? difficultyLevels[difficultyIndex].dispersionMod : 1.0;
+
+    // 1. Strict Hinge Penalties (Distance Caps)
+    let hingeDistanceMod = 1.0;
+    if (hingeDiff > 40) { // Fat chunk
+        hingeDistanceMod = Math.max(0.60, 0.85 - ((hingeDiff - 40) * 0.002));
+    } else if (hingeDiff < -40) { // Thin skull
+        hingeDistanceMod = Math.max(0.70, 0.90 - (Math.abs(hingeDiff + 40) * 0.001));
+    }
 
     const currentStyle = shotStyles[shotStyleIndex];
     const accuracyScore = Math.round((impactAcc + hingeAcc) / 2);
@@ -583,13 +589,24 @@ function calculateShot(autoMiss = false) {
     }
     // Spin Focus (Index 3)
     if (focusIndex === 3) backspinRPM += (2500 * focusEffect);
-    let sideSpinRPM = Math.round((impactDiff / 20) * 100 * spinPenalty * pressureDispersion * styleSideSpinMod * diffScale.dispersionMod) + (stanceAlignment * 800 * styleSideSpinMod);
+    // 2. Deterministic Side Spin (Impact directly drives curve)
+    // Negative impact (early) = Hook (-). Positive impact (late) = Slice (+).
+    let spinMultiplier = 15 * diffMod;
+    let baseSideSpin = impactDiff * spinMultiplier;
+
+    // 3. The "Donut" Scatter RNG (Weighting the remaining variance to the edges)
+    let rngSkew = Math.random() < 0.5 ? -1 : 1;
+    let edgeRandom = 1.0 - Math.pow(Math.random(), 2);
+    let scatterSpin = edgeRandom * 300 * diffMod * rngSkew;
+
+    let sideSpinRPM = Math.round(baseSideSpin + scatterSpin + (stanceAlignment * 800 * styleSideSpinMod));
     // v4.80.0 Uneven Lie Physics
     if (typeof lieTilt !== 'undefined' && lieTilt !== 0) {
         // Ball above feet (positive) induces a hook (negative spin)
         sideSpinRPM += (lieTilt * -80);
     }
     sideSpinRPM = Math.max(-4500, Math.min(4500, sideSpinRPM));
+    let dampening = Math.max(0.25, 1 - (Math.abs(sideSpinRPM) / 20000)); // v4.88.0 Dampening from final sideSpinRPM
     
     // v4.43.1 Dynamic Timing Diagnostics (Delta Math Restored)
     let baselineBackspin = Math.max(400, Math.round((club.loft * 150) + 1000 + 700 + ((stanceIndex - 2) * 500) + currentStyle.spinMod));
@@ -609,7 +626,7 @@ function calculateShot(autoMiss = false) {
     let loftDistMod = 1 + ((stanceIndex - 2) * 0.03);
 
     let potentialDist = club.baseDistance * (finalPower / 100) * (1 + (hingeTimeBack / 2000 * 0.15)) * currentStyle.distMod * lieMod * loftDistMod * chokeMod;
-    let totalDistance = Math.round(potentialDist * dampening * Math.max(0.2, 1 - Math.pow(Math.abs(hingeDiff) / 400, 2)));
+    let totalDistance = Math.round(potentialDist * dampening * hingeDistanceMod); // v4.88.0 hingeDistanceMod replaces hinge exponential
 
     let activeRollMod = currentStyle.rollMod;
     if (focusIndex === 3) activeRollMod *= (1.0 - (0.5 * focusEffect)); // Positive halves roll, Negative adds 50% roll
