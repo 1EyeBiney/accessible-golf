@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.81.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.83.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -616,6 +616,10 @@ function calculateShot(autoMiss = false) {
     }
 
     let hangTimeSecs = Math.min(6, Math.max(0.5, (totalDistance / 60) + (dynamicLoft / 15)));
+    // v4.83.0 Z-Axis Hang Time Modifier
+    let flightElevDiff = (typeof targetZ !== 'undefined' && typeof ballZ !== 'undefined') ? (targetZ - ballZ) : 0;
+    hangTimeSecs -= (flightElevDiff * 0.04);
+    hangTimeSecs = Math.max(0.5, Math.min(8, hangTimeSecs)); // Expanded max to 8s for deep downhill drops
     // v4.80.0 Aerodynamic Transformation
     const targetAngleRad = Math.atan2(targetX - ballX, targetY - ballY); 
     const userAimRad = aimAngle * (Math.PI / 180); 

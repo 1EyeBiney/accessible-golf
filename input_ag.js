@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.80.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.83.0)
 
 window.confirmingUnplayable = false;
 
@@ -1120,8 +1120,21 @@ window.addEventListener('keydown', (e) => {
 
             window.autoEquipBestClub();
             
-            // v4.26.0 Target Cycle Audio
-            if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_07');
+            // v4.83.0 Altimeter Ping (Audio Sonification of Z-Axis)
+            let zDiff = (typeof targetZ !== 'undefined' && typeof ballZ !== 'undefined') ? (targetZ - ballZ) : 0;
+            if (zDiff > 2) {
+                if (typeof window.playTone === 'function') {
+                    window.playTone(400, 'sine', 0.1, 0.3);
+                    setTimeout(() => window.playTone(600, 'sine', 0.15, 0.3), 100);
+                }
+            } else if (zDiff < -2) {
+                if (typeof window.playTone === 'function') {
+                    window.playTone(600, 'sine', 0.1, 0.3);
+                    setTimeout(() => window.playTone(400, 'sine', 0.15, 0.3), 100);
+                }
+            } else {
+                if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_07');
+            }
 
             let label = activeTargetType === 'pin' ? "The Pin" : landingZones[targetZoneIndex].name;
             let behindStr = (targetY < ballY) ? " (Behind you)" : "";
@@ -1145,18 +1158,14 @@ window.addEventListener('keydown', (e) => {
                     distMsg += `${distToPin} yards to the pin.`;
                     if (holeData.pinLocation) distMsg += ` Pin is ${holeData.pinLocation}.`;
 
-                    // v4.14.3 Macro Elevation Report
-                    // (Stubbed for future fairway contours. Currently reads Green elevation if close)
-                    let elevationMsg = " Plays flat.";
-                    if (distToPin <= 50 && holeData.greenType && typeof greenDictionary !== 'undefined') {
-                        let activeContours = greenDictionary[holeData.greenType] || [];
-                        let zone = activeContours.find(z => distToPin <= z.startY && distToPin > z.endY);
-                        if (zone) {
-                            if (zone.slopeY > 0) elevationMsg = " Plays Uphill.";
-                            if (zone.slopeY < 0) elevationMsg = " Plays Downhill.";
-                        }
+                    // v4.83.0 Exact 3D Slope Rangefinder
+                    let elevationDiff = (typeof targetZ !== 'undefined' && typeof ballZ !== 'undefined') ? (targetZ - ballZ) : 0;
+                    if (elevationDiff !== 0) {
+                         let effDist = targetY !== holeData.pinY || targetX !== holeData.pinX ? 
+                             Math.round(Math.sqrt(Math.pow(targetX - ballX, 2) + Math.pow(targetY - ballY, 2))) + elevationDiff : 
+                             distToPin + elevationDiff;
+                         distMsg += ` Plays ${Math.abs(elevationDiff)} yards ${elevationDiff > 0 ? 'uphill' : 'downhill'}. Effective distance: ${effDist} yards.`;
                     }
-                    distMsg += elevationMsg;
                     distMsg += getSightReport(); 
                 } else {
                     distMsg = `${distToPin} yards to the pin.`;

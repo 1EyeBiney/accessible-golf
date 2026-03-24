@@ -295,3 +295,7 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Global Wind Matrix:** `windX` and `windY` are permanent global map coordinates. The engine uses `relWindY = (windY * Math.cos(finalRad)) + (windX * Math.sin(finalRad))` to dynamically convert map wind into Relative Headwinds/Crosswinds based on the player's active line of sight.
 - **Relative Pin Finder:** The Pin Finder grid uses rotation matrices to ensure the Up/Down arrows always navigate Forward/Backward relative to the player's current line of sight, regardless of global map orientation.
 - **Dynamic Topography:** The `greenDictionary` slopes are rotated against the ball's final flight vector. A global "False Front" acts as a backboard if approached straight on, but mathematically transforms into a severe lateral kick if approached from the side.
+
+### 61. v4.83.0 Engine Addendum (3D Audio Altimeter & Rangefinder)
+- **Altimeter Pings:** The `Z` key triggers rising/falling sine waves based on the elevation difference (`targetZ - ballZ`) to convey verticality without TTS overhead.
+- **Dynamic Hang Time:** The Z-axis difference now modifies `hangTimeSecs` (multiplied by 0.04). Downhill targets physically extend the duration of the ball flight audio; uphill targets shorten it.
