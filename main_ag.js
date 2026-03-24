@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.71.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.72.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -255,8 +255,8 @@ window.takeAITurn = function() {
         aimAngle = blueprint.aimDeg !== null ? blueprint.aimDeg : 0;
         let pace = blueprint.pace !== null ? blueprint.pace : actualDist;
         
-        // Calculate power, ensuring it never drops below 1% to prevent infinite loops
-        p.botPower = Math.max(1, Math.round((pace / puttTargetDist) * 100)); 
+        // Calculate power with a stable floor/cap to avoid zero loops and wild overshoots
+        p.botPower = Math.max(5, Math.min(110, Math.round((pace / puttTargetDist) * 100))); 
     } else {
         currentClubIndex = blueprint.clubIndex !== undefined && blueprint.clubIndex !== null ? blueprint.clubIndex : 0;
         if (typeof clubs !== 'undefined' && clubs[currentClubIndex]) { club = clubs[currentClubIndex]; }
@@ -267,7 +267,7 @@ window.takeAITurn = function() {
         p.botPower = Math.max(10, Math.round(rawPower / 5) * 5);
     }
 
-    let variance = p.botSkill === 3 ? 15 : p.botSkill === 2 ? 45 : 100;
+    let variance = p.botSkill === 3 ? 15 : p.botSkill === 2 ? 45 : p.botSkill === 1 ? 100 : 200;
     p.botImpact = Math.floor((Math.random() * variance * 2) - variance);
     p.botHinge = Math.floor((Math.random() * variance * 2) - variance);
     
@@ -428,7 +428,7 @@ function loadHole(holeNumber) {
         stateTimeouts.forEach(clearTimeout);
         stateTimeouts = [];
 
-        // v4.71.0 Telemetry Archiving
+        // v4.72.0 Telemetry Archiving
         if (typeof holeTelemetry !== 'undefined' && holeTelemetry.length > 0 && typeof roundData !== 'undefined') {
             let record = roundData.find(r => r.hole === hole);
             if (record) {
@@ -990,7 +990,7 @@ window.buildClubhouseMenu = function() {
     
     clubhouseMenu.push({ text: "Start New Round", action: () => {
         window.clearSave(); roundData = []; roundHighlights = { drives: [], approaches: [], putts: [] }; puttsThisHole = 0; holeTelemetry = [];
-        gameMode = 'course'; currentCourseIndex = 0; strokes = 0;
+        gameMode = 'course'; currentCourseIndex = 1; strokes = 0;
         document.getElementById('dashboard-panel').style.display = 'grid';
         document.getElementById('swing-meter').style.display = 'block';
         document.getElementById('caddy-panel').style.display = 'none';

@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.71.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.72.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -567,7 +567,7 @@ function calculateShot(autoMiss = false) {
     // Spin Focus (Index 3)
     if (focusIndex === 3) backspinRPM += (2500 * focusEffect);
     let sideSpinRPM = Math.round((impactDiff / 20) * 100 * spinPenalty * pressureDispersion * styleSideSpinMod * diffScale.dispersionMod) + (stanceAlignment * 800 * styleSideSpinMod);
-    // v4.71.0 Uneven Lie Physics
+    // v4.72.0 Uneven Lie Physics
     if (typeof lieTilt !== 'undefined' && lieTilt !== 0) {
         // Ball above feet (positive) induces a hook (negative spin)
         sideSpinRPM += (lieTilt * -80);
@@ -648,7 +648,7 @@ function calculateShot(autoMiss = false) {
     // Backspin affects rollout: every 1000 RPM above 4000 reduces roll by 10%
     let spinRollMod = Math.max(0.1, 1 - ((backspinRPM - 4000) / 10000));
     let rollDistance = Math.round(totalDistance * club.rollPct * activeRollMod * spinRollMod);
-    // v4.71.0 Slope Roll Math
+    // v4.72.0 Slope Roll Math
     if (typeof landingSlope !== 'undefined' && landingSlope !== 0) {
         // 5% change in roll distance per degree of slope
         rollDistance *= (1 - (landingSlope * 0.05));
@@ -663,10 +663,16 @@ function calculateShot(autoMiss = false) {
     }
     carryDistance = Math.max(0, totalDistance - rollDistance);
     if (focusIndex === 1 && Math.abs(hingeDiff) <= 50) carryDistance *= 1.10;
-    // v4.71.0 Elevation Math
+    // v4.72.0 Elevation Math
     let elevationDiff = (typeof targetZ !== 'undefined' && typeof ballZ !== 'undefined') ? (targetZ - ballZ) : 0;
     carryDistance -= elevationDiff; // Uphill reduces carry, downhill extends carry
     carryDistance = Math.max(0, carryDistance);
+    // v4.72.0 Driver Off Deck Physics Penalty
+    if (club.name === "Driver" && currentLie === "Fairway") {
+        carryDistance *= 0.7; // Low launch
+        rollDistance *= 1.5;  // Hot roll
+        sideSpinRPM *= 2.5;   // Severe slice/hook exacerbation
+    }
     carryDistance = Math.round(carryDistance);
     totalDistance = carryDistance + rollDistance;
     let lateralX = Math.round((physicsX + windXEffect + lateralKick) * 10) / 10;
@@ -1566,8 +1572,13 @@ window.getOracleBlueprint = function() {
 
         for (let sIdx of allowedStyles) {
             let style = shotStyles[sIdx];
-            for (let i = 0; i < clubs.length; i++) {
+            for (let i = clubs.length - 1; i >= 0; i--) {
                 let simClub = clubs[i];
+                // v4.72.0 Driver Simulation Logic
+                if (clubs[i].name === "Driver") {
+                    // Strictly forbid Driver from the rough/sand
+                    if (currentLie !== "Tee" && currentLie !== "Fairway") continue;
+                }
                 if (simClub.name === "Putter") continue; 
                 if (effectiveDist < 120 && (simClub.name.includes('Wood') || simClub.name.includes('Driver'))) continue;
                 if (sIdx >= 1 && sIdx <= 4 && !simClub.name.includes("Wedge") && simClub.name !== "9 Iron") continue;
@@ -1602,6 +1613,9 @@ window.getOracleBlueprint = function() {
 
                     // Loft Bias: Subtract up to 3 yards from the miss score based on club loft to prioritize Wedges/Short Irons
                     let adjustedMiss = miss - (simClub.loft * 0.05);
+                    if (clubs[i].name === "Driver" && currentLie === "Fairway") {
+                        adjustedMiss += 50; // Massive artificial penalty so AI only uses it in desperation
+                    }
 
                     if (holeData.trees) {
                         holeData.trees.forEach(tree => {
