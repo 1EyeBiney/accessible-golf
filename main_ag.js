@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.50.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.51.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -216,6 +216,7 @@ window.advanceTurn = function(isPuttingTransition = false) {
 
 // v4.48.0 AI Brain & Short Game Logic
 window.takeAITurn = function() {
+    activeTargetType = 'pin';
     let p = players[currentPlayerIndex];
     let rawBlueprint = null;
     try {
@@ -524,8 +525,7 @@ function getSightReport() {
         currentHole.hazards.forEach(h => {
             let hAngleRad = Math.atan2(h.offset - ballX, h.distance - ballY) * (180 / Math.PI);
             if (Math.abs(hAngleRad - aimDeg) < 15 && h.distance > ballY) {
-                let dist = Math.round(Math.sqrt(Math.pow(h.offset - ballX, 2) + Math.pow(h.distance - ballY, 2)));
-                warnings.push(`${h.type} is in your line of sight, ${dist} yards ahead.`);
+                warnings.push(`${h.type} is in your line of sight, ${Math.round(h.distance - ballY)} yards ahead.`);
             }
         });
     }

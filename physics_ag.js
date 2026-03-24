@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.50.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.51.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -380,17 +380,17 @@ function calculateShot(autoMiss = false) {
                     });
                 }
             } else {
+                let missX = (ballX - pinX) * 36; // Convert to inches
+                let missY = (ballY - pinY) * 36; 
+                let latStr = Math.abs(missX) < 1 ? "dead center" : `${Math.abs(Math.round(missX))} inches ${missX < 0 ? 'left' : 'right'}`;
+                let vertStr = missY < 0 ? `${Math.abs(Math.round(missY))} inches short of` : `${Math.abs(Math.round(missY))} inches past`;
+                
                 if (lipOut) {
-                    // v4.28.0 Lip-Out Audio
                     if (typeof window.playGolfSound === 'function') window.playGolfSound('putt_06');
                     else playTone(150, 'square', 0.1, 0.5);
-
-                    resultMsg = `Lipped out a ${formattedDist} putt! Hit it too hard.`;
-                }
-                else {
-                    let latStr = Math.abs(ballX - pinX) < 0.5 ? "straight" : ballX < pinX ? "left" : "right";
-                    let vertStr = ballY < pinY ? "short" : "long";
-                    resultMsg = `Missed a ${formattedDist} putt. Settled ${vertStr} and ${latStr}.`;
+                    resultMsg = `Lipped out a ${formattedDist} putt! Missed ${latStr} and ran ${vertStr} the cup.`;
+                } else {
+                    resultMsg = `Missed a ${formattedDist} putt. Missed ${latStr} and finished ${vertStr} the cup.`;
                 }
                 broadcast = `${baseBroadcast} ${resultMsg} ${calculateDistanceToPin()} yards left.`;
             }
@@ -1067,7 +1067,7 @@ function calculateShot(autoMiss = false) {
                 lastShotReport = chippingMsg + "\n\nTelemetry:\n" + metrics;
                 holeTelemetry.push(lastShotReport);
                 window.setCaddyPanelText(lastShotReport);
-                driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
+                driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false; isChokedDown = false;
                 window.updateDashboard();
             } else {
                 if (isHoleComplete) {
@@ -1136,7 +1136,7 @@ function calculateShot(autoMiss = false) {
                                 }, 3500));
                             } else {
                                 if (gameMode === 'course') window.updateTargetZone();
-                                driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false;
+                                driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false; isChokedDown = false;
                                 
                                 // v4.45.1 ARIA Interruption Fix (Wait 4 seconds before advancing turn)
                                 stateTimeouts.push(setTimeout(() => {
@@ -1328,6 +1328,11 @@ window.getCaddyAdvice = function() {
                     if (bestPace === null || p < bestPace || (p === bestPace && Math.abs(a) < Math.abs(bestAim))) {
                         bestAim = a; bestPace = p;
                     }
+                } else {
+                    let finalDistToHole = Math.sqrt(Math.pow(pinX - simX, 2) + Math.pow(pinY - simY, 2));
+                    if (finalDistToHole < bestMissDist) {
+                        bestMissDist = finalDistToHole; bestMissAim = a; bestMissPace = p;
+                    }
                 }
             }
         }
@@ -1340,7 +1345,11 @@ window.getCaddyAdvice = function() {
             let distDisplay = isShort ? `${Math.round(distToPin * 3)}` : `${Math.round(distToPin)}`;
             return `[Oracle Putting]: ${distDisplay} ${unit}. To sink it with perfect timing, aim ${aimStr} and hit it with ${paceDisplay} ${unit} of pace.`;
         } else {
-            return `[Oracle Putting]: This putt is extremely difficult. I cannot find a guaranteed line. Best guess is to lag it close.`;
+            let aimStr = bestMissAim === 0 ? "straight" : `${Math.abs(bestMissAim)} degrees ${bestMissAim < 0 ? 'Left' : 'Right'}`;
+            let isShort = distToPin <= 5.0;
+            let unit = isShort ? "feet" : "yards";
+            let paceDisplay = isShort ? `${Math.round(bestMissPace * 3)}` : `${bestMissPace}`;
+            return `[Oracle Putting]: Cannot find a guaranteed make. Best lag option: aim ${aimStr} and hit it with ${paceDisplay} ${unit} of pace.`;
         }
     }
 
@@ -1413,6 +1422,23 @@ window.getCaddyAdvice = function() {
             }
         }
     });
+
+    // Aggression Bias for Par 4/5
+    if (best && holeData.par > 3 && (currentLie === "Tee" || currentLie === "Fairway")) {
+         let longestSafeClub = best;
+         simulatedClubs.forEach(simClub => {
+             // Re-run simple straight simulation to see if a longer club is safe
+             if (simClub.baseDistance > clubs.find(c => c.name === best.clubName).baseDistance) {
+                 let testDist = simClub.baseDistance * style.distMod;
+                 let testY = ballY + testDist;
+                 let terrain = typeof window.getTerrainAt === 'function' ? window.getTerrainAt(ballX, testY) : "Fairway";
+                 if (terrain === "Fairway" || terrain === "Green" || terrain === "Light Rough") {
+                     longestSafeClub = { clubName: simClub.name, stanceName: "Neutral", aimDeg: 0, miss: 0 };
+                 }
+             }
+         });
+         best = longestSafeClub;
+    }
 
     if (!best) return "Oracle unavailable. Unable to compute tactical targeting right now.";
 
@@ -1519,6 +1545,7 @@ window.getOracleBlueprint = function() {
                 let simClub = clubs[i];
                 if (simClub.name === "Putter") continue; 
                 if (distToTarget < 120 && (simClub.name.includes('Wood') || simClub.name.includes('Driver'))) continue;
+                if (sIdx >= 1 && sIdx <= 4 && !simClub.name.includes("Wedge") && simClub.name !== "9 Iron") continue;
                 for (let simStance = 0; simStance < 5; simStance++) {
                     let dynamicLoft = Math.max(0, simClub.loft + style.loftMod + ((2 - simStance) * 5));
                     let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
@@ -1547,6 +1574,24 @@ window.getOracleBlueprint = function() {
                     let finalY = ballY + landY + (Math.cos(heading) * rollDist * 0.8);
 
                     let miss = Math.sqrt(Math.pow(targetPoint.x - finalX, 2) + Math.pow(targetPoint.y - finalY, 2));
+
+                    if (holeData.trees) {
+                        holeData.trees.forEach(tree => {
+                            let distToTreeCenter = Math.sqrt(Math.pow(tree.x - ballX, 2) + Math.pow(tree.y - ballY, 2));
+                            if (fractionalDist > distToTreeCenter && tree.y > ballY) {
+                                let flightFraction = distToTreeCenter / fractionalDist;
+                                let projectedX = ballX + (landX - ballX) * flightFraction;
+                                let projectedY = ballY + (landY - ballY) * flightFraction;
+                                let actualDistToTree = Math.sqrt(Math.pow(tree.x - projectedX, 2) + Math.pow(tree.y - projectedY, 2));
+                                
+                                if (actualDistToTree < tree.radius) {
+                                    let ballHeightAtTree = Math.max(0, (Math.tan(dynamicLoft * Math.PI / 180) / fractionalDist) * distToTreeCenter * (fractionalDist - distToTreeCenter));
+                                    if (ballHeightAtTree < tree.height) miss += 100; // Massive penalty for hitting a tree
+                                }
+                            }
+                        });
+                    }
+
                     if (!best || miss < best.miss || (miss === best.miss && Math.abs(aimDeg) < Math.abs(best.aimDeg))) {
                         best = { clubIndex: i, stanceIndex: simStance, styleIndex: sIdx, power: requiredPower, aimDeg, miss };
                     }
