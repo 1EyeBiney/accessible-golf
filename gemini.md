@@ -291,5 +291,7 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **AI Selection:** The Oracle searches clubs backwards (Wedges first). Driver is strictly forbidden from the Rough. The AI applies a +50 Danger Penalty to Driver-off-deck shots, making it a desperation-only club.
 - **Fractional Power Penalty:** The Oracle adds +20 to the miss score of any Full Swing (Style 0) that requires < 85% power, forcing the AI to select wedges for short yardages.
 
-### 60. v4.80.0 Engine Addendum (3D Coordinate Transformations)
+### 60. v4.80.0 - v4.81.0 Engine Addendum (3D Coordinate Transformations)
 - **Global Wind Matrix:** `windX` and `windY` are permanent global map coordinates. The engine uses `relWindY = (windY * Math.cos(finalRad)) + (windX * Math.sin(finalRad))` to dynamically convert map wind into Relative Headwinds/Crosswinds based on the player's active line of sight.
+- **Relative Pin Finder:** The Pin Finder grid uses rotation matrices to ensure the Up/Down arrows always navigate Forward/Backward relative to the player's current line of sight, regardless of global map orientation.
+- **Dynamic Topography:** The `greenDictionary` slopes are rotated against the ball's final flight vector. A global "False Front" acts as a backboard if approached straight on, but mathematically transforms into a severe lateral kick if approached from the side.

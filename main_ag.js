@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.80.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.81.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -592,12 +592,16 @@ window.updateTargetZone = function() {
 };
 
 window.announceGridPosition = function(initElevation = "") {
-    targetX = pinX + gridX;
-    targetY = pinY + gridY;
-    let distToTarget = calculateDistanceToTarget();
+    const approachAngleRad = Math.atan2(pinX - ballX, pinY - ballY);
+    
+    // v4.81.0 3D Grid Rotation (Relative to Player Line of Sight)
+    targetX = pinX + (gridY * Math.sin(approachAngleRad)) + (gridX * Math.cos(approachAngleRad));
+    targetY = pinY + (gridY * Math.cos(approachAngleRad)) - (gridX * Math.sin(approachAngleRad));
+    
+    let distToTarget = Math.round(calculateDistanceToTarget());
     let distToPin = Math.sqrt(Math.pow(gridX, 2) + Math.pow(gridY, 2)); 
     
-    // v4.14.3 Predictive Topography (Effect Translator)
+    // v4.81.0 Predictive Topography (Rotated Effect Translator)
     let effectStr = "Plays flat";
     if (gameMode === 'course') {
         const holeData = courses[currentCourseIndex].holes[hole - 1];
@@ -605,8 +609,14 @@ window.announceGridPosition = function(initElevation = "") {
             let activeContours = greenDictionary[holeData.greenType] || [];
             let zone = activeContours.find(z => distToPin <= z.startY && distToPin > z.endY);
             if (zone) {
-                let vert = zone.slopeY > 0 ? "Checks up" : zone.slopeY < 0 ? "Releases forward" : "";
-                let horiz = zone.slopeX > 0 ? "Kicks right" : zone.slopeX < 0 ? "Kicks left" : "";
+                let globalSlopeY = zone.slopeY;
+                let globalSlopeX = zone.slopeX;
+                
+                let relSlopeY = (globalSlopeY * Math.cos(approachAngleRad)) + (globalSlopeX * Math.sin(approachAngleRad));
+                let relSlopeX = -((globalSlopeX * Math.cos(approachAngleRad)) - (globalSlopeY * Math.sin(approachAngleRad)));
+
+                let vert = relSlopeY > 0.05 ? "Checks up" : relSlopeY < -0.05 ? "Releases forward" : "";
+                let horiz = relSlopeX > 0.05 ? "Kicks right" : relSlopeX < -0.05 ? "Kicks left" : "";
                 
                 if (vert && horiz) effectStr = `${horiz} and ${vert.toLowerCase()}`;
                 else if (vert) effectStr = vert;
@@ -615,7 +625,6 @@ window.announceGridPosition = function(initElevation = "") {
         }
     }
 
-    // v4.14.4 Clean Coordinate Formatting
     let squareStr = (gridX === 0 && gridY === 0)
         ? "The Pin"
         : `${Math.abs(gridY)} yards ${gridY < 0 ? 'Short' : 'Past'}, ${Math.abs(gridX)} yards ${gridX < 0 ? 'Left' : 'Right'} of pin`;
@@ -624,7 +633,8 @@ window.announceGridPosition = function(initElevation = "") {
     
     let msg = `Target Square: ${squareStr}.${elevStr} Effect: ${effectStr}. Distance: ${distToTarget} yards.`;
     window.announce(msg);
-    document.getElementById('visual-output').innerText = msg;
+    let vis = document.getElementById('visual-output');
+    if (vis) vis.innerText = msg;
 };
 
 window.announce = function(msg) {

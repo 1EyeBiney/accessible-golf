@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.80.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.81.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -660,6 +660,40 @@ function calculateShot(autoMiss = false) {
     // Backspin affects rollout: every 1000 RPM above 4000 reduces roll by 10%
     let spinRollMod = Math.max(0.1, 1 - ((backspinRPM - 4000) / 10000));
     let rollDistance = Math.round(totalDistance * club.rollPct * activeRollMod * spinRollMod);
+    let lateralKickX = 0, lateralKickY = 0;
+    // v4.81.0 Dynamic 3D Green Topography Engine
+    {
+        let _approxCarry = Math.max(0, totalDistance - rollDistance);
+        let topoLandX = (ballX - moveX) + (_approxCarry * Math.sin(finalRad));
+        let topoLandY = (ballY - moveY) + (_approxCarry * Math.cos(finalRad));
+        let distToPinAtLand = Math.sqrt(Math.pow(pinX - topoLandX, 2) + Math.pow(pinY - topoLandY, 2));
+
+        if (gameMode === 'course') {
+            const holeData = courses[currentCourseIndex].holes[hole - 1];
+            if (distToPinAtLand <= (holeData.greenRadius || 20) && holeData.greenType && typeof greenDictionary !== 'undefined') {
+                let activeContours = greenDictionary[holeData.greenType] || [];
+                let zone = activeContours.find(z => distToPinAtLand <= z.startY && distToPinAtLand > z.endY);
+                if (zone) {
+                    let globalSlopeY = zone.slopeY;
+                    let globalSlopeX = zone.slopeX;
+
+                    // Rotate global slopes into the player's flight vector
+                    let relSlopeY = (globalSlopeY * Math.cos(finalRad)) + (globalSlopeX * Math.sin(finalRad));
+                    let relSlopeX = -((globalSlopeX * Math.cos(finalRad)) - (globalSlopeY * Math.sin(finalRad)));
+
+                    landingSlope = relSlopeY * 40; // Convert to degrees for roll modifier
+
+                    // Calculate lateral kick (drags the ball sideways during roll)
+                    let kickMagnitude = relSlopeX * rollDistance * 0.85;
+                    let perpRad = finalRad + (Math.PI / 2);
+                    lateralKickX = kickMagnitude * Math.sin(perpRad);
+                    lateralKickY = kickMagnitude * Math.cos(perpRad);
+                }
+            }
+        }
+    }
+    ballX += lateralKickX;
+    ballY += lateralKickY;
     // v4.80.0 Slope Roll Math
     if (typeof landingSlope !== 'undefined' && landingSlope !== 0) {
         // 5% change in roll distance per degree of slope
