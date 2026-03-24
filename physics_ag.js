@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.86.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.87.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -505,6 +505,10 @@ function calculateShot(autoMiss = false) {
             lieDispersionMod = 1.5; 
             lieForgivenessMod = 0.8; 
         }
+    } else if (currentLie === 'Pine Needles') {
+        // v4.87.0 Pine Straw Lie Penalty
+        lieMod = 0.85 + (Math.random() * 0.10);
+        lieForgivenessMod = 0.7;
     }
 
     // v4.42.0 Risk/Reward Focus Scaling (Fairway)
@@ -573,6 +577,10 @@ function calculateShot(autoMiss = false) {
     let styleSideSpinMod = currentStyle.name === "Full" ? 1.0 : (currentStyle.distMod * 0.4);
 
     let backspinRPM = Math.max(400, Math.round((club.loft * 150) + (finalPower * 10) + (impactAcc * 7) + ((stanceIndex - 2) * 500) + currentStyle.spinMod));
+    // v4.87.0 Pine Straw Spin Penalty
+    if (currentLie === 'Pine Needles') {
+        backspinRPM = Math.round(backspinRPM * 0.1); // Kills 90% of backspin
+    }
     // Spin Focus (Index 3)
     if (focusIndex === 3) backspinRPM += (2500 * focusEffect);
     let sideSpinRPM = Math.round((impactDiff / 20) * 100 * spinPenalty * pressureDispersion * styleSideSpinMod * diffScale.dispersionMod) + (stanceAlignment * 800 * styleSideSpinMod);
@@ -926,6 +934,11 @@ function calculateShot(autoMiss = false) {
                         totalDistance = carryDistance + rollDistance;
                     }
                     if (h.type === "Water") inWater = true;
+                    if (h.type.includes("Pine Needles")) {
+                        currentLie = "Pine Needles";
+                        // v4.87.0 Frictionless Slide (Massive Roll Multiplier)
+                        rollDistance *= 1.8;
+                    }
                 }
             });
         }
