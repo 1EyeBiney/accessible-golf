@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.57.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.61.0)
 
 window.confirmingUnplayable = false;
 
@@ -31,6 +31,30 @@ window.addEventListener('keydown', (e) => {
     // v4.11.0 Custom Grid Interceptor
     if (viewingScorecard) {
         e.preventDefault(); // Lock ALL inputs
+
+        if (e.code === 'KeyC') {
+            e.preventDefault();
+            if (scRow === 0 || scRow === scorecardGrid.length - 1) {
+                window.announce("Please select a specific hole row to copy its telemetry.");
+                return;
+            }
+            let targetHole = parseInt(scorecardGrid[scRow][0]);
+
+            if (e.shiftKey) {
+                let allLogs = roundData.filter(r => r.telemetryLog).map(r => r.telemetryLog).join('\n\n---\n\n');
+                if (!allLogs) allLogs = "No telemetry logs available for this round.";
+                navigator.clipboard.writeText(allLogs).then(() => {
+                    window.announce("Entire round telemetry copied to clipboard.");
+                });
+            } else {
+                let record = roundData.find(r => r.hole === targetHole);
+                let log = (record && record.telemetryLog) ? record.telemetryLog : `No telemetry found for Hole ${targetHole}.`;
+                navigator.clipboard.writeText(log).then(() => {
+                    window.announce(`Telemetry for Hole ${targetHole} copied to clipboard.`);
+                });
+            }
+            return;
+        }
         
         if (e.code === 'Escape' || e.code === 'Enter') {
             if (e.code === 'Escape' && typeof window.playGolfSound === 'function') window.playGolfSound('bunker_33');

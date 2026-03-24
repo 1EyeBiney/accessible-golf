@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.57.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.61.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -584,12 +584,9 @@ function calculateShot(autoMiss = false) {
     lastTimingReport = `[${pName}] Timing Check. Power ${finalPower} percent. Hinge ${Math.abs(hingeDiff)}ms ${hingeWord}. Impact ${Math.abs(impactDiff)}ms ${impactWord}. Side Spin: ${Math.abs(sideSpinRPM)} RPM ${sideSpinShape}. Backspin: ${backspinRPM} RPM, ${deltaStr}.\n[Oracle Says: ${advice}]`;
 
     let chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
-    let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
+    let loftDistMod = 1 + ((stanceIndex - 2) * 0.03);
 
-    // Power Focus (Index 1)
-    let powerFocusMod = 1.0 + (focusIndex === 1 ? (0.10 * focusEffect) : 0);
-
-    let potentialDist = club.baseDistance * (finalPower / 100) * (1 + (hingeTimeBack / 2000 * 0.15)) * currentStyle.distMod * lieMod * loftDistMod * chokeMod * powerFocusMod;
+    let potentialDist = club.baseDistance * (finalPower / 100) * (1 + (hingeTimeBack / 2000 * 0.15)) * currentStyle.distMod * lieMod * loftDistMod * chokeMod;
     let totalDistance = Math.round(potentialDist * dampening * Math.max(0.2, 1 - Math.pow(Math.abs(hingeDiff) / 400, 2)));
 
     let activeRollMod = currentStyle.rollMod;
@@ -655,6 +652,9 @@ function calculateShot(autoMiss = false) {
         if (rollDistance < minRoll) rollDistance = Math.round(minRoll);
     }
     carryDistance = Math.max(0, totalDistance - rollDistance);
+    if (focusIndex === 1 && Math.abs(hingeDiff) <= 50) carryDistance *= 1.10;
+    carryDistance = Math.round(carryDistance);
+    totalDistance = carryDistance + rollDistance;
     let lateralX = Math.round((physicsX + windXEffect + lateralKick) * 10) / 10;
 
     const startX = ballX - moveX;

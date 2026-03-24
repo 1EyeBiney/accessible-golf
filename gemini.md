@@ -138,8 +138,9 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **The Caddy Panel:** The massive `lastShotReport` (including carry, roll, proximity, and hidden telemetry) is routed to a persistent, stylized DOM element upon hole/shot completion, separating it from the core swing prompts.
 - **Real-Time Telemetry Dashboard:** A 4-column visual grid permanently displays Target Info, Environment (Wind/Lie), Equipment (Club/Style), and Setup (Aim/Stance). 
 - **Input Binding:** `window.updateDashboard()` is wired into every State 0 keydown listener (`PageUp`, `ArrowLeft`, `Home`, `W`, etc.) and the `driftWind()` loop to provide instant, real-time visual feedback to sighted spectators as the player makes adjustments.
-### 28. v3.70 - v3.83 Engine Addendum (The Launch Monitor & Physics Parity)
-- **The Parabolic Arc:** Tree/Obstacle clearance uses true parabolic projectile motion `(tan(loft) / carry) * dist * (carry - dist)`. The engine correctly penalizes distance and increases loft based on Stance Index.
+### 28. v3.70 - v4.61 Engine Addendum (The Launch Monitor & Physics Parity)
+- **The Parabolic Arc:** Tree/Obstacle clearance uses true parabolic projectile motion `(tan(loft) / carry) * dist * (carry - dist)`. The engine correctly alters distance based on Stance Index. `loftDistMod` adds carry for Back stances (delofted, penetrating flight) and reduces carry for Forward stances (high loft, pop-up) by +/- 3% per tick.
+- **Base Club Scaling (v4.61.0):** Club `baseDistances` are scaled down (Driver = 230y) to balance against stacking multipliers (110% Power, +10% Power Focus, +6% Stance), keeping maximum human drives around 330 yards.
 - **The Predictive Caddy (Level 3):** The `getCaddyAdvice` function runs a "Ghost Simulation." It calculates `loftDistMod`, subtracts spin-induced roll, evaluates wind drift, and applies Stance Alignment side-spin to predict if a shot will clear or curve into an obstacle mid-flight.
 - **Flight Path Narratives:** The engine interpolates the ball's mid-air coordinates `(projectedX, projectedY, ballHeightFeet)` exactly as it crosses an obstacle's distance, generating highly specific narratives (e.g., "shaved the left edge by 3 yards").
 
@@ -269,7 +270,6 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Power Cap Reduction:** Maximum physical swing power is hard-capped at `110%` (down from 120%). This prevents arcade-style 400+ yard drives, capping mathematically perfect power-focus drives around 330 yards (PGA reality).
 - **Massive AI Pacing Buffers:** The base delay before an AI takes its turn is expanded by +5000ms across all pacing modes (Slow pacing now waits 16.5 seconds). This guarantees the ARIA screen reader has ample time to finish reading the long Markdown telemetry before the bot swings.
 
-### 55. v4.57 Engine Addendum (Dynamic TTS Pacing)
-- **Adaptive Turn Delay:** The AI Turn Manager now computes bot wait time from the character length of `lastShotReport` in `advanceTurn()`. The delay uses a `2500ms` base and scales by pacing mode: Fast `+15ms/char`, Medium `+25ms/char`, Slow `+40ms/char`, while Manual mode remains a fixed `1500ms` on explicit user release.
-- **Adaptive Hole Briefing Delay:** The same text-length pacing model is applied in `loadHole()` using the combined Hole/Fairway description length. The initial bot tee-shot delay now uses a `3500ms` base with identical pacing multipliers, preventing overlap between long hole briefings and bot execution.
-- **Accessibility Timing Integrity:** This removes one-size-fits-all static waits and synchronizes AI execution to actual TTS payload size, preserving readability for screen readers without forcing excessive dead air on short reports.
+### 55. v4.57 - v4.61 Engine Addendum (Dynamic TTS Pacing & Telemetry Archives)
+- **Character-Length Polling:** The engine dynamically scales AI turn delays to perfectly fit ARIA screen reader output. It calculates the `.length` of the `lastShotReport` (or hole description) and multiplies it by a millisecond variable based on `pacingModeIndex` (Fast: 20ms/char, Medium: 35ms/char, Slow: 55ms/char) to prevent audio clipping or dead silence.
+- **Scorecard Archives:** `loadHole()` intercepts and saves the active `holeTelemetry` array directly into `roundData` before wiping the slate. Pressing `C` or `Shift+C` in the Scorecard allows the user to export specific historical hole reports.

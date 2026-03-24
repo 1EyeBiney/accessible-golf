@@ -1,4 +1,4 @@
-// data_ag.js - Course Data, Clubs, and Shot Styles (v4.57.0)
+// data_ag.js - Course Data, Clubs, and Shot Styles (v4.61.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -17,17 +17,17 @@ const shotStyles = [
 ];
 
 const clubs = [
-    { name: "Driver", baseDistance: 255, maxDispersion: 45, loft: 10, rollPct: 0.12 },
-    { name: "3 Wood", baseDistance: 230, maxDispersion: 35, loft: 15, rollPct: 0.08 },
-    { name: "5 Wood", baseDistance: 215, maxDispersion: 30, loft: 18, rollPct: 0.06 },
-    { name: "4 Iron", baseDistance: 195, maxDispersion: 25, loft: 22, rollPct: 0.05 },
-    { name: "5 Iron", baseDistance: 180, maxDispersion: 22, loft: 26, rollPct: 0.04 },
-    { name: "6 Iron", baseDistance: 165, maxDispersion: 20, loft: 30, rollPct: 0.03 },
-    { name: "7 Iron", baseDistance: 155, maxDispersion: 18, loft: 34, rollPct: 0.02 },
-    { name: "8 Iron", baseDistance: 145, maxDispersion: 15, loft: 38, rollPct: 0.01 },
-    { name: "9 Iron", baseDistance: 135, maxDispersion: 12, loft: 42, rollPct: 0.00 },
-    { name: "Pitching Wedge", baseDistance: 120, maxDispersion: 10, loft: 46, rollPct: -0.01 },
-    { name: "Sand Wedge", baseDistance: 100, maxDispersion: 8, loft: 56, rollPct: -0.03 }
+    { name: "Driver", baseDistance: 230, maxDispersion: 45, loft: 10, rollPct: 0.12 },
+    { name: "3 Wood", baseDistance: 210, maxDispersion: 35, loft: 15, rollPct: 0.08 },
+    { name: "5 Wood", baseDistance: 195, maxDispersion: 30, loft: 18, rollPct: 0.06 },
+    { name: "4 Iron", baseDistance: 180, maxDispersion: 25, loft: 22, rollPct: 0.05 },
+    { name: "5 Iron", baseDistance: 165, maxDispersion: 22, loft: 26, rollPct: 0.04 },
+    { name: "6 Iron", baseDistance: 155, maxDispersion: 20, loft: 30, rollPct: 0.03 },
+    { name: "7 Iron", baseDistance: 145, maxDispersion: 18, loft: 34, rollPct: 0.02 },
+    { name: "8 Iron", baseDistance: 135, maxDispersion: 15, loft: 38, rollPct: 0.01 },
+    { name: "9 Iron", baseDistance: 125, maxDispersion: 12, loft: 42, rollPct: 0.00 },
+    { name: "Pitching Wedge", baseDistance: 110, maxDispersion: 10, loft: 46, rollPct: -0.01 },
+    { name: "Sand Wedge", baseDistance: 90, maxDispersion: 8, loft: 56, rollPct: -0.03 }
 ];
 
 const stanceNames = ["Far Forward", "Forward", "Neutral", "Back", "Far Back"];

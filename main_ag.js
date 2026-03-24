@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.57.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.61.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -68,18 +68,23 @@ const difficultyLevels = [
 ];
 
 // v4.44.0 Multiplayer Infrastructure
-let activePlayerCount = 2; // Default to 2 for Hot Seat playtesting
+let activePlayerCount = 3; // Default to 3 for Hot Seat playtesting
 let currentPlayerIndex = 0;
 let players = [];
 
 window.initPlayers = function() {
     players = [];
     for (let i = 0; i < activePlayerCount; i++) {
-        let isBot = i === 1; // Default Player 2 to a Bot
+        let isBot = i > 0; // Player 1 is human, Player 2 and 3 are bots
+        let pName = `Player ${i + 1}`;
+        let bSkill = 0;
+        if (i === 1) { pName = "Bot Woods"; bSkill = 3; }
+        if (i === 2) { pName = "Mulligan Moe"; bSkill = 1; } // Amateur
+
         players.push({
-            name: isBot ? "Bot Woods" : `Player ${i + 1}`,
+            name: pName,
             isBot: isBot,
-            botSkill: isBot ? 3 : 0, // 3: Tour, 2: Pro, 1: Amateur
+            botSkill: bSkill,
             botImpact: 0,
             botHinge: 0,
             botPower: 100,
@@ -207,19 +212,12 @@ window.advanceTurn = function(isPuttingTransition = false) {
 
         if (players[currentPlayerIndex].isBot) {
             window.waitingForBot = false;
-            const textToRead = (window.lastShotReport || '').replace(/\s+/g, ' ').trim();
-            const textLength = textToRead.length;
-            let baseDelay = 2500;
-
-            if (pacingModeIndex === 3) {
-                baseDelay = 1500;
-            } else if (pacingModeIndex === 2) {
-                baseDelay += textLength * 40;
-            } else if (pacingModeIndex === 1) {
-                baseDelay += textLength * 25;
-            } else {
-                baseDelay += textLength * 15;
-            }
+            let textToRead = (typeof lastShotReport !== 'undefined' && lastShotReport) ? lastShotReport : "";
+            let baseDelay = 2500; // Base buffer for UI sounds and swap announcement
+            if (pacingModeIndex === 0) baseDelay += (textToRead.length * 20); // Fast
+            if (pacingModeIndex === 1) baseDelay += (textToRead.length * 35); // Medium
+            if (pacingModeIndex === 2) baseDelay += (textToRead.length * 55); // Slow
+            if (pacingModeIndex === 3) baseDelay = 1500; // Manual Mode
 
             stateTimeouts.push(setTimeout(() => {
                 if (typeof window.takeAITurn === 'function') window.takeAITurn();
@@ -425,6 +423,17 @@ function loadHole(holeNumber) {
     try {
         stateTimeouts.forEach(clearTimeout);
         stateTimeouts = [];
+
+        // v4.61.0 Telemetry Archiving
+        if (typeof holeTelemetry !== 'undefined' && holeTelemetry.length > 0 && typeof roundData !== 'undefined') {
+            let record = roundData.find(r => r.hole === hole);
+            if (record) {
+                const hd = courses[currentCourseIndex].holes[hole - 1];
+                const header = `## HOLE ${hole} (${hd.distance}y, Par ${par})\n**Pin:** ${hd.pinLocation}\n\n`;
+                record.telemetryLog = header + holeTelemetry.join('\n\n');
+            }
+        }
+
         holeTelemetry = [];
         if (typeof powerOscillator !== 'undefined' && powerOscillator) {
             try { powerOscillator.stop(); } catch (e) {}
@@ -515,18 +524,13 @@ function loadHole(holeNumber) {
         }, 1000);
 
         if (players[currentPlayerIndex] && players[currentPlayerIndex].isBot) {
-            const holeTextLength = `${holeDesc} ${fairwayDesc}`.replace(/\s+/g, ' ').trim().length;
-            let baseDelay = 3500;
-
-            if (pacingModeIndex === 3) {
-                baseDelay = 1500;
-            } else if (pacingModeIndex === 2) {
-                baseDelay += holeTextLength * 40;
-            } else if (pacingModeIndex === 1) {
-                baseDelay += holeTextLength * 25;
-            } else {
-                baseDelay += holeTextLength * 15;
-            }
+            let hd = typeof courses !== 'undefined' ? courses[currentCourseIndex].holes[hole - 1] : null;
+            let holeTextLength = 100 + (hd && hd.fairwayDescription ? hd.fairwayDescription.length : 0);
+            let baseDelay = 3500; // Base buffer for hole transition audio
+            if (pacingModeIndex === 0) baseDelay += (holeTextLength * 20);
+            if (pacingModeIndex === 1) baseDelay += (holeTextLength * 35);
+            if (pacingModeIndex === 2) baseDelay += (holeTextLength * 55);
+            if (pacingModeIndex === 3) baseDelay = 1500; // Manual Mode
 
             stateTimeouts.push(setTimeout(() => {
                 if (typeof window.takeAITurn === 'function') window.takeAITurn();
