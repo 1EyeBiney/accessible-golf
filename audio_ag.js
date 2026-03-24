@@ -1,4 +1,4 @@
-// audio_ag.js - Audio Engine and Screen Reader Announcer
+// audio_ag.js - Audio Engine and Screen Reader Announcer (v4.56.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -211,3 +211,84 @@ window.playSplash = function(vol) {
 window.playTone = playTone;
 window.playNoise = playNoise;
 window.playSweep = playSweep;
+
+// --- AI CHARACTER AUDIO SIGNATURES ---
+
+window._createAudioSegment = function(startTime, duration, waveType, freqs, lfos, filters) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    osc.type = waveType;
+    osc.frequency.setValueAtTime(freqs[0].f, startTime);
+    for (let i = 1; i < freqs.length; i++) osc.frequency.exponentialRampToValueAtTime(freqs[i].f, startTime + (freqs[i].t * duration));
+
+    const bufferSize = audioCtx.sampleRate * duration;
+    const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = noiseBuffer;
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(filters[0].f, startTime);
+    for (let i = 1; i < filters.length; i++) filter.frequency.linearRampToValueAtTime(filters[i].f, startTime + (filters[i].t * duration));
+    noise.connect(filter);
+
+    const lfo = audioCtx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.setValueAtTime(lfos[0].f, startTime);
+    for (let i = 1; i < lfos.length; i++) lfo.frequency.linearRampToValueAtTime(lfos[i].f, startTime + (lfos[i].t * duration));
+
+    const rumbleGain = audioCtx.createGain();
+    rumbleGain.gain.value = 0.6;
+    lfo.connect(rumbleGain.gain);
+
+    const masterGain = audioCtx.createGain();
+    let boost = typeof CONTINUOUS_GAIN_BOOST !== 'undefined' ? CONTINUOUS_GAIN_BOOST : 1.0;
+    const vol = 0.8 * boost;
+    masterGain.gain.setValueAtTime(0.001, startTime);
+    masterGain.gain.exponentialRampToValueAtTime(vol, startTime + (duration * 0.1));
+    masterGain.gain.setValueAtTime(vol, startTime + (duration * 0.7));
+    masterGain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+    osc.connect(rumbleGain); filter.connect(rumbleGain); rumbleGain.connect(masterGain); masterGain.connect(audioCtx.destination);
+    lfo.start(startTime); lfo.stop(startTime + duration);
+    osc.start(startTime); osc.stop(startTime + duration);
+    noise.start(startTime); noise.stop(startTime + duration);
+};
+
+window.playBotWoodsSignature = function(type = 1) {
+    let boost = typeof CONTINUOUS_GAIN_BOOST !== 'undefined' ? CONTINUOUS_GAIN_BOOST : 1.0;
+
+    // 1. Try to play the physical MP3 file first
+    const audio = new Audio(`audio/bots/woods_roar${type}.mp3`);
+    audio.volume = 0.8 * boost;
+
+    audio.play().then(() => {
+        // MP3 played successfully, do nothing else.
+    }).catch(err => {
+        // 2. MP3 failed or missing, fallback to Synth Factory
+        window.initAudio();
+        const t0 = audioCtx.currentTime;
+        let barkDur = type === 3 ? 0.3 : 0.4;
+        let barkGap = type === 3 ? 0.05 : 0.1;
+        let snarlDur = 0.9;
+        let t1 = t0 + barkDur + barkGap;
+        let t2 = t1 + barkDur + barkGap;
+        let waveType = type === 5 ? 'square' : 'sawtooth';
+
+        window._createAudioSegment(t0, barkDur, waveType, [{t: 0, f: 150}, {t: 1, f: 60}], [{t: 0, f: 25}, {t: 1, f: 15}], [{t: 0, f: 600}, {t: 1, f: 200}]);
+        window._createAudioSegment(t1, barkDur, waveType, [{t: 0, f: 160}, {t: 1, f: 65}], [{t: 0, f: 25}, {t: 1, f: 15}], [{t: 0, f: 600}, {t: 1, f: 200}]);
+
+        let snarlFreqs;
+        switch(type) {
+            case 1: snarlFreqs = [{t: 0, f: 280}, {t: 1, f: 40}]; break;
+            case 2: snarlFreqs = [{t: 0, f: 120}, {t: 0.2, f: 300}, {t: 1, f: 40}]; break;
+            case 3: snarlFreqs = [{t: 0, f: 150}, {t: 0.15, f: 350}, {t: 1, f: 40}]; break;
+            case 4: snarlFreqs = [{t: 0, f: 100}, {t: 0.4, f: 250}, {t: 1, f: 30}]; break;
+            case 5: snarlFreqs = [{t: 0, f: 120}, {t: 0.2, f: 300}, {t: 1, f: 40}]; break;
+            default: snarlFreqs = [{t: 0, f: 280}, {t: 1, f: 40}];
+        }
+        window._createAudioSegment(t2, snarlDur, waveType, snarlFreqs, [{t: 0, f: 30}, {t: 1, f: 12}], [{t: 0, f: 800}, {t: 1, f: 150}]);
+    });
+};

@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.52.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.56.0)
 
 window.confirmingUnplayable = false;
 
@@ -500,20 +500,24 @@ window.addEventListener('keydown', (e) => {
                 if (e.code === 'Minus') { e.preventDefault(); synthTreeDist = Math.max(5, synthTreeDist - 5); window.announce(`Synth Tree moved closer to ${synthTreeDist} yards.`); window.updateDashboard(); return; }
             }
         }
-        // v4.43.0 Dynamic Timing Diagnostics (Shift + ;)
-        if (e.code === 'Semicolon' && e.shiftKey) { 
-            e.preventDefault(); 
-            document.getElementById('visual-output').innerText = lastTimingReport; 
-            window.announce(lastTimingReport);
+        if (e.code === 'Semicolon' && !e.shiftKey) {
+            e.preventDefault();
+            if (typeof window.stimpSpeed === 'undefined') window.stimpSpeed = 10;
+            const stimps = [8, 9, 10, 11, 12, 13, 14];
+            let idx = stimps.indexOf(window.stimpSpeed);
+            window.stimpSpeed = stimps[(idx + 1) % stimps.length];
+            window.announce(`Green Speed Stimp set to ${window.stimpSpeed}`);
+            let vis = document.getElementById('visual-output');
+            if (vis) vis.innerText = `Stimp: ${window.stimpSpeed}`;
             return;
         }
         if (e.code === 'KeyC') {
             e.preventDefault();
             if (e.shiftKey) {
-                let exportData = holeTelemetry.length > 0 ? holeTelemetry.join('\n\n---\n\n') : lastShotReport;
+                let exportData = holeTelemetry.length > 0 ? holeTelemetry.join('\n\n') : lastShotReport;
                 if (gameMode === 'course') {
                     const holeData = courses[currentCourseIndex].holes[hole - 1];
-                    const header = `--- HOLE ${hole} (${holeData.distance}y, Par ${par}. Pin: ${holeData.pinLocation}.) ---\n\n`;
+                    const header = `## HOLE ${hole} (${holeData.distance}y, Par ${par})\n**Pin:** ${holeData.pinLocation}\n\n`;
                     exportData = header + exportData;
                 }
                 navigator.clipboard.writeText(exportData).then(() => {
@@ -990,25 +994,14 @@ window.addEventListener('keydown', (e) => {
         }
         if (e.code === 'KeyX') {
             e.preventDefault();
-            const style = shotStyles[shotStyleIndex];
-            const baseCarry = club.baseDistance * style.distMod;
-            const baseTotal = baseCarry + (baseCarry * (club.rollPct * style.rollMod));
-            let msg = "";
-            
-            if (gameMode === 'course' && currentLie === 'Sand') {
-                const minTotal = Math.round(baseTotal * 0.60);
-                const maxTotal = Math.round(baseTotal * 0.80);
-                msg = `Holding ${club.name}. In the sand. Expect ${minTotal} to ${maxTotal} yards at 100% power.`;
-            } else if ((gameMode === 'course' && currentLie === 'Light Rough') || (gameMode === 'range' && rangeLie === 'Rough')) {
-                const minTotal = Math.round(baseTotal * 0.85);
-                const maxTotal = Math.round(baseTotal * 0.95);
-                msg = `Holding ${club.name}. In the rough. Expect ${minTotal} to ${maxTotal} yards at 100% power.`;
-            } else {
-                msg = `Holding ${club.name}. Expect ${Math.round(baseTotal)} yards at 100% power.`;
-            }
-            let focusName = typeof focusModes !== 'undefined' ? focusModes[focusIndex].name : "";
-            msg += ` Focus is set to ${focusName}.`;
-            document.getElementById('visual-output').innerText = msg; window.announce(msg);
+            let chokeMod = (typeof isChokedDown !== 'undefined' && isChokedDown) ? 0.9 : 1.0;
+            let currentStyle = shotStyles[shotStyleIndex];
+            let styleMod = (typeof currentStyle !== 'undefined') ? currentStyle.distMod : 1.0;
+            let expectedDist = Math.round(club.baseDistance * styleMod * chokeMod);
+            window.announce(`Expected distance: ${expectedDist} yards.`);
+            let vis = document.getElementById('visual-output');
+            if (vis) vis.innerText = `Expected distance: ${expectedDist} yards.`;
+            return;
         }
         if (e.code === 'KeyZ' && gameMode === 'course') {
             e.preventDefault();

@@ -251,3 +251,20 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Bot Input Lock:** The engine actively blocks human players from pressing `ArrowDown` or `ArrowUp` to initiate swings while it is a bot's turn, preventing sequence breaks and state desynchronization.
 - **True Honors:** `resetRosterForHole()` automatically evaluates the scorecard from the previous hole and awards the first tee shot to the player with the lowest score.
 - **Roster Persistence:** The `players` array, bot settings, and `currentPlayerIndex` are natively serialized into `localStorage` during `saveGame()`, allowing multiplayer sessions to survive browser refreshes.
+### 52. v4.49 - v4.52 Engine Addendum (AI Aggression & Green Transitions)
+- **Caddy Aggression Tuning:** The Oracle will actively reject Woods from the fairway if the pin is less than 150 yards away, forcing bots to rely on precision approach irons.
+- **Phantom Putter Fix:** `loadActivePlayer()` applies a strict geographic override. If an incoming player's coordinates fall within the `greenRadius`, it forces `isPutting = true` and auto-equips the Putter, preventing AI from executing infinite Driver loops on the green.
+- **Hazard Edge Distance:** The Hazard/Sight report (`Key H`) measures the linear distance to the *front edge* of the hazard's bounding box relative to the ball, rather than the center point.
+
+### 53. v4.53 Engine Addendum (Approach Physics & Markdown Telemetry)
+- **Loft Bias:** The AI Brain and Fairway Oracle mathematically subtract `(simClub.loft * 0.05)` from their simulated "miss distance" score. This heavily biases bots to attack pins with high-lofted Wedges rather than bumping mathematically equivalent 5-Irons.
+- **Approach Magnetism:** The fairway "Hole-Out" capture radius is multiplied by the global difficulty's `impactMod`. On Casual difficulty, the cup expands to over 3 feet for approach shots, provided the player achieves an `accuracyScore >= 90`.
+- **Markdown Telemetry:** The `Shift + C` clipboard export strictly formats shot data using Markdown syntax (`### Header`, `**Bold**`, `* List`) for readable pasting into code editors.
+- **Putter Auto-Focus:** `autoSetFocus()` immediately locks the engine into the "Touch" focus mechanic the moment the Putter is equipped.
+
+### 54. v4.54 - v4.56 Engine Addendum (Acoustic Signatures, Stimp & Power Scaling)
+- **Stimp Meter (Semicolon Key):** Cycles a global `window.stimpSpeed` variable (8 to 14). The gravity engine and Putting Oracle mathematically scale their pace calculations by `(stimpSpeed / 10)`, altering green speeds dynamically.
+- **AI Acoustic Signatures:** `playBotWoodsSignature()` utilizes a Promise-based fallback. It attempts to play physical MP3 files (`audio/bots/woods_roar[1-5].mp3`). If the files are missing, it seamlessly falls back to a 5-variant Web Audio API synthesized roar.
+- **Wedge Spin Exemption:** Wedges and 9-Irons bypass the forced 10% minimum roll-out rule on Pitch and Chip shots, allowing their extreme backspin to properly check the ball up or spin backward.
+- **Power Cap Reduction:** Maximum physical swing power is hard-capped at `110%` (down from 120%). This prevents arcade-style 400+ yard drives, capping mathematically perfect power-focus drives around 330 yards (PGA reality).
+- **Massive AI Pacing Buffers:** The base delay before an AI takes its turn is expanded by +5000ms across all pacing modes (Slow pacing now waits 16.5 seconds). This guarantees the ARIA screen reader has ample time to finish reading the long Markdown telemetry before the bot swings.

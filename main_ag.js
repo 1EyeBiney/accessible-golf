@@ -1,6 +1,7 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.52.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.56.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
+window.stimpSpeed = 10;
 let isPracticeSwing = false;
 let devPower = false, devHinge = false, devImpact = false;
 let pacingModeIndex = 0; // 0: Fast, 1: Medium, 2: Slow, 3: Manual
@@ -190,7 +191,13 @@ window.advanceTurn = function(isPuttingTransition = false) {
                 setTimeout(() => { window.announce(msg); }, 300);
                 let vis = document.getElementById('visual-output');
                 if(vis) vis.innerText = msg;
-                if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_07');
+
+                // Trigger AI Signature or Default UI Blip
+                if (players[currentPlayerIndex].name === "Bot Woods" && typeof window.playBotWoodsSignature === 'function') {
+                    window.playBotWoodsSignature(Math.floor(Math.random() * 5) + 1);
+                } else if (typeof window.playGolfSound === 'function') {
+                    window.playGolfSound('ui_nav_07');
+                }
             } else {
                 setTimeout(() => { window.announce(`Still ${pName}'s turn. ${distMsg}`); }, 300);
             }
@@ -200,9 +207,9 @@ window.advanceTurn = function(isPuttingTransition = false) {
 
         if (players[currentPlayerIndex].isBot) {
             window.waitingForBot = false;
-            let baseDelay = 2500; 
-            if (pacingModeIndex === 1) baseDelay += 1500;
-            if (pacingModeIndex === 2) baseDelay += 3000;
+            let baseDelay = 10500; 
+            if (pacingModeIndex === 1) baseDelay += 3000;
+            if (pacingModeIndex === 2) baseDelay += 6000;
             if (pacingModeIndex === 3) baseDelay = 1500;
 
             stateTimeouts.push(setTimeout(() => {
@@ -361,7 +368,7 @@ window.loadActivePlayer = function(index) {
 
 // Contextual Auto-Focus Logic
 window.autoSetFocus = function(silent = false) {
-    if (typeof isPutting !== 'undefined' && isPutting) { focusIndex = 2; return; }
+    if ((typeof isPutting !== 'undefined' && isPutting) || (club && club.name === "Putter")) { focusIndex = 2; return; }
 
     let oldIndex = focusIndex;
     let dist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 0;
@@ -499,9 +506,9 @@ function loadHole(holeNumber) {
         }, 1000);
 
         if (players[currentPlayerIndex] && players[currentPlayerIndex].isBot) {
-            let baseDelay = 2500;
-            if (pacingModeIndex === 1) baseDelay += 1500;
-            if (pacingModeIndex === 2) baseDelay += 3000;
+            let baseDelay = 10500;
+            if (pacingModeIndex === 1) baseDelay += 3000;
+            if (pacingModeIndex === 2) baseDelay += 6000;
             if (pacingModeIndex === 3) baseDelay = 1500;
 
             stateTimeouts.push(setTimeout(() => {
@@ -1048,14 +1055,14 @@ function startPowerPhase() {
     stateTimeouts.push(setTimeout(() => triggerMilestone(50), 666));
     stateTimeouts.push(setTimeout(() => triggerMilestone(75), 1333));
     stateTimeouts.push(setTimeout(() => triggerMilestone(100), 2000));
-    stateTimeouts.push(setTimeout(() => { if (swingState === 2) { triggerMilestone(120); startDownswing(); } }, 2533));
+    stateTimeouts.push(setTimeout(() => { if (swingState === 2) { triggerMilestone(110); startDownswing(); } }, 2533));
 }
 
 function startDownswing() {
     if (swingState !== 2) { swingState = 0; return; }
     swingState = 3; stateTimeouts.forEach(clearTimeout);
     let elapsed = performance.now() - powerStartTime;
-    finalPower = Math.min(120, Math.round(25 + ((elapsed / 2000) * 75)));
+    finalPower = Math.min(110, Math.round(25 + ((elapsed / 2000) * 75)));
     
     // v4.27.0 Overpower Warning Audio
     if (finalPower > 105 && typeof window.playGolfSound === 'function') {

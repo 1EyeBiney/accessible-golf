@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.52.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.56.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -38,6 +38,7 @@ window.initPutting = function() {
     document.getElementById('visual-output').innerText = msg;
     window.updateDashboard();
     if (typeof window.saveGame === 'function') window.saveGame();
+    if (typeof window.autoSetFocus === 'function') window.autoSetFocus(true);
 };
 
 function calculateDistanceToPin() {
@@ -242,7 +243,8 @@ function calculateShot(autoMiss = false) {
 
         let distTraveled = 0;
         let simX = ballX, simY = ballY;
-        let speedRemaining = puttTargetDist * (finalPower / 100);
+        let stimpMod = (typeof window.stimpSpeed !== 'undefined' ? window.stimpSpeed : 10) / 10;
+        let speedRemaining = puttTargetDist * (finalPower / 100) * stimpMod;
         // v4.7.2 Apply the aim angle relative to the pin
         let currentHeading = baseHeading + (aimAngle * (Math.PI / 180));
         
@@ -644,12 +646,15 @@ function calculateShot(autoMiss = false) {
     // Backspin affects rollout: every 1000 RPM above 4000 reduces roll by 10%
     let spinRollMod = Math.max(0.1, 1 - ((backspinRPM - 4000) / 10000));
     let rollDistance = Math.round(totalDistance * club.rollPct * activeRollMod * spinRollMod);
-    
-    // If it's a chip/pitch style, ensure roll is at least 10% of total unless it's a flop
-    if (shotStyleIndex > 0 && shotStyleIndex < 5 && rollDistance < (totalDistance * 0.1)) {
-        rollDistance = Math.round(totalDistance * 0.15 * spinRollMod);
-    }
     let carryDistance = Math.max(0, totalDistance - rollDistance);
+
+    // Ensure Wedges and 9-Irons can spin back/stop dead
+    let isWedge = club.name.includes("Wedge") || club.name === "9 Iron";
+    if (!isWedge && (currentStyle.name.includes("Chip") || currentStyle.name.includes("Pitch"))) {
+        let minRoll = carryDistance * 0.1;
+        if (rollDistance < minRoll) rollDistance = Math.round(minRoll);
+    }
+    carryDistance = Math.max(0, totalDistance - rollDistance);
     let lateralX = Math.round((physicsX + windXEffect + lateralKick) * 10) / 10;
 
     const startX = ballX - moveX;
@@ -874,9 +879,10 @@ function calculateShot(autoMiss = false) {
             touchBonus = Math.max(0.5, 1.0 + (2.0 * focusEffect)); // Max 3.0x, Min 0.5x
         }
 
-        let captureRadius = 0.15 * touchBonus;
+        let diffScale = typeof difficultyLevels !== 'undefined' ? difficultyLevels[difficultyIndex] : { impactMod: 1.0 };
+        let captureRadius = 0.15 * touchBonus * diffScale.impactMod; 
 
-        if (finalDistToPin <= captureRadius) {
+        if (finalDistToPin <= captureRadius && accuracyScore >= 90) { // Require a solid strike
             isHoleOut = true;
             isHoleComplete = true;
             ballX = pinX;
@@ -993,18 +999,6 @@ function calculateShot(autoMiss = false) {
             let displayX = Math.round(ballX * 10) / 10;
             let dirStr = displayX === 0 ? "dead center" : `${Math.abs(displayX)} yards ${displayX < 0 ? 'left' : 'right'} of center`;
             const sideSpinShape = sideSpinRPM === 0 ? "Straight" : sideSpinRPM > 0 ? "Slice" : "Hook";
-            // v3.82.0 Comprehensive Telemetry Capture
-            const chokeStr = typeof isChokedDown !== 'undefined' && isChokedDown ? " (Choked 90%)" : "";
-            const setupMetrics = `Setup: ${club.name}${chokeStr} | Style: ${currentStyle.name} | Focus: ${focusModes[focusIndex].name} | Stance: ${stanceNames[stanceIndex]} / ${alignmentNames[stanceAlignment + 2]} | Aim: ${aimAngle}° | Wind: Y:${windY} X:${windX}`;
-
-            let envMetrics = "";
-            if (typeof synthTreeActive !== 'undefined' && synthTreeActive) {
-                envMetrics = `Environment: Synth Tree at ${synthTreeDist}y, X:${synthTreeX}, Height:${Math.round(synthTreeHeight)}ft\n`;
-            }
-
-            const execMetrics = `Execution: Power ${finalPower}%. Hinge Diff ${hingeDiff}ms. Impact Offset ${impactDiff}ms. Accuracy Score ${accuracyScore}%. Backspin: ${backspinRPM} RPM. Side Spin: ${sideSpinRPM} RPM (${sideSpinShape}).\n${treeCollisionReport}`;
-
-            const metrics = `${setupMetrics}\n${envMetrics}${execMetrics}`;
             const roughDesc = isStartingInRough ? "Hacked it out of the rough. " : "";
             let kickDesc = lateralKick === 0 ? "rolls straight" : `kicks ${Math.abs(lateralKick)} yds ${lateralKick > 0 ? 'right' : 'left'}`;
 
@@ -1055,7 +1049,11 @@ function calculateShot(autoMiss = false) {
                 proximityDesc = `Landed ${window.formatProximity(landRelY)} ${landDir}. Rolled ${window.formatProximity(finalRelY - landRelY)} ${finalVertDir}, settling ${cupRelDir} the cup. Finished ${window.formatProximity(finalDistToPin)} from the pin, ${window.formatProximity(finalRelX)} to the ${finalSideDir}.`;
             }
 
-            const shotBroadcast = `[${pName}] ${club.name}. ${roughDesc}${shotDesc} ${windDesc} Carries ${carryDistance}, rolls ${rollDistance} forward and ${kickDesc} for a total of ${totalDistance}. ${proximityDesc}`;
+            const chokeStr = typeof isChokedDown !== 'undefined' && isChokedDown ? " (Choked 90%)" : "";
+            const shotBroadcast = `### ${pName}\n**Club:** ${club.name}\n**Result:** ${roughDesc}${shotDesc} ${windDesc} Carries ${carryDistance}, rolls ${rollDistance} forward and ${kickDesc} for a total of ${totalDistance}. ${proximityDesc}`;
+            let envMetrics = (typeof synthTreeActive !== 'undefined' && synthTreeActive) ? `* **Environment:** Synth Tree at ${synthTreeDist}y, X:${synthTreeX}, Height:${Math.round(synthTreeHeight)}ft\n` : "";
+            const execMetrics = `* **Execution:** Power ${finalPower}%. Hinge Diff ${hingeDiff}ms. Impact Offset ${impactDiff}ms. Accuracy Score ${accuracyScore}%. Backspin: ${backspinRPM} RPM. Side Spin: ${sideSpinRPM} RPM (${sideSpinShape}).\n${treeCollisionReport}`;
+            const metrics = `**Telemetry**\n* **Setup:** ${club.name}${chokeStr} | Style: ${currentStyle.name} | Focus: ${focusModes[focusIndex].name} | Stance: ${stanceNames[stanceIndex]} / ${alignmentNames[stanceAlignment + 2]} | Aim: ${aimAngle}° | Wind: Y:${windY} X:${windX}\n${envMetrics}${execMetrics}`;
 
             if (gameMode === 'chipping') {
                 let finalProximity = distanceToPin;
@@ -1291,6 +1289,7 @@ window.getCaddyAdvice = function() {
         }
 
         let bestAim = null; let bestPace = null;
+        let bestMissDist = 9999; let bestMissAim = 0; let bestMissPace = distToPin;
         let tempoBonus = 1.0; // Standard hole size assumption
         let baseHoleRadius = 0.15;
         let activeHoleRadius = ((distToPin <= 2.0) ? (baseHoleRadius * 3.0) : baseHoleRadius) * tempoBonus;
@@ -1300,7 +1299,8 @@ window.getCaddyAdvice = function() {
         for (let p = Math.max(0.5, distToPin * 0.5); p <= distToPin * 2.5; p += 0.25) {
             for (let a = -45; a <= 45; a += 1) {
                 let simX = ballX, simY = ballY;
-                let speedRemaining = p; let distTraveled = 0;
+                let effectivePace = p * ((typeof window.stimpSpeed !== 'undefined' ? window.stimpSpeed : 10) / 10);
+                let speedRemaining = effectivePace; let distTraveled = 0;
                 let currentHeading = baseHeading + (a * (Math.PI / 180));
                 let madeIt = false;
                 let captureSpeedLimit = (distToPin <= 2) ? 6.0 : 2.5 * tempoBonus;
@@ -1345,10 +1345,12 @@ window.getCaddyAdvice = function() {
             let distDisplay = isShort ? `${Math.round(distToPin * 3)}` : `${Math.round(distToPin)}`;
             return `[Oracle Putting]: ${distDisplay} ${unit}. To sink it with perfect timing, aim ${aimStr} and hit it with ${paceDisplay} ${unit} of pace.`;
         } else {
-            let aimStr = bestMissAim === 0 ? "straight" : `${Math.abs(bestMissAim)} degrees ${bestMissAim < 0 ? 'Left' : 'Right'}`;
+            let safeAim = bestMissAim || 0;
+            let safePace = bestMissPace || distToPin;
+            let aimStr = safeAim === 0 ? "straight" : `${Math.abs(safeAim)} degrees ${safeAim < 0 ? 'Left' : 'Right'}`;
             let isShort = distToPin <= 5.0;
             let unit = isShort ? "feet" : "yards";
-            let paceDisplay = isShort ? `${Math.round(bestMissPace * 3)}` : `${bestMissPace}`;
+            let paceDisplay = isShort ? `${Math.round(safePace * 3)}` : `${safePace.toFixed(1)}`;
             return `[Oracle Putting]: Cannot find a guaranteed make. Best lag option: aim ${aimStr} and hit it with ${paceDisplay} ${unit} of pace.`;
         }
     }
@@ -1412,12 +1414,17 @@ window.getCaddyAdvice = function() {
             let finalY = ballY + landY + (Math.cos(heading) * rollDist * 0.8);
 
             let miss = Math.sqrt(Math.pow(targetPoint.x - finalX, 2) + Math.pow(targetPoint.y - finalY, 2));
-            if (!best || miss < best.miss || (miss === best.miss && Math.abs(aimDeg) < Math.abs(best.aimDeg))) {
+
+            // Loft Bias: Subtract up to 3 yards from the miss score based on club loft to prioritize Wedges/Short Irons
+            let adjustedMiss = miss - (simClub.loft * 0.05);
+
+            if (!best || adjustedMiss < best.adjustedMiss || (adjustedMiss === best.adjustedMiss && Math.abs(aimDeg) < Math.abs(best.aimDeg))) {
                 best = {
                     clubName: simClub.name,
                     stanceName: stanceNames[simStance],
                     aimDeg,
-                    miss
+                    miss,
+                    adjustedMiss
                 };
             }
         }
@@ -1475,7 +1482,8 @@ window.getOracleBlueprint = function() {
         for (let p = Math.max(0.5, distToPin * 0.5); p <= distToPin * 2.5; p += 0.25) {
             for (let a = -45; a <= 45; a += 1) {
                 let simX = ballX, simY = ballY;
-                let speedRemaining = p; let distTraveled = 0;
+                let effectivePace = p * ((typeof window.stimpSpeed !== 'undefined' ? window.stimpSpeed : 10) / 10);
+                let speedRemaining = effectivePace; let distTraveled = 0;
                 let currentHeading = baseHeading + (a * (Math.PI / 180));
                 let madeIt = false;
                 let captureSpeedLimit = (distToPin <= 2) ? 6.0 : 2.5;
@@ -1575,6 +1583,9 @@ window.getOracleBlueprint = function() {
 
                     let miss = Math.sqrt(Math.pow(targetPoint.x - finalX, 2) + Math.pow(targetPoint.y - finalY, 2));
 
+                    // Loft Bias: Subtract up to 3 yards from the miss score based on club loft to prioritize Wedges/Short Irons
+                    let adjustedMiss = miss - (simClub.loft * 0.05);
+
                     if (holeData.trees) {
                         holeData.trees.forEach(tree => {
                             let distToTreeCenter = Math.sqrt(Math.pow(tree.x - ballX, 2) + Math.pow(tree.y - ballY, 2));
@@ -1586,14 +1597,17 @@ window.getOracleBlueprint = function() {
                                 
                                 if (actualDistToTree < tree.radius) {
                                     let ballHeightAtTree = Math.max(0, (Math.tan(dynamicLoft * Math.PI / 180) / fractionalDist) * distToTreeCenter * (fractionalDist - distToTreeCenter));
-                                    if (ballHeightAtTree < tree.height) miss += 100; // Massive penalty for hitting a tree
+                                    if (ballHeightAtTree < tree.height) {
+                                        miss += 100; // Massive penalty for hitting a tree
+                                        adjustedMiss += 100;
+                                    }
                                 }
                             }
                         });
                     }
 
-                    if (!best || miss < best.miss || (miss === best.miss && Math.abs(aimDeg) < Math.abs(best.aimDeg))) {
-                        best = { clubIndex: i, stanceIndex: simStance, styleIndex: sIdx, power: requiredPower, aimDeg, miss };
+                    if (!best || adjustedMiss < best.adjustedMiss || (adjustedMiss === best.adjustedMiss && Math.abs(aimDeg) < Math.abs(best.aimDeg))) {
+                        best = { clubIndex: i, stanceIndex: simStance, styleIndex: sIdx, power: requiredPower, aimDeg, miss, adjustedMiss };
                     }
                 }
             }
