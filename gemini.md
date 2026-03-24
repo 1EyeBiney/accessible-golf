@@ -320,3 +320,6 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Deterministic Spin:** `sideSpinRPM` is no longer a purely random value within an error cone. It is deterministically locked to `impactDiff` (`baseSideSpin = impactDiff * spinMultiplier`), guaranteeing that late impacts slice and early impacts hook.
 - **Donut RNG:** Remaining random scatter uses `1.0 - Math.pow(Math.random(), 2)` to push standard deviation toward the outer edges of the error radius, preventing the "Lucky Center" flaw.
 - **Hinge Distance Caps:** `hingeDiff > 40` strictly caps `hingeDistanceMod` at 0.85 or lower, preventing the engine's distance RNG from overriding "Fat" shots.
+
+### 67. v4.89.0 Engine Addendum (Master Telemetry Dump)
+- **Scorecard Export:** Pressing `Shift + C` inside the Scorecard UI now loops through the entire `players` array and concatenates every player's `roundData` into a single unified Markdown export, rather than only grabbing the actively viewed player.

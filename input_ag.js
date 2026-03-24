@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.85.1)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.89.0)
 
 window.confirmingUnplayable = false;
 
@@ -53,11 +53,23 @@ window.addEventListener('keydown', (e) => {
             let targetHole = parseInt(scorecardGrid[scRow][0]);
 
             if (e.shiftKey) {
-                let viewData = players[scorecardPlayerIndex] ? players[scorecardPlayerIndex].roundData : roundData; // v4.85.0
-                let allLogs = viewData.filter(r => r.telemetryLog).map(r => r.telemetryLog).join('\n\n---\n\n');
-                if (!allLogs) allLogs = "No telemetry logs available for this round.";
+                // v4.89.0 Master Telemetry Dump (All Players)
+                let allLogs = "";
+                if (typeof players !== 'undefined' && players.length > 0) {
+                    players.forEach(p => {
+                        let pLogs = p.roundData.filter(r => r.telemetryLog).map(r => r.telemetryLog).join('\n\n---\n\n');
+                        if (pLogs) {
+                            allLogs += `# TELEMETRY DUMP: ${p.name.toUpperCase()}\n\n${pLogs}\n\n=========================================\n\n`;
+                        }
+                    });
+                } else {
+                    allLogs = roundData.filter(r => r.telemetryLog).map(r => r.telemetryLog).join('\n\n---\n\n');
+                }
+                
+                if (!allLogs.trim()) allLogs = "No telemetry logs available for this round.";
+                
                 navigator.clipboard.writeText(allLogs).then(() => {
-                    window.announce("Entire round telemetry copied to clipboard.");
+                    window.announce("Master Foursome Telemetry copied to clipboard.");
                 });
             } else {
                 let viewData = players[scorecardPlayerIndex] ? players[scorecardPlayerIndex].roundData : roundData; // v4.85.0
