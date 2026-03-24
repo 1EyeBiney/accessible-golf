@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.90.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.91.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -76,7 +76,7 @@ let activePlayerCount = 3; // Default to 3 for Hot Seat playtesting
 let currentPlayerIndex = 0;
 let players = [];
 // v4.90.0 Clubhouse Wizard State
-let clubhouseState = 'root'; // 'root', 'course', 'size', 'roster', 'roster_slot', 'settings'
+let clubhouseState = 'root'; // 'root', 'course', 'size', 'roster', 'roster_type', 'roster_bot_amateur', 'roster_bot_tour', 'settings'
 let wizardCourse = 1;
 let wizardSize = 1;
 let wizardRoster = []; 
@@ -1081,9 +1081,9 @@ window.buildClubhouseMenu = function() {
     }
     else if (clubhouseState === 'roster') {
         for (let i = 0; i < wizardSize; i++) {
-            let slotName = wizardRoster[i] ? wizardRoster[i].name : "Empty Slot";
+            let slotName = wizardRoster[i] ? wizardRoster[i].name : "Empty. Press Enter to assign.";
             clubhouseMenu.push({ text: `Slot ${i + 1}: ${slotName}`, action: () => {
-                wizardSlot = i; clubhouseState = 'roster_slot'; clubhouseIndex = 0;
+                wizardSlot = i; clubhouseState = 'roster_type'; clubhouseIndex = 0;
                 window.buildClubhouseMenu(); window.announceClubhouse(true);
             }});
         }
@@ -1099,29 +1099,49 @@ window.buildClubhouseMenu = function() {
             window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
     }
-    else if (clubhouseState === 'roster_slot') {
+    else if (clubhouseState === 'roster_type') {
         clubhouseMenu.push({ text: "Human Player", action: () => {
             wizardRoster[wizardSlot] = { name: wizardSlot === 0 ? "Player 1" : `Player ${wizardSlot+1}`, isBot: false };
             clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
-        clubhouseMenu.push({ text: "Amateur Bot: Mulligan Moe", action: () => {
-            wizardRoster[wizardSlot] = { name: "Mulligan Moe", isBot: true, skill: 1, iBias: 35, hBias: 0, focus: 1, ball: 1 };
-            clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
+        clubhouseMenu.push({ text: "Amateur Bots", action: () => {
+            clubhouseState = 'roster_bot_amateur'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
-        clubhouseMenu.push({ text: "Amateur Bot: Fairway Frank", action: () => {
-            wizardRoster[wizardSlot] = { name: "Fairway Frank", isBot: true, skill: 1, iBias: -15, hBias: 45, focus: 4, ball: 4 };
-            clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
-        }});
-        clubhouseMenu.push({ text: "Beginner Bot: Shankin' Shawn", action: () => {
-            wizardRoster[wizardSlot] = { name: "Shankin' Shawn", isBot: true, skill: 0, iBias: 80, hBias: -40, focus: 0, ball: 5 };
-            clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
-        }});
-        clubhouseMenu.push({ text: "Tour Pro Bot: Tour-Pro Ted", action: () => {
-            wizardRoster[wizardSlot] = { name: "Tour-Pro Ted", isBot: true, skill: 3, iBias: 0, hBias: 0, focus: 3, ball: 0 };
-            clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
+        clubhouseMenu.push({ text: "Tour Pro Bots", action: () => {
+            clubhouseState = 'roster_bot_tour'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
         clubhouseMenu.push({ text: "Back (Escape)", action: () => {
             clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
+        }});
+    }
+    else if (clubhouseState === 'roster_bot_amateur') {
+        clubhouseMenu.push({ text: "Mulligan Moe", action: () => {
+            wizardRoster[wizardSlot] = { name: "Mulligan Moe", isBot: true, skill: 1, iBias: 35, hBias: 0, focus: 1, ball: 1 };
+            clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
+        }});
+        clubhouseMenu.push({ text: "Fairway Frank", action: () => {
+            wizardRoster[wizardSlot] = { name: "Fairway Frank", isBot: true, skill: 1, iBias: -15, hBias: 45, focus: 4, ball: 4 };
+            clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
+        }});
+        clubhouseMenu.push({ text: "Shankin' Shawn", action: () => {
+            wizardRoster[wizardSlot] = { name: "Shankin' Shawn", isBot: true, skill: 0, iBias: 80, hBias: -40, focus: 0, ball: 5 };
+            clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
+        }});
+        clubhouseMenu.push({ text: "Back (Escape)", action: () => {
+            clubhouseState = 'roster_type'; clubhouseIndex = 1; window.buildClubhouseMenu(); window.announceClubhouse(true);
+        }});
+    }
+    else if (clubhouseState === 'roster_bot_tour') {
+        clubhouseMenu.push({ text: "Tour-Pro Ted", action: () => {
+            wizardRoster[wizardSlot] = { name: "Tour-Pro Ted", isBot: true, skill: 3, iBias: 0, hBias: 0, focus: 3, ball: 0 };
+            clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
+        }});
+        clubhouseMenu.push({ text: "Bot Woods", action: () => {
+            wizardRoster[wizardSlot] = { name: "Bot Woods", isBot: true, skill: 3, iBias: 0, hBias: 0, focus: 1, ball: 0 };
+            clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
+        }});
+        clubhouseMenu.push({ text: "Back (Escape)", action: () => {
+            clubhouseState = 'roster_type'; clubhouseIndex = 2; window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
     }
     else if (clubhouseState === 'settings') {
@@ -1183,6 +1203,9 @@ window.announceClubhouse = function(isInit = true) {
         if (clubhouseState === 'course') prefix = "Select a Course. ";
         else if (clubhouseState === 'size') prefix = "How many in your group today? ";
         else if (clubhouseState === 'roster') prefix = "Configure your Roster. ";
+        else if (clubhouseState === 'roster_type') prefix = "Select player type using Up and Down arrows. ";
+        else if (clubhouseState === 'roster_bot_amateur') prefix = "Select Amateur Bot. ";
+        else if (clubhouseState === 'roster_bot_tour') prefix = "Select Tour Pro Bot. ";
         else if (clubhouseState === 'settings') prefix = "Round Setup. ";
     }
     let msg = prefix + currentItem.text;

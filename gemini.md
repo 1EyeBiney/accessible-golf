@@ -328,3 +328,10 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **State Machine Navigation:** `buildClubhouseMenu` now utilizes `clubhouseState` to render a drill-down wizard (Course -> Size -> Roster -> Match Settings). `input_ag.js` maps `ArrowUp/Down` to UI sweep tones (`bunker_03/04`) and maps `Escape` to step backward through the states.
 - **Pacing Failsafe:** Initializing a new round explicitly resets `pacingModeIndex = 0` to prevent users from accidentally triggering silent Simulation mode.
 - **Round Parameters:** Added `wizardWind`, `wizardStimp`, and `roughConditionIndex` global variables dynamically applied during the "Start Round" sequence.
+
+### 69. v4.91.0 Engine Addendum (Hierarchical Roster Selection)
+- **Categorized Bots:** Replaced the flat `roster_slot` menu with a 3-tier hierarchy (`roster_type` -> `roster_bot_amateur` / `roster_bot_tour`) to prevent accidental UX double-clicks and keep menu lengths short. Added Bot Woods as a baseline Tour Pro profile.
+
+### 70. v4.92.0 Engine Addendum (Dynamic Rough & Telemetry)
+- **Rough Conditions:** `physics_ag.js` now scales `lieMod` and `lieForgivenessMod` based on the active `roughConditionIndex` set by the Clubhouse wizard. 
+- **Telemetry Header:** The `Shift + C` Master Dump in `input_ag.js` now prepends a `# MATCH SETTINGS` block detailing the Course, Wind, Stimp, and Rough Condition to ensure exported data retains its environmental context.

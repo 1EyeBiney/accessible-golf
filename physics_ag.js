@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.88.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.92.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -501,9 +501,20 @@ function calculateShot(autoMiss = false) {
             lieDispersionMod = 2.0;
             lieForgivenessMod = 0.7;
         } else { // Light Rough or Range Rough
-            lieMod = 0.85 + (Math.random() * 0.1); // 85% to 95%
-            lieDispersionMod = 1.5; 
-            lieForgivenessMod = 0.8; 
+            // v4.92.0 Dynamic Rough Conditions
+            let rIndex = typeof roughConditionIndex !== 'undefined' ? roughConditionIndex : 1;
+            let baseMod = 0.85;
+            let forgiveMod = 0.80;
+            
+            if (typeof roughConditions !== 'undefined' && roughConditions[rIndex]) {
+                baseMod = roughConditions[rIndex].penalty;
+                // The thicker the grass, the smaller the sweet spot
+                forgiveMod = roughConditions[rIndex].penalty; 
+            }
+            
+            // Add a tiny 0-5% random variance on top of the base penalty
+            lieMod = baseMod + (Math.random() * 0.05); 
+            lieForgivenessMod = forgiveMod;
         }
     } else if (currentLie === 'Pine Needles') {
         // v4.87.0 Pine Straw Lie Penalty

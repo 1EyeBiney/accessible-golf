@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.90.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.92.0)
 
 window.confirmingUnplayable = false;
 
@@ -53,8 +53,20 @@ window.addEventListener('keydown', (e) => {
             let targetHole = parseInt(scorecardGrid[scRow][0]);
 
             if (e.shiftKey) {
-                // v4.89.0 Master Telemetry Dump (All Players)
+                // v4.92.0 Master Telemetry Dump w/ Settings Header
                 let allLogs = "";
+                
+                let courseName = (typeof courses !== 'undefined' && courses[currentCourseIndex]) ? courses[currentCourseIndex].name : "Unknown Course";
+                let windName = (typeof windLevels !== 'undefined' && windLevels[windLevelIndex]) ? windLevels[windLevelIndex].name : "Unknown Wind";
+                let roughName = (typeof roughConditions !== 'undefined' && roughConditions[roughConditionIndex]) ? roughConditions[roughConditionIndex].name : "Standard";
+                let stimpVal = typeof window.stimpSpeed !== 'undefined' ? window.stimpSpeed : 10;
+                
+                allLogs += `# MATCH SETTINGS\n`;
+                allLogs += `**Course:** ${courseName}\n`;
+                allLogs += `**Wind:** ${windName}\n`;
+                allLogs += `**Green Stimp:** ${stimpVal}\n`;
+                allLogs += `**Rough Condition:** ${roughName}\n\n=========================================\n\n`;
+
                 if (typeof players !== 'undefined' && players.length > 0) {
                     players.forEach(p => {
                         let pLogs = p.roundData.filter(r => r.telemetryLog).map(r => r.telemetryLog).join('\n\n---\n\n');
@@ -63,10 +75,9 @@ window.addEventListener('keydown', (e) => {
                         }
                     });
                 } else {
-                    allLogs = roundData.filter(r => r.telemetryLog).map(r => r.telemetryLog).join('\n\n---\n\n');
+                    let baseLogs = roundData.filter(r => r.telemetryLog).map(r => r.telemetryLog).join('\n\n---\n\n');
+                    if (baseLogs) allLogs += baseLogs;
                 }
-                
-                if (!allLogs.trim()) allLogs = "No telemetry logs available for this round.";
                 
                 navigator.clipboard.writeText(allLogs).then(() => {
                     window.announce("Master Foursome Telemetry copied to clipboard.");
@@ -249,7 +260,8 @@ window.addEventListener('keydown', (e) => {
             if (typeof window.playGolfSound === 'function') window.playGolfSound('menu_02'); // Back Cancel
             if (typeof clubhouseState !== 'undefined') {
                 if (clubhouseState === 'settings') { clubhouseState = 'roster'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
-                else if (clubhouseState === 'roster_slot') { clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true); }
+                else if (clubhouseState === 'roster_bot_amateur' || clubhouseState === 'roster_bot_tour') { clubhouseState = 'roster_type'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
+                else if (clubhouseState === 'roster_type') { clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true); }
                 else if (clubhouseState === 'roster') { clubhouseState = 'size'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
                 else if (clubhouseState === 'size') { clubhouseState = 'course'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
                 else if (clubhouseState === 'course') { clubhouseState = 'root'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
