@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.49.7)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.50.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 let isPracticeSwing = false;
@@ -245,7 +245,8 @@ window.takeAITurn = function() {
         stanceIndex = blueprint.stanceIndex !== undefined && blueprint.stanceIndex !== null ? blueprint.stanceIndex : 2;
         aimAngle = blueprint.aimDeg !== undefined && blueprint.aimDeg !== null ? blueprint.aimDeg : 0;
         shotStyleIndex = blueprint.styleIndex !== undefined ? blueprint.styleIndex : 0;
-        p.botPower = blueprint.power !== undefined ? blueprint.power : 100;
+        let rawPower = blueprint.power !== undefined ? blueprint.power : 100;
+        p.botPower = Math.max(10, Math.round(rawPower / 5) * 5);
     }
 
     let variance = p.botSkill === 3 ? 15 : p.botSkill === 2 ? 45 : 100;

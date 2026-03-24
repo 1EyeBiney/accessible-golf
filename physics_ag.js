@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.48.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.50.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -578,7 +578,8 @@ function calculateShot(autoMiss = false) {
     
     // v4.45.1 Telemetry Ownership (Fairway)
     let pName = typeof players !== 'undefined' && players.length > 0 ? players[currentPlayerIndex].name : "Player";
-    lastTimingReport = `[${pName}] Timing Check. Power ${finalPower} percent. Hinge ${Math.abs(hingeDiff)}ms ${hingeWord}. Impact ${Math.abs(impactDiff)}ms ${impactWord}. Side Spin: ${Math.abs(sideSpinRPM)} RPM ${sideSpinShape}. Backspin: ${backspinRPM} RPM, ${deltaStr}.`;
+    let advice = typeof window.getCaddyAdvice === 'function' ? window.getCaddyAdvice() : 'No advice available.';
+    lastTimingReport = `[${pName}] Timing Check. Power ${finalPower} percent. Hinge ${Math.abs(hingeDiff)}ms ${hingeWord}. Impact ${Math.abs(impactDiff)}ms ${impactWord}. Side Spin: ${Math.abs(sideSpinRPM)} RPM ${sideSpinShape}. Backspin: ${backspinRPM} RPM, ${deltaStr}.\n[Oracle Says: ${advice}]`;
 
     let chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
     let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
@@ -1439,6 +1440,7 @@ window.getOracleBlueprint = function() {
         }
 
         let bestAim = null; let bestPace = null;
+        let bestMissDist = 9999; let bestMissAim = 0; let bestMissPace = distToPin;
         let baseHoleRadius = 0.15;
         let activeHoleRadius = ((distToPin <= 2.0) ? (baseHoleRadius * 3.0) : baseHoleRadius);
         let slopeDampener = (distToPin <= 3.0) ? 0.1 : (distToPin <= 6.0) ? 0.35 : 1.0;
@@ -1451,10 +1453,12 @@ window.getOracleBlueprint = function() {
                 let currentHeading = baseHeading + (a * (Math.PI / 180));
                 let madeIt = false;
                 let captureSpeedLimit = (distToPin <= 2) ? 6.0 : 2.5;
+                let finalDistToHole = 9999;
 
                 while (speedRemaining > 0 && distTraveled < 100) {
                     let stepDist = Math.min(1.0, speedRemaining);
                     let currentDistToHole = Math.sqrt(Math.pow(pinX - simX, 2) + Math.pow(pinY - simY, 2));
+                    finalDistToHole = currentDistToHole;
 
                     if (currentDistToHole <= activeHoleRadius && speedRemaining <= captureSpeedLimit) {
                         madeIt = true; break;
@@ -1475,10 +1479,20 @@ window.getOracleBlueprint = function() {
                         bestAim = a; bestPace = p;
                     }
                 }
+                else {
+                    if (finalDistToHole < bestMissDist) {
+                        bestMissDist = finalDistToHole;
+                        bestMissAim = a;
+                        bestMissPace = p;
+                    }
+                }
             }
         }
         // v4.48.0 Long Putt Fallback
-        if (bestPace === null) { bestAim = 0; bestPace = distToPin; }
+        if (bestPace === null) {
+            bestAim = bestMissAim;
+            bestPace = bestMissPace;
+        }
         return { aimDeg: bestAim, pace: bestPace };
     } else {
         const holeData = courses[currentCourseIndex].holes[hole - 1];
@@ -1504,6 +1518,7 @@ window.getOracleBlueprint = function() {
             for (let i = 0; i < clubs.length; i++) {
                 let simClub = clubs[i];
                 if (simClub.name === "Putter") continue; 
+                if (distToTarget < 120 && (simClub.name.includes('Wood') || simClub.name.includes('Driver'))) continue;
                 for (let simStance = 0; simStance < 5; simStance++) {
                     let dynamicLoft = Math.max(0, simClub.loft + style.loftMod + ((2 - simStance) * 5));
                     let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
