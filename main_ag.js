@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.62.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.65.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -424,7 +424,7 @@ function loadHole(holeNumber) {
         stateTimeouts.forEach(clearTimeout);
         stateTimeouts = [];
 
-        // v4.62.0 Telemetry Archiving
+        // v4.65.0 Telemetry Archiving
         if (typeof holeTelemetry !== 'undefined' && holeTelemetry.length > 0 && typeof roundData !== 'undefined') {
             let record = roundData.find(r => r.hole === hole);
             if (record) {

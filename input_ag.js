@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.62.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.65.0)
 
 window.confirmingUnplayable = false;
 
@@ -1021,10 +1021,38 @@ window.addEventListener('keydown', (e) => {
             let chokeMod = (typeof isChokedDown !== 'undefined' && isChokedDown) ? 0.9 : 1.0;
             let currentStyle = shotStyles[shotStyleIndex];
             let styleMod = (typeof currentStyle !== 'undefined') ? currentStyle.distMod : 1.0;
-            let expectedDist = Math.round(club.baseDistance * styleMod * chokeMod);
-            window.announce(`Expected distance: ${expectedDist} yards.`);
+            
+            let loftDistMod = 1 + ((stanceIndex - 2) * 0.03);
+            let focusMod = focusIndex === 1 ? 1.10 : 1.0; 
+            
+            let expectedDist = Math.round(club.baseDistance * styleMod * chokeMod * loftDistMod * focusMod);
+            
+            let gripStr = isChokedDown ? "Choked " : "";
+            let focusStr = typeof focusModes !== 'undefined' ? focusModes[focusIndex].name : "Standard";
+
+            // v4.65.0 Verbosity Reduction Array
+            let reportParts = [
+                `${gripStr}${club.name}`,
+                `${expectedDist} expected clear`,
+                `Focus: ${focusStr}`
+            ];
+
+            // Only append stance and alignment if they are NOT neutral
+            if (typeof stanceAlignment !== 'undefined' && stanceAlignment !== 0) {
+                let alignStr = typeof alignmentNames !== 'undefined' ? alignmentNames[stanceAlignment + 2] : "";
+                reportParts.push(`${alignStr} Stance`);
+            }
+            
+            if (typeof stanceIndex !== 'undefined' && stanceIndex !== 2) {
+                let stanceStr = typeof stanceNames !== 'undefined' ? stanceNames[stanceIndex] : "";
+                reportParts.push(`${stanceStr} Address`);
+            }
+
+            let msg = reportParts.join(", ") + ".";
+            
+            window.announce(msg);
             let vis = document.getElementById('visual-output');
-            if (vis) vis.innerText = `Expected distance: ${expectedDist} yards.`;
+            if (vis) vis.innerText = msg;
             return;
         }
         if (e.code === 'KeyZ' && gameMode === 'course') {

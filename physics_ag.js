@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.62.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.65.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 

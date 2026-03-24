@@ -1,4 +1,4 @@
-// audio_ag.js - Audio Engine and Screen Reader Announcer (v4.62.0)
+// audio_ag.js - Audio Engine and Screen Reader Announcer (v4.65.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -258,39 +258,28 @@ window._createAudioSegment = function(startTime, duration, waveType, freqs, lfos
 };
 
 window.playBotWoodsSignature = function(type = 1) {
-    let boost = typeof CONTINUOUS_GAIN_BOOST !== 'undefined' ? CONTINUOUS_GAIN_BOOST : 1.0;
-    const audioPath = `audio/test_close1.mp3`;
-    const audio = new Audio(audioPath);
-    audio.volume = 0.8 * boost;
+    window.initAudio();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
 
-    audio.play().then(() => {
-        console.log(`[Audio] Successfully played MP3: ${audioPath}`);
-    }).catch(err => {
-        console.warn(`[Audio] MP3 Failed (${audioPath}). Falling back to Synth. Error:`, err);
+    const t0 = audioCtx.currentTime;
+    let barkDur = type === 3 ? 0.3 : 0.4;
+    let barkGap = type === 3 ? 0.05 : 0.1;
+    let snarlDur = 0.9;
+    let t1 = t0 + barkDur + barkGap; 
+    let t2 = t1 + barkDur + barkGap; 
+    let waveType = type === 5 ? 'square' : 'sawtooth';
 
-        window.initAudio();
-        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    window._createAudioSegment(t0, barkDur, waveType, [{t: 0, f: 150}, {t: 1, f: 60}], [{t: 0, f: 25}, {t: 1, f: 15}], [{t: 0, f: 600}, {t: 1, f: 200}]);
+    window._createAudioSegment(t1, barkDur, waveType, [{t: 0, f: 160}, {t: 1, f: 65}], [{t: 0, f: 25}, {t: 1, f: 15}], [{t: 0, f: 600}, {t: 1, f: 200}]);
 
-        const t0 = audioCtx.currentTime;
-        let barkDur = type === 3 ? 0.3 : 0.4;
-        let barkGap = type === 3 ? 0.05 : 0.1;
-        let snarlDur = 0.9;
-        let t1 = t0 + barkDur + barkGap; 
-        let t2 = t1 + barkDur + barkGap; 
-        let waveType = type === 5 ? 'square' : 'sawtooth';
-
-        window._createAudioSegment(t0, barkDur, waveType, [{t: 0, f: 150}, {t: 1, f: 60}], [{t: 0, f: 25}, {t: 1, f: 15}], [{t: 0, f: 600}, {t: 1, f: 200}]);
-        window._createAudioSegment(t1, barkDur, waveType, [{t: 0, f: 160}, {t: 1, f: 65}], [{t: 0, f: 25}, {t: 1, f: 15}], [{t: 0, f: 600}, {t: 1, f: 200}]);
-
-        let snarlFreqs;
-        switch(type) {
-            case 1: snarlFreqs = [{t: 0, f: 280}, {t: 1, f: 40}]; break; 
-            case 2: snarlFreqs = [{t: 0, f: 120}, {t: 0.2, f: 300}, {t: 1, f: 40}]; break; 
-            case 3: snarlFreqs = [{t: 0, f: 150}, {t: 0.15, f: 350}, {t: 1, f: 40}]; break; 
-            case 4: snarlFreqs = [{t: 0, f: 100}, {t: 0.4, f: 250}, {t: 1, f: 30}]; break; 
-            case 5: snarlFreqs = [{t: 0, f: 120}, {t: 0.2, f: 300}, {t: 1, f: 40}]; break; 
-            default: snarlFreqs = [{t: 0, f: 280}, {t: 1, f: 40}];
-        }
-        window._createAudioSegment(t2, snarlDur, waveType, snarlFreqs, [{t: 0, f: 30}, {t: 1, f: 12}], [{t: 0, f: 800}, {t: 1, f: 150}]);
-    });
+    let snarlFreqs;
+    switch(type) {
+        case 1: snarlFreqs = [{t: 0, f: 280}, {t: 1, f: 40}]; break; 
+        case 2: snarlFreqs = [{t: 0, f: 120}, {t: 0.2, f: 300}, {t: 1, f: 40}]; break; 
+        case 3: snarlFreqs = [{t: 0, f: 150}, {t: 0.15, f: 350}, {t: 1, f: 40}]; break; 
+        case 4: snarlFreqs = [{t: 0, f: 100}, {t: 0.4, f: 250}, {t: 1, f: 30}]; break; 
+        case 5: snarlFreqs = [{t: 0, f: 120}, {t: 0.2, f: 300}, {t: 1, f: 40}]; break; 
+        default: snarlFreqs = [{t: 0, f: 280}, {t: 1, f: 40}];
+    }
+    window._createAudioSegment(t2, snarlDur, waveType, snarlFreqs, [{t: 0, f: 30}, {t: 1, f: 12}], [{t: 0, f: 800}, {t: 1, f: 150}]);
 };

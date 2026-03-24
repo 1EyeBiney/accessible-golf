@@ -1,4 +1,4 @@
-// data_ag.js - Course Data, Clubs, and Shot Styles (v4.62.0)
+// data_ag.js - Course Data, Clubs, and Shot Styles (v4.65.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
