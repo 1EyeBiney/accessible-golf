@@ -280,3 +280,8 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 ### 57. v4.64 - v4.65 Engine Addendum (Pre-Shot Verbosity)
 - **Front-Loading Data:** The `X` key report strictly outputs data in order of importance to reduce ARIA fatigue: Club, Distance, Focus, then Alignment/Address.
 - **Omitting Defaults:** Stance Alignment and Ball Address variables are completely omitted from the `X` key TTS broadcast if they are currently set to Neutral. 
+
+### 58. v4.71.0 Engine Addendum (3D Topography Engine)
+- **Elevation (`ballZ`, `targetZ`):** Modifies carry distance directly. 1 yard of elevation gain reduces carry by 1 yard.
+- **Uneven Lies (`lieTilt`):** Alters clubface dynamics. Ball above feet generates hook spin (-80 RPM per degree); ball below feet generates slice spin.
+- **Slope Roll (`landingSlope`):** Alters ground friction. Downslopes (negative values) multiply roll out; upslopes (positive values) act as backboards and dampen roll distance by 5% per degree.

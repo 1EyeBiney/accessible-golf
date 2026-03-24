@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.65.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.71.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -16,7 +16,10 @@ let lockedImpactTime = 0;
 let windX = 0, windY = 0, windLevelIndex = 0; // v4.13.0 Calm Default
 let aimAngle = 0, stanceIndex = 2, stanceAlignment = 0, isChokedDown = false;
 let hole = 1, par = 4, strokes = 0;
-let ballX = 0, ballY = 0, pinX = 0, pinY = 420;
+let ballX = 0, ballY = 0, pinX = 0, pinY = 420, pinZ = 0;
+let ballZ = 0, targetZ = 0;
+let lieTilt = 0; // Positive = Ball above feet (Hook), Negative = Ball below feet (Slice)
+let landingSlope = 0; // Positive = Uphill landing (Stops fast), Negative = Downhill landing (Rolls out)
 let targetX = 0, targetY = 0, currentZoneIndex = -1;
 let activeTargetType = 'pin'; // 'pin', 'zone', or 'grid'
 let gridX = 0, gridY = 0; // Relative to the pin
@@ -78,7 +81,7 @@ window.initPlayers = function() {
         let isBot = i > 0; // Player 1 is human, Player 2 and 3 are bots
         let pName = `Player ${i + 1}`;
         let bSkill = 0;
-        if (i === 1) { pName = "Bot Woods"; bSkill = 3; }
+        if (i === 1) { pName = "Shankin' Shawn"; bSkill = 0; } // Beginner
         if (i === 2) { pName = "Mulligan Moe"; bSkill = 1; } // Amateur
 
         players.push({
@@ -333,6 +336,7 @@ window.loadActivePlayer = function(index) {
     puttsThisHole = p.puttsThisHole;
     ballX = p.ballX;
     ballY = p.ballY;
+    ballZ = 0; targetZ = 0; lieTilt = 0; landingSlope = 0;
     currentLie = p.currentLie;
     isHoleComplete = p.isHoleComplete;
 
@@ -424,7 +428,7 @@ function loadHole(holeNumber) {
         stateTimeouts.forEach(clearTimeout);
         stateTimeouts = [];
 
-        // v4.65.0 Telemetry Archiving
+        // v4.71.0 Telemetry Archiving
         if (typeof holeTelemetry !== 'undefined' && holeTelemetry.length > 0 && typeof roundData !== 'undefined') {
             let record = roundData.find(r => r.hole === hole);
             if (record) {
@@ -456,6 +460,7 @@ function loadHole(holeNumber) {
         par = holeData.par;
         pinX = holeData.pinX;
         pinY = holeData.pinY;
+        pinZ = holeData.pinZ || 0;
         
         ballX = 0; ballY = 0; strokes = 0; isHoleComplete = false;
         puttsThisHole = 0;

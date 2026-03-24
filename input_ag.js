@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.65.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.71.0)
 
 window.confirmingUnplayable = false;
 
@@ -1030,7 +1030,7 @@ window.addEventListener('keydown', (e) => {
             let gripStr = isChokedDown ? "Choked " : "";
             let focusStr = typeof focusModes !== 'undefined' ? focusModes[focusIndex].name : "Standard";
 
-            // v4.65.0 Verbosity Reduction Array
+            // v4.71.0 Verbosity Reduction Array
             let reportParts = [
                 `${gripStr}${club.name}`,
                 `${expectedDist} expected clear`,
@@ -1098,7 +1098,8 @@ window.addEventListener('keydown', (e) => {
                     activeTargetType = 'zone';
                     targetZoneIndex = 0;
                     const z = landingZones[targetZoneIndex];
-                    targetX = z.x; targetY = z.y;
+                    targetX = z.x; targetY = z.y; 
+                    targetZ = z.z || 0; lieTilt = z.tilt || 0; landingSlope = z.slope || 0;
                 } else {
                     window.announce("No landing zones defined for this hole.");
                     return;
@@ -1107,10 +1108,13 @@ window.addEventListener('keydown', (e) => {
                 targetZoneIndex++;
                 if (targetZoneIndex >= landingZones.length) {
                     activeTargetType = 'pin';
-                    targetX = holeData.pinX; targetY = holeData.pinY;
+                    const holeData = courses[currentCourseIndex].holes[hole - 1];
+                    targetX = holeData.pinX; targetY = holeData.pinY; 
+                    targetZ = holeData.pinZ || 0; lieTilt = 0; landingSlope = 0;
                 } else {
                     const z = landingZones[targetZoneIndex];
                     targetX = z.x; targetY = z.y;
+                    targetZ = z.z || 0; lieTilt = z.tilt || 0; landingSlope = z.slope || 0;
                 }
             }
 

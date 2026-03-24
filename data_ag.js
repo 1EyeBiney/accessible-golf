@@ -1,4 +1,4 @@
-// data_ag.js - Course Data, Clubs, and Shot Styles (v4.65.0)
+// data_ag.js - Course Data, Clubs, and Shot Styles (v4.71.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -427,9 +427,61 @@ const courses = [
                 zones: [{ name: "Safe Green Center", x: -5, y: 435 }, { name: "The Pin", x: 10, y: 438 }]
             }
         ]
+    },
+    {
+       name: "The Texas Scrapyard",
+       holes: [
+           {
+               number: 1, par: 4, distance: 340, pinX: 0, pinY: 340, pinZ: -12, greenType: "The Welcoming Bowl", fairwayWidth: 45, greenRadius: 18,
+               pinLocation: "Center",
+               description: "A 340-yard downhill par 4. The fairway is wide, dirt, and scrub grass. A rusted-out Chevy sits on the right side of the landing zone.",
+               fairwayDescription: "A wide, 45-yard dirt fairway that plays significantly downhill. Stay left to avoid the old Chevy.",
+               caddyNotes: [
+                   { level: 1, trigger: 'Tee', text: 'It plays downhill. Do not overswing.' },
+                   { level: 3, trigger: 'Tee', text: 'It is a 12-yard drop to the green. The rusted Chevy on the right is a magnet for slices. Aim left-center.' }
+               ],
+               hazards: [{ type: "Burned-Out Chevy", distance: 220, depth: 10, side: "Right", offset: 20, width: 10 }],
+               landingZones: [
+                   { name: "Safe Drive", x: -10, y: 230, z: -8, tilt: 0, slope: -2 },
+                   { name: "Green Approach", x: 0, y: 325, z: -12, tilt: 0, slope: 0 }
+               ],
+               zones: [{ name: "Fairway Center", x: -10, y: 230 }]
+           },
+           {
+               number: 2, par: 3, distance: 145, pinX: 5, pinY: 144, pinZ: 8, greenType: "The Turtleback", fairwayWidth: 20, greenRadius: 14,
+               pinLocation: "Back-Right",
+               description: "A steep uphill 145-yard par 3. You are hitting to an elevated scrap-pile green. Anything short will roll all the way back down the hill.",
+               fairwayDescription: "No fairway. Just a steep uphill carry over scrub grass to an elevated turtleback green.",
+               caddyNotes: [
+                   { level: 1, trigger: 'Tee', text: 'Take an extra club. It is uphill.' },
+                   { level: 3, trigger: 'Tee', text: 'Plays 8 yards uphill to a turtleback green that repels the ball. Take one extra club and try to land it softly.' }
+               ],
+               hazards: [{ type: "Scrap Metal Bunker", distance: 130, depth: 10, side: "Center", offset: 0, width: 25 }],
+               landingZones: [{ name: "Green Center", x: 0, y: 145, z: 8, tilt: 0, slope: 5 }],
+               zones: [{ name: "Green Center", x: 0, y: 145 }]
+           },
+           {
+               number: 3, par: 5, distance: 510, pinX: -15, pinY: 510, pinZ: -5, greenType: "The False Front", fairwayWidth: 40, greenRadius: 16,
+               pinLocation: "Left",
+               description: "A 510-yard par 5. A massive dried-out creek bed crosses the fairway at 280 yards. The lie on the other side is severely uneven.",
+               fairwayDescription: "A wide fairway split by a dry scrub creek at 280 yards. The landing zone past the creek slopes heavily from right to left.",
+               caddyNotes: [
+                   { level: 1, trigger: 'Tee', text: 'Avoid the dry creek bed in the middle.' },
+                   { level: 3, trigger: 'Tee', text: 'If you carry the dry creek at 280, the ball will land on a severe right-to-left slope. Be prepared for a sidehill lie.' },
+                   { level: 3, trigger: 'Approach_Long', text: 'You have a sidehill lie. The ball is above your feet, so it will hook hard to the left. Aim right to compensate.' }
+               ],
+               hazards: [{ type: "Dry Scrub Creek", distance: 280, depth: 20, side: "Center", offset: 0, width: 60 }],
+               landingZones: [
+                   { name: "Short of Creek", x: 0, y: 260, z: -2, tilt: 0, slope: 0 },
+                   { name: "Uneven Layup", x: 10, y: 350, z: -5, tilt: 4, slope: -1 },
+                   { name: "Green Approach", x: 0, y: 490, z: -5, tilt: 0, slope: 0 }
+               ],
+               zones: [{ name: "Fairway Right", x: 10, y: 350 }]
+           }
+       ]
     }
 ];
-let currentCourseIndex = 0;
+let currentCourseIndex = 1;
 
 const helpMenuText = [
     { text: "Accessible Golf Help Menu: Use the Up and Down arrows to navigate this guide. Press Escape or Enter at any time to close. Heading Level 1.", heading: true },
