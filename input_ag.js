@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.83.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v4.85.1)
 
 window.confirmingUnplayable = false;
 
@@ -32,6 +32,18 @@ window.addEventListener('keydown', (e) => {
     if (viewingScorecard) {
         e.preventDefault(); // Lock ALL inputs
 
+        // v4.85.1 Enforce P key for multiplayer swap (Fixes Tab browser conflicts)
+        if (e.code === 'KeyP') {
+            if (typeof players !== 'undefined' && players.length > 0) {
+                scorecardPlayerIndex = (scorecardPlayerIndex + 1) % players.length;
+                scRow = 0; scCol = 0; 
+                window.showScorecard();
+            } else {
+                window.announce("No other players available.");
+            }
+            return;
+        }
+
         if (e.code === 'KeyC') {
             e.preventDefault();
             if (scRow === 0 || scRow === scorecardGrid.length - 1) {
@@ -41,13 +53,15 @@ window.addEventListener('keydown', (e) => {
             let targetHole = parseInt(scorecardGrid[scRow][0]);
 
             if (e.shiftKey) {
-                let allLogs = roundData.filter(r => r.telemetryLog).map(r => r.telemetryLog).join('\n\n---\n\n');
+                let viewData = players[scorecardPlayerIndex] ? players[scorecardPlayerIndex].roundData : roundData; // v4.85.0
+                let allLogs = viewData.filter(r => r.telemetryLog).map(r => r.telemetryLog).join('\n\n---\n\n');
                 if (!allLogs) allLogs = "No telemetry logs available for this round.";
                 navigator.clipboard.writeText(allLogs).then(() => {
                     window.announce("Entire round telemetry copied to clipboard.");
                 });
             } else {
-                let record = roundData.find(r => r.hole === targetHole);
+                let viewData = players[scorecardPlayerIndex] ? players[scorecardPlayerIndex].roundData : roundData; // v4.85.0
+                let record = viewData.find(r => r.hole === targetHole);
                 let log = (record && record.telemetryLog) ? record.telemetryLog : `No telemetry found for Hole ${targetHole}.`;
                 navigator.clipboard.writeText(log).then(() => {
                     window.announce(`Telemetry for Hole ${targetHole} copied to clipboard.`);
@@ -430,6 +444,7 @@ window.addEventListener('keydown', (e) => {
         if (e.code === 'KeyE') {
             e.preventDefault();
             if (e.shiftKey) {
+                scorecardPlayerIndex = currentPlayerIndex; // v4.85.0 Start on active player
                 viewingScorecard = true; window.showScorecard();
                 // v4.30.3 Removed hardcoded announce to allow main_ag.js to handle it
             } else {

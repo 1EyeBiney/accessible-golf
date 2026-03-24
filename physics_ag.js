@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.83.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v4.86.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -128,6 +128,7 @@ function calculateZoneAccuracy(offsetMs, pressure) {
 }
 
 function calculateShot(autoMiss = false) {
+    let quick = typeof window.isQuickSim !== 'undefined' && window.isQuickSim; // v4.86.0
     swingState = 5; 
 
     // v4.39.0 Automatic Diagnostic Memory (Capture before ball moves)
@@ -547,7 +548,7 @@ function calculateShot(autoMiss = false) {
     const accuracyScore = Math.round((impactAcc + hingeAcc) / 2);
     
     // v4.27.0 Dynamic Strike Audio
-    if (typeof window.playGolfSound === 'function') {
+    if (!quick && typeof window.playGolfSound === 'function') {
         let strikeSound = 'flight_01'; // Default: Flushed (Clean Strike)
         
         if (accuracyScore < 95) {
@@ -991,16 +992,17 @@ function calculateShot(autoMiss = false) {
     }
 
     document.getElementById('visual-output').innerText = "Ball is in the air...";
-    playNoise(hangTimeSecs + 0.3, 0.3, false);
+    if (!quick) playNoise(hangTimeSecs + 0.3, 0.3, false);
 
     // v4.31.3 Live 3D Audio Flight Injection
     // Calculate final lateral drift (35 yards offline = 100% hard pan into one ear)
     let endPan = Math.max(-1, Math.min(1, lateralTotal / 35)); 
-    if (typeof window.trigger3DFlight === 'function') {
+    if (!quick && typeof window.trigger3DFlight === 'function') {
         window.trigger3DFlight(hangTimeSecs, dynamicLoft, 0.0, endPan, ballTypes[activeBallIndex]);
     }
 
     // v4.19.4 Track flight timeout
+    let shotDurationMs = quick ? 5 : hangTimeSecs * 1000; // v4.86.0 Simulate Bypass
     stateTimeouts.push(setTimeout(() => {
         try {
         const loftPenalty = dynamicLoft >= 50 ? 2 : dynamicLoft >= 38 ? 1 : 0;
@@ -1034,11 +1036,11 @@ function calculateShot(autoMiss = false) {
             bounceSequenceMs = 400; // Gives the splash exactly 400ms to play before Caddy talks
             
             // v4.29.0 Heavy Splash Audio
-            if (typeof window.playGolfSound === 'function') window.playGolfSound('hazard_05');
-            else if (typeof window.playSplash === 'function') window.playSplash(0.5);
+            if (!quick && typeof window.playGolfSound === 'function') window.playGolfSound('hazard_05');
+            else if (!quick && typeof window.playSplash === 'function') window.playSplash(0.5);
         } else {
             // Only bounce and roll if NOT in water
-            bounceOffsets.forEach((bounceOffsetMs, bounceIndex) => {
+            if (!quick) bounceOffsets.forEach((bounceOffsetMs, bounceIndex) => {
                 stateTimeouts.push(setTimeout(() => {
                     const bounceVolume = Math.max(0.12, 1.0 * Math.pow(0.8, bounceIndex));
                     if (typeof window.playPannedTone === 'function') {
@@ -1054,7 +1056,7 @@ function calculateShot(autoMiss = false) {
                     // v4.31.7 Only play roll audio if on the green
                     if (currentLie === "Green") {
                         document.getElementById('visual-output').innerText = "Ball is rolling smoothly on the green...";
-                        if (typeof window.playPannedGreenRoll === 'function') {
+                        if (!quick && typeof window.playPannedGreenRoll === 'function') {
                             window.playPannedGreenRoll(rollTimeSecs, endPan);
                         }
                     } else {
@@ -1143,26 +1145,28 @@ function calculateShot(autoMiss = false) {
             } else {
                 if (isHoleComplete) {
                     // v4.28.0 Dynamic Scoring Chords
-                    if (typeof window.playGolfSound === 'function') {
-                        let diff = strokes - par;
-                        let sfx = 'score_01'; // Default: Par
-                        if (diff <= -2) sfx = 'score_04'; // Eagle/Hole-in-One
-                        else if (diff === -1) sfx = 'score_03'; // Birdie
-                        else if (diff === 1) sfx = 'score_05'; // Bogey
-                        else if (diff === 2) sfx = 'score_06'; // Double Bogey
-                        else if (diff >= 3) sfx = 'score_07'; // Triple Bogey+
-                        window.playGolfSound(sfx);
-                    } else {
-                        playTone(440, 'sine', 0.2, 0.4);
-                        stateTimeouts.push(setTimeout(() => playTone(554, 'sine', 0.2, 0.4), 200));
-                        stateTimeouts.push(setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 400));
+                    if (!quick) {
+                        if (typeof window.playGolfSound === 'function') {
+                            let diff = strokes - par;
+                            let sfx = 'score_01';
+                            if (diff <= -2) sfx = 'score_04';
+                            else if (diff === -1) sfx = 'score_03';
+                            else if (diff === 1) sfx = 'score_05';
+                            else if (diff === 2) sfx = 'score_06';
+                            else if (diff >= 3) sfx = 'score_07';
+                            window.playGolfSound(sfx);
+                        } else {
+                            playTone(440, 'sine', 0.2, 0.4);
+                            stateTimeouts.push(setTimeout(() => playTone(554, 'sine', 0.2, 0.4), 200));
+                            stateTimeouts.push(setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 400));
+                        }
                     }
 
                     const completionMessage = `Hole complete! ${shotBroadcast} You reached the green in ${strokes} strokes.`;
-                    window.announce(completionMessage);
+                    if (!quick) window.announce(completionMessage);
                     lastShotReport = completionMessage + "\n\nTelemetry:\n" + metrics;
                     holeTelemetry.push(lastShotReport);
-                    window.setCaddyPanelText(lastShotReport);
+                    if (!quick) window.setCaddyPanelText(lastShotReport);
 
                     window.advanceTurn();
                 } else {
@@ -1192,31 +1196,27 @@ function calculateShot(autoMiss = false) {
                         
                         // Track the Caddy/Transition sequence
                         stateTimeouts.push(setTimeout(() => {
-                            window.announce(broadcast);
+                            if (!quick) window.announce(broadcast);
                             lastShotReport = broadcast + "\n\nTelemetry:\n" + metrics;
                             holeTelemetry.push(lastShotReport);
-                            window.setCaddyPanelText(lastShotReport);
+                            if (!quick) window.setCaddyPanelText(lastShotReport);
 
                             if (gameMode === 'course' && currentLie === "Green") {
-                                playTone(440, 'sine', 0.1, 0.5);
-                                stateTimeouts.push(setTimeout(() => playTone(554, 'sine', 0.1, 0.5), 150));
-                                stateTimeouts.push(setTimeout(() => playTone(659, 'sine', 0.2, 0.5), 300));
+                                if (!quick) { playTone(440, 'sine', 0.1, 0.5); stateTimeouts.push(setTimeout(() => playTone(554, 'sine', 0.1, 0.5), 150)); stateTimeouts.push(setTimeout(() => playTone(659, 'sine', 0.2, 0.5), 300)); }
                                 stateTimeouts.push(setTimeout(() => {
                                     window.initPutting();
                                     window.advanceTurn(true);
-                                }, 3500));
+                                }, quick ? 0 : 3500));
                             } else {
                                 if (gameMode === 'course') window.updateTargetZone();
                                 driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false; isChokedDown = false;
-                                
+
                                 // v4.45.1 ARIA Interruption Fix (Wait 4 seconds before advancing turn)
                                 stateTimeouts.push(setTimeout(() => {
                                     window.advanceTurn();
-                                }, 4000));
+                                }, quick ? 0 : 4000));
                             }
-                        }, typeof isPutting !== 'undefined' && isPutting && club.name === "Putter" && strokes > 1 ? 1500 : 0));
-
-                        // Wait for the timeout to finish, then save
+                        }, quick ? 0 : (typeof isPutting !== 'undefined' && isPutting && club.name === "Putter" && strokes > 1 ? 1500 : 0)));
                         // Track the Auto-Save delay
                         stateTimeouts.push(setTimeout(() => {
                             shotStyleIndex = 0; // v4.19.7 Reset style to Normal after shot completion
@@ -1225,7 +1225,7 @@ function calculateShot(autoMiss = false) {
                     }
                 }
             }
-        }, bounceSequenceMs + (rollTimeSecs * 1000) + caddyDelayMs));
+        }, quick ? 5 : bounceSequenceMs + (rollTimeSecs * 1000) + caddyDelayMs));
 
         } catch (err) {
             console.error('Shot resolution failed', err);
@@ -1238,7 +1238,7 @@ function calculateShot(autoMiss = false) {
             window.updateDashboard();
         }
 
-    }, hangTimeSecs * 1000));
+    }, shotDurationMs));
 }
 
 window.formatProximity = function(yards) {

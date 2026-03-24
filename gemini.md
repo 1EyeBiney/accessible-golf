@@ -299,3 +299,17 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 ### 61. v4.83.0 Engine Addendum (3D Audio Altimeter & Rangefinder)
 - **Altimeter Pings:** The `Z` key triggers rising/falling sine waves based on the elevation difference (`targetZ - ballZ`) to convey verticality without TTS overhead.
 - **Dynamic Hang Time:** The Z-axis difference now modifies `hangTimeSecs` (multiplied by 0.04). Downhill targets physically extend the duration of the ball flight audio; uphill targets shorten it.
+
+### 62. v4.84.0 Engine Addendum (UI Optimization)
+- **O(1) Scorecard Rendering:** `announceScorecardCell` caches `window.lastHighlightedCell` to update the UI cursor directly, rather than iterating through `table.getElementsByTagName('td')` on every keystroke, which previously caused severe input dropping.
+
+### 63. v4.85.0 Engine Addendum (Multiplayer Data Architecture)
+- **Per-Player Telemetry Isolation:** `roundData`, `roundHighlights`, and `currentHoleStats` are now stored directly on each entry in the `players[]` array. `saveActivePlayer` writes these three references into the outgoing player object; `loadActivePlayer` restores them (with safe fallbacks) when the engine switches turns. Bot telemetry can no longer overwrite human player data mid-round.
+- **Multiplayer Scorecards:** `KeyP` inside the Grid Scorecard increments `scorecardPlayerIndex`, rebuilding the table using `players[scorecardPlayerIndex].roundData` to allow spectators to review bot telemetry.
+- **Score-Open Targeting:** `Shift+E` now sets `scorecardPlayerIndex = currentPlayerIndex` before opening the scorecard, ensuring the human player's own data is shown by default rather than whatever index was left over from a previous session.
+- **New Round Reset:** `buildClubhouseMenu`'s "Start New Round" action calls `window.initPlayers()` after clearing the global telemetry arrays, re-seeding every player object's `roundData`, `roundHighlights`, and `currentHoleStats` to their empty defaults.
+
+### 64. v4.86.0 Engine Addendum (Headless Telemetry Simulator)
+- **Quick Sim:** Setting `pacingModeIndex` to "Simulate" passes `isSim = true` to `takeAITurn`, which sets `window.isQuickSim = true` before calling `calculateShot`. This bypasses all `trigger3DFlight`, `playPannedThud`, scoring chords, and TTS `window.announce` calls. All inner timeouts (`hangTimeSecs`, `bounceSequenceMs`, `3500ms` green transitions, `4000ms` turn advances) collapse to 0–5ms, reducing a shot's processing time from ~15 seconds to under 20ms.
+- **Pre-Round Setup:** The Clubhouse dynamically builds "Course" and "Roster" toggles using `setupCourseIndex` and `setupRosterIndex`. "Simulation (4 Bots)" auto-advances holes via `loadHole(hole + 1)` inside `advanceTurn`'s `allDone` handler, generating a full 18-hole telemetry array in seconds.
+- **AI Personality Biases:** `initPlayers()` now reads from `rosterPresets[]` and applies `impactBias`, `hingeBias`, `focusIndex`, and `activeBallIndex` to specific bots, giving them distinct playing styles and equipment logic.

@@ -1,11 +1,11 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v4.81.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v4.86.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
 let isPracticeSwing = false;
 let devPower = false, devHinge = false, devImpact = false;
 let pacingModeIndex = 0; // 0: Fast, 1: Medium, 2: Slow, 3: Manual
-let pacingModes = ["Fast", "Medium", "Slow", "Manual"];
+let pacingModes = ["Fast", "Medium", "Slow", "Manual", "Simulate"];
 window.waitingForBot = false;
 let stateTimeouts = [];
 
@@ -35,6 +35,7 @@ let viewingScorecard = false;
 let scorecardPage = 0;
 let scorecardGrid = [];
 let scRow = 0, scCol = 0;
+let scorecardPlayerIndex = 0; // v4.85.0 Multiplayer Scorecard Target
 let gameMode = 'course';
 let isExploreMode = false;
 let clubhouseMenu = [];
@@ -74,41 +75,44 @@ const difficultyLevels = [
 let activePlayerCount = 3; // Default to 3 for Hot Seat playtesting
 let currentPlayerIndex = 0;
 let players = [];
+let setupCourseIndex = 1; // Default to Scrapyard
+let setupRosterIndex = 2; // Default to 1 Human, 2 Bots
+const rosterPresets = [
+    { name: "Solo (1 Human)", count: 1, bots: [] },
+    { name: "Duos (1 Human, 1 Bot)", count: 2, bots: [{name: "Shankin' Shawn", skill: 0, iBias: 80, hBias: -40, focus: 0, ball: 5}] },
+    { name: "Trios (1 Human, 2 Bots)", count: 3, bots: [{name: "Shankin' Shawn", skill: 0, iBias: 80, hBias: -40, focus: 0, ball: 5}, {name: "Mulligan Moe", skill: 1, iBias: 35, hBias: 0, focus: 1, ball: 1}] },
+    { name: "Foursome (1 Human, 3 Bots)", count: 4, bots: [{name: "Shankin' Shawn", skill: 0, iBias: 80, hBias: -40, focus: 0, ball: 5}, {name: "Mulligan Moe", skill: 1, iBias: 35, hBias: 0, focus: 1, ball: 1}, {name: "Fairway Frank", skill: 1, iBias: -15, hBias: 45, focus: 4, ball: 4}] },
+    { name: "Simulation (4 Bots)", count: 4, bots: [{name: "Shankin' Shawn", skill: 0, iBias: 80, hBias: -40, focus: 0, ball: 5}, {name: "Mulligan Moe", skill: 1, iBias: 35, hBias: 0, focus: 1, ball: 1}, {name: "Fairway Frank", skill: 1, iBias: -15, hBias: 45, focus: 4, ball: 4}, {name: "Tour-Pro Ted", skill: 3, iBias: 0, hBias: 0, focus: 3, ball: 0}] }
+];
 
 window.initPlayers = function() {
     players = [];
+    let preset = rosterPresets[setupRosterIndex];
+    activePlayerCount = preset.count;
+    let isAllBots = preset.name.includes("4 Bots");
+
     for (let i = 0; i < activePlayerCount; i++) {
-        let isBot = i > 0; // Player 1 is human, Player 2 and 3 are bots
-        let pName = `Player ${i + 1}`;
-        let bSkill = 0;
-        if (i === 1) { pName = "Shankin' Shawn"; bSkill = 0; } // Beginner
-        if (i === 2) { pName = "Mulligan Moe"; bSkill = 1; } // Amateur
+        let isBot = isAllBots ? true : i > 0;
+        let botData = isAllBots ? preset.bots[i] : (i > 0 ? preset.bots[i-1] : null);
+
+        let pName = botData ? botData.name : "Player 1";
+        let bSkill = botData ? botData.skill : 0;
+        let iBias = botData ? botData.iBias : 0;
+        let hBias = botData ? botData.hBias : 0;
+        let fIndex = botData ? botData.focus : 0;
+        let bIndex = botData ? botData.ball : 0;
 
         players.push({
-            name: pName,
-            isBot: isBot,
-            botSkill: bSkill,
-            botImpact: 0,
-            botHinge: 0,
-            botPower: 100,
-            strokes: 0,
-            puttsThisHole: 0,
-            ballX: 0, ballY: 0,
-            currentLie: "Tee",
-            isHoleComplete: false,
-            isPutting: false,
-            puttTargetDist: 0,
-            aimAngle: 0,
-            stanceIndex: 2,
-            stanceAlignment: 0,
-            focusIndex: 0,
-            currentClubIndex: currentClubIndex,
+            name: pName, isBot: isBot, botSkill: bSkill, impactBias: iBias, hingeBias: hBias,
+            botImpact: 0, botHinge: 0, botPower: 100,
+            strokes: 0, puttsThisHole: 0,
+            roundData: [], roundHighlights: { drives: [], approaches: [], putts: [] }, currentHoleStats: { fir: null, gir: false },
+            ballX: 0, ballY: 0, currentLie: "Tee", isHoleComplete: false, isPutting: false, puttTargetDist: 0,
+            aimAngle: 0, stanceIndex: 2, stanceAlignment: 0, focusIndex: fIndex, currentClubIndex: currentClubIndex,
             difficultyIndex: typeof difficultyIndex !== 'undefined' ? difficultyIndex : 2,
             caddyLevel: typeof caddyLevel !== 'undefined' ? caddyLevel : 1,
-            activeBallIndex: typeof activeBallIndex !== 'undefined' ? activeBallIndex : 0,
-            shotStyleIndex: 0,
-            isChokedDown: false,
-            devPower: false, devHinge: false, devImpact: false
+            activeBallIndex: bIndex,
+            shotStyleIndex: 0, isChokedDown: false, devPower: false, devHinge: false, devImpact: false
         });
     }
     currentPlayerIndex = 0;
@@ -149,11 +153,17 @@ window.advanceTurn = function(isPuttingTransition = false) {
             let compMsg = `All players have finished Hole ${hole}. Press Enter to proceed to the next hole.`;
             if (hole >= courses[currentCourseIndex].holes.length) {
                 gameMode = 'post_round';
-                compMsg = "Round Complete! All players have finished. Press Shift + N to copy summaries, or Escape to return to the Clubhouse.";
+                compMsg = "Round Complete! All players have finished. Press Shift + E to view telemetry.";
+                window.isQuickSim = false; // Safety stop
             }
             window.announce(compMsg);
             window.setCaddyPanelText(compMsg);
             swingState = 6;
+
+            // v4.86.0 Auto-Advance for 4-Bot Simulations
+            if (window.isQuickSim && players.every(p => p.isBot) && gameMode !== 'post_round') {
+                loadHole(hole + 1);
+            }
             return;
         }
 
@@ -215,16 +225,19 @@ window.advanceTurn = function(isPuttingTransition = false) {
 
         if (players[currentPlayerIndex].isBot) {
             window.waitingForBot = false;
-            let textToRead = (typeof lastShotReport !== 'undefined' && lastShotReport) ? lastShotReport : "";
-            let baseDelay = 2500; // Base buffer for UI sounds and swap announcement
-            if (pacingModeIndex === 0) baseDelay += (textToRead.length * 20); // Fast
-            if (pacingModeIndex === 1) baseDelay += (textToRead.length * 35); // Medium
-            if (pacingModeIndex === 2) baseDelay += (textToRead.length * 55); // Slow
-            if (pacingModeIndex === 3) baseDelay = 1500; // Manual Mode
+            let isSim = pacingModes[pacingModeIndex] === 'Simulate';
 
-            stateTimeouts.push(setTimeout(() => {
-                if (typeof window.takeAITurn === 'function') window.takeAITurn();
-            }, baseDelay));
+            if (isSim) {
+                window.takeAITurn(true);
+            } else {
+                let textToRead = (typeof lastShotReport !== 'undefined' && lastShotReport) ? lastShotReport : "";
+                let baseDelay = 2500;
+                if (pacingModeIndex === 0) baseDelay += (textToRead.length * 20);
+                if (pacingModeIndex === 1) baseDelay += (textToRead.length * 35);
+                if (pacingModeIndex === 2) baseDelay += (textToRead.length * 55);
+                if (pacingModeIndex === 3) baseDelay = 1500;
+                stateTimeouts.push(setTimeout(() => { if (typeof window.takeAITurn === 'function') window.takeAITurn(false); }, baseDelay));
+            }
         }
     } catch (fatalError) {
         console.error("CRITICAL TURN MANAGER CRASH:", fatalError);
@@ -232,7 +245,7 @@ window.advanceTurn = function(isPuttingTransition = false) {
 };
 
 // v4.48.0 AI Brain & Short Game Logic
-window.takeAITurn = function() {
+window.takeAITurn = function(isSim = false) {
     activeTargetType = 'pin';
     let p = players[currentPlayerIndex];
     let rawBlueprint = null;
@@ -268,8 +281,10 @@ window.takeAITurn = function() {
     }
 
     let variance = p.botSkill === 3 ? 15 : p.botSkill === 2 ? 45 : p.botSkill === 1 ? 100 : 200;
-    p.botImpact = Math.floor((Math.random() * variance * 2) - variance);
-    p.botHinge = Math.floor((Math.random() * variance * 2) - variance);
+    let baseImpact = Math.floor((Math.random() * variance * 2) - variance);
+    let baseHinge = Math.floor((Math.random() * variance * 2) - variance);
+    p.botImpact = baseImpact + (p.impactBias || 0);
+    p.botHinge = baseHinge + (p.hingeBias || 0);
     
     window.autoSetFocus(true);
     window.updateDashboard();
@@ -278,7 +293,11 @@ window.takeAITurn = function() {
     
     let setupMsg = isPutting ? `${p.name} is reading the green...` : `${p.name} equips ${club.name} and lines up the shot...`;
     
-    if (pacingModeIndex === 3) {
+    window.isQuickSim = isSim;
+    if (isSim) {
+        swingState = 4;
+        if (typeof calculateShot === 'function') calculateShot(false);
+    } else if (pacingModeIndex === 3) {
         setupMsg += " Press Spacebar to let them strike.";
         window.waitingForBot = true;
         window.announce(setupMsg);
@@ -300,6 +319,9 @@ window.saveActivePlayer = function() {
     let p = players[currentPlayerIndex];
     p.strokes = strokes;
     p.puttsThisHole = puttsThisHole;
+    p.roundData = roundData; // v4.85.0
+    p.roundHighlights = roundHighlights; // v4.85.0
+    p.currentHoleStats = currentHoleStats; // v4.85.0
     p.ballX = ballX;
     p.ballY = ballY;
     p.currentLie = currentLie;
@@ -333,7 +355,10 @@ window.loadActivePlayer = function(index) {
     let p = players[currentPlayerIndex];
 
     strokes = p.strokes;
-    puttsThisHole = p.puttsThisHole;
+    puttsThisHole = p.puttsThisHole !== undefined ? p.puttsThisHole : 0;
+    roundData = p.roundData || []; // v4.85.0
+    roundHighlights = p.roundHighlights || { drives: [], approaches: [], putts: [] }; // v4.85.0
+    currentHoleStats = p.currentHoleStats || { fir: null, gir: false }; // v4.85.0
     ballX = p.ballX;
     ballY = p.ballY;
     ballZ = 0; targetZ = 0; lieTilt = 0; landingSlope = 0;
@@ -529,17 +554,19 @@ function loadHole(holeNumber) {
         }, 1000);
 
         if (players[currentPlayerIndex] && players[currentPlayerIndex].isBot) {
-            let hd = typeof courses !== 'undefined' ? courses[currentCourseIndex].holes[hole - 1] : null;
-            let holeTextLength = 100 + (hd && hd.fairwayDescription ? hd.fairwayDescription.length : 0);
-            let baseDelay = 3500; // Base buffer for hole transition audio
-            if (pacingModeIndex === 0) baseDelay += (holeTextLength * 20);
-            if (pacingModeIndex === 1) baseDelay += (holeTextLength * 35);
-            if (pacingModeIndex === 2) baseDelay += (holeTextLength * 55);
-            if (pacingModeIndex === 3) baseDelay = 1500; // Manual Mode
-
-            stateTimeouts.push(setTimeout(() => {
-                if (typeof window.takeAITurn === 'function') window.takeAITurn();
-            }, baseDelay));
+            let isSim = pacingModes[pacingModeIndex] === 'Simulate';
+            if (isSim) {
+                stateTimeouts.push(setTimeout(() => { if (typeof window.takeAITurn === 'function') window.takeAITurn(true); }, 10));
+            } else {
+                let hd = typeof courses !== 'undefined' ? courses[currentCourseIndex].holes[hole - 1] : null;
+                let holeTextLength = 100 + (hd && hd.fairwayDescription ? hd.fairwayDescription.length : 0);
+                let baseDelay = 3500;
+                if (pacingModeIndex === 0) baseDelay += (holeTextLength * 20);
+                if (pacingModeIndex === 1) baseDelay += (holeTextLength * 35);
+                if (pacingModeIndex === 2) baseDelay += (holeTextLength * 55);
+                if (pacingModeIndex === 3) baseDelay = 1500;
+                stateTimeouts.push(setTimeout(() => { if (typeof window.takeAITurn === 'function') window.takeAITurn(false); }, baseDelay));
+            }
         }
     } catch (fatalError) {
         console.error("LOAD HOLE CRASH:", fatalError);
@@ -724,6 +751,7 @@ window.getScoreTerm = function(par, score) {
 };
 
 window.showScorecard = function() {
+    let activeRoundData = players[scorecardPlayerIndex] ? players[scorecardPlayerIndex].roundData : roundData; // v4.85.0
     scorecardGrid = [];
     let tStrokes = 0, tPar = 0, tPutts = 0;
     let firHit = 0, firPossible = 0;
@@ -737,7 +765,7 @@ window.showScorecard = function() {
         scorecardGrid.push(["Hole", "Drive", "FIR", "App Start", "App Prox", "GIR"]);
     }
 
-    roundData.forEach(r => {
+    activeRoundData.forEach(r => {
         tStrokes += r.strokes; tPar += r.par; tPutts += r.putts;
         let firStr = "-";
         if (r.fir !== null) {
@@ -790,6 +818,7 @@ window.showScorecard = function() {
     html += `</tbody><tfoot><tr><th>${lastRow[0]}</th>` + lastRow.slice(1).map(d => `<td>${d}</td>`).join('') + `</tr></tfoot></table>`;
 
     document.getElementById('scorecard-container').innerHTML = html;
+    window.lastHighlightedCell = null; // v4.84.0 Clear stale DOM reference
     document.getElementById('scorecard-container').style.display = 'block';
     document.getElementById('visual-output').style.display = 'none';
 
@@ -807,8 +836,9 @@ window.announceScorecardCell = function(isInit = false, isPageFlip = false) {
     
     let msg = "";
     if (isInit) {
+        let pName = (typeof players !== 'undefined' && players.length > 0 && typeof scorecardPlayerIndex !== 'undefined') ? players[scorecardPlayerIndex].name : "Player";
         let courseName = courses[currentCourseIndex].name;
-        msg = `${courseName} Scorecard. Page ${scorecardPage + 1}. Use Spacebar to flip pages, Arrow Keys to navigate, Escape to close. `;
+        msg = `${pName}'s Scorecard. ${courseName}. Page ${scorecardPage + 1}. Use Spacebar to flip pages, P to swap players, Arrow Keys to navigate, Escape to close. `;
         msg += `Row 1, Column 1. ${val}.`;
     } else if (isPageFlip) {
         let pageName = scorecardPage === 0 ? "Page 1: Traditional Scoring" : "Page 2: Advanced Analytics";
@@ -829,15 +859,24 @@ window.announceScorecardCell = function(isInit = false, isPageFlip = false) {
     
     let table = document.getElementById('scorecard-table');
     if (table) {
-        let cells = table.getElementsByTagName('td');
-        let ths = table.getElementsByTagName('th');
-        for (let c of cells) { c.style.backgroundColor = 'transparent'; c.style.color = 'white'; }
-        for (let c of ths) { c.style.backgroundColor = 'transparent'; c.style.color = 'white'; }
+        // v4.84.0 O(1) DOM Targeting (Eliminates UI Lag)
+        if (typeof window.lastHighlightedCell !== 'undefined' && window.lastHighlightedCell) {
+            window.lastHighlightedCell.style.backgroundColor = 'transparent';
+            window.lastHighlightedCell.style.color = 'white';
+        } else if (isInit || isPageFlip) {
+            // Fallback to clear all if we just built the table
+            let cells = table.getElementsByTagName('td');
+            let ths = table.getElementsByTagName('th');
+            for (let c of cells) { c.style.backgroundColor = 'transparent'; c.style.color = 'white'; }
+            for (let c of ths) { c.style.backgroundColor = 'transparent'; c.style.color = 'white'; }
+        }
+        
         try {
             let targetRow = table.rows[scRow];
             let targetCell = targetRow.cells[scCol];
             targetCell.style.backgroundColor = '#4CAF50';
             targetCell.style.color = 'black';
+            window.lastHighlightedCell = targetCell;
         } catch(e) {}
     }
 };
@@ -1003,9 +1042,18 @@ window.buildClubhouseMenu = function() {
         }});
     }
     
+    clubhouseMenu.push({ text: `Course: ${courses[setupCourseIndex].name}`, action: () => {
+        setupCourseIndex = (setupCourseIndex + 1) % courses.length;
+        window.buildClubhouseMenu(); window.announceClubhouse();
+    }});
+    clubhouseMenu.push({ text: `Roster: ${rosterPresets[setupRosterIndex].name}`, action: () => {
+        setupRosterIndex = (setupRosterIndex + 1) % rosterPresets.length;
+        window.buildClubhouseMenu(); window.announceClubhouse();
+    }});
     clubhouseMenu.push({ text: "Start New Round", action: () => {
         window.clearSave(); roundData = []; roundHighlights = { drives: [], approaches: [], putts: [] }; puttsThisHole = 0; holeTelemetry = [];
-        gameMode = 'course'; currentCourseIndex = 1; strokes = 0;
+        window.initPlayers(); // v4.86.0 Reset per-player round data
+        gameMode = 'course'; currentCourseIndex = setupCourseIndex; strokes = 0;
         document.getElementById('dashboard-panel').style.display = 'grid';
         document.getElementById('swing-meter').style.display = 'block';
         document.getElementById('caddy-panel').style.display = 'none';
