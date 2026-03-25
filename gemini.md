@@ -335,3 +335,8 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 ### 70. v4.92.0 Engine Addendum (Dynamic Rough & Telemetry)
 - **Rough Conditions:** `physics_ag.js` now scales `lieMod` and `lieForgivenessMod` based on the active `roughConditionIndex` set by the Clubhouse wizard. 
 - **Telemetry Header:** The `Shift + C` Master Dump in `input_ag.js` now prepends a `# MATCH SETTINGS` block detailing the Course, Wind, Stimp, and Rough Condition to ensure exported data retains its environmental context.
+
+### 71. v5.0.0 Engine Addendum (Pebble Beach & Topography)
+- **Pebble Beach Data:** Injected a hyper-realistic 18-hole layout for Pebble Beach into `courses`.
+- **Z-Axis Navigation:** Holes like 6 (Uphill), 7 (Downhill), and 14 heavily utilize `pinZ` and `landingZones` with `z` coordinates to force players to manage club selection against gravity.
+- **AABB Ocean Mapping:** Holes 4, 5, 6, 9, 10, and 18 map massive `Water` boundaries running parallel to the fairway to mimic the Pacific coastline.
