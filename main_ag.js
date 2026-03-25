@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.0.3)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.0.6)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -8,6 +8,7 @@ let pacingModeIndex = 0; // 0: Fast, 1: Medium, 2: Slow, 3: Manual
 let pacingModes = ["Fast", "Medium", "Slow", "Manual", "Simulate"];
 window.waitingForBot = false;
 let stateTimeouts = [];
+let botThinkingInterval = null;
 
 let backswingStartTime = 0, downswingStartTime = 0, impactStartTime = 0, powerStartTime = 0;
 let hingeTimeBack = 0, hingeTimeDown = 0;
@@ -243,6 +244,8 @@ window.advanceTurn = function(isPuttingTransition = false) {
                 if (pacingModeIndex === 1) baseDelay += (textToRead.length * 35);
                 if (pacingModeIndex === 2) baseDelay += (textToRead.length * 55);
                 if (pacingModeIndex === 3) baseDelay = 1500;
+                
+                if (typeof window.startBotThinking === 'function') window.startBotThinking(); // v5.0.4
                 stateTimeouts.push(setTimeout(() => { if (typeof window.takeAITurn === 'function') window.takeAITurn(false); }, baseDelay));
             }
         }
@@ -251,8 +254,23 @@ window.advanceTurn = function(isPuttingTransition = false) {
     }
 };
 
+window.startBotThinking = function() {
+    if (window.botThinkingInterval) clearInterval(window.botThinkingInterval);
+    window.botThinkingInterval = setInterval(() => {
+        if (typeof playTone === 'function') playTone(400, 'sine', 0.05, 0.05); // Soft tick
+    }, 1000);
+};
+
+window.stopBotThinking = function() {
+    if (window.botThinkingInterval) { 
+        clearInterval(window.botThinkingInterval); 
+        window.botThinkingInterval = null; 
+    }
+};
+
 // v4.48.0 AI Brain & Short Game Logic
 window.takeAITurn = function(isSim = false) {
+    if (typeof window.stopBotThinking === 'function') window.stopBotThinking();
     activeTargetType = 'pin';
     let p = players[currentPlayerIndex];
     let rawBlueprint = null;
@@ -572,6 +590,8 @@ function loadHole(holeNumber) {
                 if (pacingModeIndex === 1) baseDelay += (holeTextLength * 35);
                 if (pacingModeIndex === 2) baseDelay += (holeTextLength * 55);
                 if (pacingModeIndex === 3) baseDelay = 1500;
+                
+                if (typeof window.startBotThinking === 'function') window.startBotThinking(); // v5.0.4
                 stateTimeouts.push(setTimeout(() => { if (typeof window.takeAITurn === 'function') window.takeAITurn(false); }, baseDelay));
             }
         }
@@ -995,6 +1015,8 @@ window.playRollingBlip = function(speed, panValue) {
 
 window.initGame = function() {
     window.initAudio();
+    
+    if (typeof window.loadGame === 'function') window.loadGame(); // v5.0.5 Memory Restore
 
     if (typeof window.originalPlayTone === 'undefined' && typeof window.playTone === 'function') {
         window.originalPlayTone = window.playTone;
@@ -1034,8 +1056,8 @@ window.buildClubhouseMenu = function() {
                 gameMode = 'course';
                 document.getElementById('dashboard-panel').style.display = 'block';
                 document.getElementById('swing-meter').style.display = 'block';
-                window.announce("Resuming round.");
-                document.getElementById('visual-output').innerText = getSetupReport();
+                if (typeof window.loadActivePlayer === 'function') window.loadActivePlayer(currentPlayerIndex);
+                window.announce("Resuming round. Hole " + hole + ".");
             }});
         }
         clubhouseMenu.push({ text: "Start New Game", action: () => {
@@ -1212,6 +1234,7 @@ window.announceClubhouse = function(isInit = true) {
 function startBackswing(isPractice = false) {
     if (swingState !== 0) return;
     window.initAudio();
+    
     isPracticeSwing = isPractice;
     swingState = 1; hingeTimeBack = 0; hingeTimeDown = 0; lockedImpactTime = 0;
     document.getElementById('visual-output').innerText = isPractice ? "Practice Swing... Addressing..." : "Addressing ball...";

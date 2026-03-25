@@ -348,3 +348,13 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Schema Fix:** Changed `hole` to `number` in the Pebble Beach `data_ag.js` array to prevent initialization crashes.
 - **Targeting Fix:** Appended `zones` arrays to all Pebble Beach holes to restore the Z-key targeting system.
 - **Menu Syntax Fix:** Replaced the broken `clubhouseState === 'course'` logic block in `main_ag.js` to clear the orphaned duplicate entry and fix a stray bracket syntax error.
+
+### 75. v5.0.4 Engine Addendum (Session Recovery & AI Audio)
+- **Boot Recovery:** `initGame` now automatically calls `loadGame()` to pull `localStorage` saves into memory upon browser refresh, ensuring the "Resume Current Round" button successfully populates.
+- **Bot Thinking Audio:** Created `startBotThinking()` to play a 400Hz soft tick every 1000ms while the engine waits for the dynamic ARIA pacing delays in `advanceTurn` and `loadHole` to clear.
+
+### 76. v5.0.5 Engine Addendum (Boot Sequence Hotfix)
+- **Save Recovery:** Added `window.loadGame()` directly to `window.initGame` so the engine correctly populates the UI with active save states when the browser is refreshed.
+
+### 77. v5.0.6 Engine Addendum (Swing Memory Wipe Fix)
+- **Shot Persistence:** Excised an erroneous `window.loadGame()` call from `startBackswing` in `main_ag.js` that was aggressively reverting the player's active club, stance, and aim parameters to the pre-turn save state upon swing initialization.
