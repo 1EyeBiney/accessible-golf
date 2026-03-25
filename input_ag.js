@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.1.3)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.1.4)
 
 window.confirmingUnplayable = false;
 
@@ -67,6 +67,37 @@ window.addEventListener('keydown', (e) => {
         window.announce(`${keyName}: ${funcMsg}`);
         document.getElementById('visual-output').innerText = `${keyName}: ${funcMsg}`;
         return;
+    }
+
+    // --- v3.70.0 Help Menu Interceptor ---
+    if (viewingHelp) {
+        e.preventDefault();
+        if (e.code === 'ArrowDown') {
+            if (helpIndex < helpMenuText.length - 1) helpIndex++;
+            if (typeof window.announceHelp === 'function') window.announceHelp();
+        } else if (e.code === 'ArrowUp') {
+            if (helpIndex > 0) helpIndex--;
+            if (typeof window.announceHelp === 'function') window.announceHelp();
+        } else if (e.code === 'KeyH') {
+            if (e.shiftKey) {
+                for (let i = helpIndex - 1; i >= 0; i--) {
+                    if (helpMenuText[i].heading) { helpIndex = i; break; }
+                }
+            } else {
+                for (let i = helpIndex + 1; i < helpMenuText.length; i++) {
+                    if (helpMenuText[i].heading) { helpIndex = i; break; }
+                }
+            }
+            if (typeof window.announceHelp === 'function') window.announceHelp();
+        } else if (e.code === 'Escape' || e.code === 'Enter') {
+            if (e.code === 'Escape' && typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_04');
+            viewingHelp = false;
+            document.getElementById('help-panel').style.display = 'none';
+            window.announce("Exited Help Menu.");
+            if (gameMode === 'clubhouse') { if (typeof window.announceClubhouse === 'function') window.announceClubhouse(false); }
+            else { document.getElementById('visual-output').innerText = typeof getSetupReport === 'function' ? getSetupReport() : ""; }
+        }
+        return; // Block all other inputs while viewing help
     }
 
     // v4.11.0 Custom Grid Interceptor
@@ -331,19 +362,6 @@ window.addEventListener('keydown', (e) => {
             return;
         }
 
-        // Pass Escape out of the Help Menu back to the Clubhouse
-        if (viewingHelp) {
-            if (e.code === 'ArrowDown') { if (helpIndex < helpMenuText.length - 1) helpIndex++; window.announceHelp(); }
-            else if (e.code === 'ArrowUp') { if (helpIndex > 0) helpIndex--; window.announceHelp(); }
-            else if (e.code === 'Escape' || e.code === 'Enter') {
-                if (e.code === 'Escape' && typeof window.playGolfSound === 'function') window.playGolfSound('bunker_33');
-                viewingHelp = false; 
-                document.getElementById('help-panel').style.display = 'none';
-                window.announce("Exited Help Menu."); window.announceClubhouse();
-            }
-            return;
-        }
-
         if (e.code === 'ArrowDown') {
             if (typeof window.playGolfSound === 'function') window.playGolfSound('bunker_04');
             if (clubhouseIndex < clubhouseMenu.length - 1) clubhouseIndex++;
@@ -445,37 +463,6 @@ window.addEventListener('keydown', (e) => {
             document.getElementById('visual-output').innerText = getSetupReport();
         }
         return;
-    }
-
-    // --- v3.70.0 Help Menu Interceptor ---
-    if (viewingHelp) {
-        e.preventDefault();
-        if (e.code === 'ArrowDown') {
-            if (helpIndex < helpMenuText.length - 1) helpIndex++;
-            window.announceHelp();
-        } else if (e.code === 'ArrowUp') {
-            if (helpIndex > 0) helpIndex--;
-            window.announceHelp();
-        } else if (e.code === 'KeyH') {
-            if (e.shiftKey) {
-                for (let i = helpIndex - 1; i >= 0; i--) {
-                    if (helpMenuText[i].heading) { helpIndex = i; break; }
-                }
-            } else {
-                for (let i = helpIndex + 1; i < helpMenuText.length; i++) {
-                    if (helpMenuText[i].heading) { helpIndex = i; break; }
-                }
-            }
-            window.announceHelp();
-        } else if (e.code === 'Escape' || e.code === 'Enter') {
-            if (e.code === 'Escape' && typeof window.playGolfSound === 'function') window.playGolfSound('bunker_33');
-            viewingHelp = false;
-            document.getElementById('help-panel').style.display = 'none';
-            window.announce("Exited Help Menu.");
-            if (gameMode === 'clubhouse') window.announceClubhouse(); 
-            else document.getElementById('visual-output').innerText = getSetupReport();
-        }
-        return; // Block all other inputs while viewing help
     }
 
     if (swingState === 0 || isHoleComplete) {
@@ -650,11 +637,12 @@ window.addEventListener('keydown', (e) => {
 
         if (e.key === '?') {
             e.preventDefault();
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_03');
             viewingHelp = true;
             helpIndex = 0;
             document.getElementById('help-panel').style.display = 'block';
             if (typeof window.renderHelpMenu === 'function') window.renderHelpMenu();
-            window.announceHelp();
+            if (typeof window.announceHelp === 'function') window.announceHelp();
             return;
         }
         if ((gameMode === 'range' || (gameMode === 'chipping' && chippingRange === 'long'))) {

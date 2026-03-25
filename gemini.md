@@ -383,3 +383,7 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Visual Overlay:** Created `#help-panel` in `index.html`. `main_ag.js` now dynamically renders the `helpMenuText` array and syncs a visual highlight with the ARIA `helpIndex`, allowing sighted users to follow along with screen reader navigation.
 - **Help Menu Content:** Overhauled `helpMenuText` in `data_ag.js`. Consolidated `Shift` functions into primary key descriptions to reduce guessing. Pushed `F12` to the top of the array.
 - **Keyboard Explorer:** `input_ag.js`'s `isExploreMode` interceptor now accurately passes and reads `e.ctrlKey` and `e.shiftKey` variables. Synchronized `getKeyDescription` with the new V5 map.
+
+### 83. v5.1.4 Engine Addendum (Help UI Initialization Hotfix)
+- **Scope Correction:** Rescued `renderHelpMenu` and `announceHelp` from the `drawMeter` loop scope in `main_ag.js`, allowing the global `keydown` listener to correctly trigger them.
+- **Input Priority:** Consolidated duplicate `viewingHelp` interceptors in `input_ag.js` into a single, high-priority block at the top of the event listener, ensuring `KeyH` heading jumps work seamlessly in both the Clubhouse and on the course. Added the `ui_nav_03/04` audio cues to the open/close sequence.

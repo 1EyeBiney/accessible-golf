@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.1.3)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.1.4)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -1511,6 +1511,7 @@ window.drawMeter = function() {
             ctx.fillText(`IMPACT LOCKED: ${Math.abs(diff)}ms ${diff < 0 ? 'Early' : diff > 0 ? 'Late' : 'Perfect'}`, 15, 30);
         }
     }
+}; // <-- THIS CLOSES window.drawMeter
 
 window.renderHelpMenu = function() {
     const panel = document.getElementById('help-panel');
@@ -1564,7 +1565,6 @@ window.announceHelp = function() {
     window.announce(line.text);
     document.getElementById('visual-output').innerText = line.text;
     window.updateHelpHighlight();
-};
 };
 
 // --- 3D FLIGHT AUDIO ENGINE INTEGRATION ---
