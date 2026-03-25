@@ -373,3 +373,8 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 ### 80. v5.1.1 Engine Addendum (Practice UI & Putting Failsafes)
 - **Practice Facilities:** Expanded the Clubhouse "Practice Facilities" button into a navigable sub-menu to restore access to the Chipping Green and Putting Green without using mid-round hotkeys.
 - **Putting Auto-Hole:** Mirrored the `wizardGimmes` and `wizardMaxScore` logic into the `finishPutt()` routine in `physics_ag.js` so that missed putts stopping near the hole accurately trigger automatic completion.
+
+### 81. v5.1.2 Engine Addendum (Telemetry & Oracle Topography)
+- **Oracle Elevation Math:** Added `elevationDiff` subtraction to the `effectiveCarry` calculation in `getCaddyAdvice` and `getOracleBlueprint`. This mirrors the true physics engine, forcing the AI to dynamically club up/down when `targetZ` dictates a severe slope.
+- **Quick Roster:** Added `Shift + L` listener to the Clubhouse roster menu to instantly populate a 4-bot simulation group.
+- **Telemetry Scoreboard:** The `Shift + C` master dump now synthesizes and prepends a player scoreboard to the top of the exported log.

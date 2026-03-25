@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v5.1.1)
+// physics_ag.js - Math, Wind, and Shot Calculation (v5.1.2)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -1557,6 +1557,7 @@ window.getCaddyAdvice = function() {
     const dy = targetPoint.y - ballY;
     const baseHeading = Math.atan2(dx, dy);
     const targetDist = Math.round(Math.sqrt((dx * dx) + (dy * dy)));
+    let elevationDiff = (typeof targetZ !== 'undefined' && typeof ballZ !== 'undefined') ? (targetZ - ballZ) : 0; // v5.1.2
 
     const style = shotStyles[0]; // Oracle simulates standard full swings
     let lieMultiplier = currentLie === 'Sand' ? 0.70 : (currentLie === 'Light Rough' || currentLie === 'Rough') ? 0.90 : 1.0;
@@ -1588,7 +1589,7 @@ window.getCaddyAdvice = function() {
             aimDeg = Math.max(-45, Math.min(45, aimDeg)); 
 
             let heading = baseHeading + (aimDeg * Math.PI / 180);
-            let effectiveCarry = carryDist + windForward;
+            let effectiveCarry = carryDist + windForward - elevationDiff; // v5.1.2 Topography Match
 
             let landX = Math.sin(heading) * effectiveCarry + Math.cos(heading) * windCross;
             let landY = Math.cos(heading) * effectiveCarry - Math.sin(heading) * windCross;
@@ -1766,7 +1767,7 @@ window.getOracleBlueprint = function() {
                     aimDeg = Math.max(-45, Math.min(45, aimDeg)); 
 
                     let heading = baseHeading + (aimDeg * Math.PI / 180);
-                    let effectiveCarry = (fractionalDist * (1 - simClub.rollPct)) + windForward;
+                    let effectiveCarry = (fractionalDist * (1 - simClub.rollPct)) + windForward - elevationDiff; // v5.1.2 Topography Match
                     let rollDist = fractionalDist * simClub.rollPct;
                     
                     let landX = Math.sin(heading) * effectiveCarry + Math.cos(heading) * windCross;

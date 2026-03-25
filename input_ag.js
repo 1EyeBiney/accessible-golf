@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.1.1)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.1.2)
 
 window.confirmingUnplayable = false;
 
@@ -104,6 +104,25 @@ window.addEventListener('keydown', (e) => {
                 allLogs += `**Wind:** ${windName}\n`;
                 allLogs += `**Green Stimp:** ${stimpVal}\n`;
                 allLogs += `**Rough Condition:** ${roughName}\n\n=========================================\n\n`;
+
+                // v5.1.2 Scoreboard Header
+                allLogs += `# SCOREBOARD SUMMARY\n`;
+                if (typeof players !== 'undefined' && players.length > 0) {
+                    players.forEach(p => {
+                        let totalStrokes = 0, totalPar = 0;
+                        p.roundData.forEach(r => { totalStrokes += r.strokes; totalPar += r.par; });
+                        let rel = totalStrokes - totalPar;
+                        let relStr = rel === 0 ? "E" : rel > 0 ? `+${rel}` : `${rel}`;
+                        allLogs += `* **${p.name}**: ${totalStrokes} (${relStr})\n`;
+                    });
+                } else {
+                    let totalStrokes = 0, totalPar = 0;
+                    roundData.forEach(r => { totalStrokes += r.strokes; totalPar += r.par; });
+                    let rel = totalStrokes - totalPar;
+                    let relStr = rel === 0 ? "E" : rel > 0 ? `+${rel}` : `${rel}`;
+                    allLogs += `* **Player**: ${totalStrokes} (${relStr})\n`;
+                }
+                allLogs += `\n=========================================\n\n`;
 
                 if (typeof players !== 'undefined' && players.length > 0) {
                     players.forEach(p => {
@@ -281,6 +300,30 @@ window.addEventListener('keydown', (e) => {
             if (forwardAction) {
                 if (typeof window.playGolfSound === 'function') window.playGolfSound('menu_01');
                 forwardAction();
+            }
+            return;
+        }
+
+        // v5.1.2 Quick Roster Load
+        if (e.shiftKey && e.code === 'KeyL' && clubhouseState === 'roster') {
+            e.preventDefault();
+            if (typeof botProfiles !== 'undefined') {
+                const targetBots = ["Shankin' Shawn", "Mulligan Moe", "Tour-Pro Ted", "Bot Woods"];
+                players = [];
+                activePlayerCount = targetBots.length;
+                targetBots.forEach((name) => {
+                    let bp = botProfiles.find(b => b.name === name);
+                    if (bp) {
+                        players.push({
+                            name: bp.name, isBot: true, isHoleComplete: false, roundData: [],
+                            botHinge: bp.botHinge, botImpact: bp.botImpact, botPower: bp.botPower,
+                            skillLevel: bp.skillLevel
+                        });
+                    }
+                });
+                if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_02');
+                window.announce("Sim roster loaded: Shawn, Moe, Ted, and Woods.");
+                window.buildClubhouseMenu(); window.announceClubhouse(false);
             }
             return;
         }
