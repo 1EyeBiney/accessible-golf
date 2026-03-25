@@ -358,3 +358,18 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 
 ### 77. v5.0.6 Engine Addendum (Swing Memory Wipe Fix)
 - **Shot Persistence:** Excised an erroneous `window.loadGame()` call from `startBackswing` in `main_ag.js` that was aggressively reverting the player's active club, stance, and aim parameters to the pre-turn save state upon swing initialization.
+
+### 78. v5.0.7 Engine Addendum (Bot Hazard Failsafe)
+- **Infinite Loop Breaker:** Added `consecutiveHazards` tracking to the AI Brain in `physics_ag.js`. 
+- **Unplayable Drop:** If an AI player hits 3 consecutive hazards (Water or Sand), the engine forces an Unplayable Lie. It adds a stroke, resets `ballX` to 0, and subtracts 80 yards from `ballY`, pushing the AI out of the delicate Pitch/Chip logic window and forcing them to safely clear the hazard with a full swing.
+
+### 79. v5.1.0 Engine Addendum (Match Rules & Automation)
+- **Match Rules:** Added globally persistent `wizardMulligans`, `wizardGimmes`, and `wizardMaxScore` variables to the Clubhouse setup.
+- **Pre-Shot Caching:** `startBackswing` now actively caches the player's active state (`ballX`, `ballY`, `strokes`, etc.) into `window.preShotState` before the stroke is counted.
+- **UX Remapping:** Removed mid-round practice warping. Mapped `N` to Next Player, `M` to Mulligan, `Shift+M` to Snowman, and `G` to Gimme.
+- **Auto-Hole Out Engines:** `physics_ag.js` actively evaluates the ball's final resting position against the Gimme threshold and the `strokes` counter against the Max Score limit, forcibly finishing the hole if conditions are met.
+- **Setup Fast-Forward:** Pressing `Ctrl + Enter` in the Clubhouse will scan the menu array from the bottom up to automatically execute the primary "Proceed" action, bypassing manual arrow navigation.
+
+### 80. v5.1.1 Engine Addendum (Practice UI & Putting Failsafes)
+- **Practice Facilities:** Expanded the Clubhouse "Practice Facilities" button into a navigable sub-menu to restore access to the Chipping Green and Putting Green without using mid-round hotkeys.
+- **Putting Auto-Hole:** Mirrored the `wizardGimmes` and `wizardMaxScore` logic into the `finishPutt()` routine in `physics_ag.js` so that missed putts stopping near the hole accurately trigger automatic completion.

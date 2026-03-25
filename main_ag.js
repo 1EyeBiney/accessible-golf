@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.0.6)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.1.1)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -85,6 +85,10 @@ let wizardSlot = 0;
 let wizardWind = 0;
 let wizardStimp = 10;
 let wizardRough = 1;
+let wizardMulligans = 1; // 0: Off, 1: 3 Per Round, 2: Unlimited
+let wizardGimmes = 1; // 0: Off, 1: Manual Only, 2: Auto <3ft, 3: Auto <6ft
+let wizardMaxScore = 2; // 0: Off, 1: Double Par, 2: Snowman (8)
+window.preShotState = null;
 let roughConditionIndex = 1; 
 const roughConditions = [
     { name: "Sunday Trim", penalty: 0.95 },
@@ -951,7 +955,8 @@ window.saveGame = function() {
         holeTelemetry, lastShotReport,
         currentClubIndex, shotStyleIndex,
         roundData, puttsThisHole, currentHoleStats, roundHighlights,
-        players, currentPlayerIndex, activePlayerCount // v4.48.2 Roster Persistence
+        players, currentPlayerIndex, activePlayerCount,
+        wizardWind, wizardStimp, wizardRough, wizardMulligans, wizardGimmes, wizardMaxScore
     };
     try { localStorage.setItem('ag_save_state', JSON.stringify(state)); } catch(e) {}
 };
@@ -980,6 +985,13 @@ window.loadGame = function() {
         players = state.players || [];
         currentPlayerIndex = state.currentPlayerIndex || 0;
         activePlayerCount = state.activePlayerCount || 2;
+
+        wizardWind = state.wizardWind || 0;
+        wizardStimp = state.wizardStimp || 10;
+        wizardRough = state.wizardRough || 1;
+        wizardMulligans = state.wizardMulligans !== undefined ? state.wizardMulligans : 1;
+        wizardGimmes = state.wizardGimmes !== undefined ? state.wizardGimmes : 1;
+        wizardMaxScore = state.wizardMaxScore !== undefined ? state.wizardMaxScore : 2;
 
         club = clubs[currentClubIndex];
         return true;
@@ -1065,9 +1077,34 @@ window.buildClubhouseMenu = function() {
             window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
         clubhouseMenu.push({ text: "Practice Facilities", action: () => {
+            clubhouseState = 'practice'; clubhouseIndex = 0;
+            window.buildClubhouseMenu(); window.announceClubhouse(true);
+        }});
+    }
+    else if (clubhouseState === 'practice') {
+        clubhouseMenu.push({ text: "Driving Range", action: () => {
             gameMode = 'range'; strokes = 0; holeTelemetry = []; ballX = 0; ballY = 0; pinX = 0; pinY = club.baseDistance; rangeLie = 'Fairway'; isHoleComplete = false; swingState = 0;
             window.announce("Welcome to the Driving Range. Target set to " + pinY + " yards.");
             document.getElementById('visual-output').innerText = "Driving Range Active.";
+            clubhouseState = 'root';
+        }});
+        clubhouseMenu.push({ text: "Chipping Green", action: () => {
+            gameMode = 'chipping'; strokes = 0; holeTelemetry = []; isHoleComplete = false; swingState = 0;
+            ballX = 0; ballY = 0; pinX = 0; pinY = typeof chippingRange !== 'undefined' && chippingRange === 'short' ? Math.floor(Math.random() * 16) + 5 : Math.floor(Math.random() * 61) + 20;
+            let targetDist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 20;
+            window.announce(`Welcome to the Chipping Green. Target is ${targetDist} yards.`);
+            document.getElementById('visual-output').innerText = `Chipping Green. Target: ${targetDist} yards.`;
+            clubhouseState = 'root';
+        }});
+        clubhouseMenu.push({ text: "Putting Green", action: () => {
+            gameMode = 'putting'; strokes = 0; holeTelemetry = []; isHoleComplete = false;
+            ballX = 0; ballY = 0; pinX = 0; pinY = Math.floor(Math.random() * 41) + 5;
+            if (typeof window.initPutting === 'function') window.initPutting();
+            clubhouseState = 'root';
+        }});
+        clubhouseMenu.push({ text: "Back (Escape)", action: () => {
+            clubhouseState = 'root'; clubhouseIndex = 0;
+            window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
     }
     else if (clubhouseState === 'course') {
@@ -1172,6 +1209,22 @@ window.buildClubhouseMenu = function() {
         clubhouseMenu.push({ text: `Rough Condition: ${roughConditions[wizardRough].name}`, action: () => {
             wizardRough = (wizardRough + 1) % roughConditions.length; window.buildClubhouseMenu(); window.announceClubhouse(false);
         }});
+
+        const mulToggles = ["Off", "3 Per Round", "Unlimited"];
+        clubhouseMenu.push({ text: `Mulligans: ${mulToggles[wizardMulligans]}`, action: () => {
+            wizardMulligans = (wizardMulligans + 1) % 3; window.buildClubhouseMenu(); window.announceClubhouse(false);
+        }});
+
+        const gimToggles = ["Off", "Manual Only", "Auto Inside 3ft", "Auto Inside 6ft"];
+        clubhouseMenu.push({ text: `Gimmes: ${gimToggles[wizardGimmes]}`, action: () => {
+            wizardGimmes = (wizardGimmes + 1) % 4; window.buildClubhouseMenu(); window.announceClubhouse(false);
+        }});
+
+        const maxToggles = ["Off", "Double Par", "Snowman (Max 8)"];
+        clubhouseMenu.push({ text: `Max Score: ${maxToggles[wizardMaxScore]}`, action: () => {
+            wizardMaxScore = (wizardMaxScore + 1) % 3; window.buildClubhouseMenu(); window.announceClubhouse(false);
+        }});
+
         clubhouseMenu.push({ text: "Start Round!", action: () => {
             if (typeof window.clearSave === 'function') window.clearSave(); 
             
@@ -1233,6 +1286,16 @@ window.announceClubhouse = function(isInit = true) {
 
 function startBackswing(isPractice = false) {
     if (swingState !== 0) return;
+
+    // v5.1.0 Cache state for potential Mulligan
+    if (!isPractice) {
+        window.preShotState = {
+            ballX: ballX, ballY: ballY, currentLie: currentLie, strokes: strokes,
+            isPutting: isPutting, puttTargetDist: typeof puttTargetDist !== 'undefined' ? puttTargetDist : 0,
+            telemetryLength: typeof holeTelemetry !== 'undefined' ? holeTelemetry.length : 0
+        };
+    }
+
     window.initAudio();
     
     isPracticeSwing = isPractice;

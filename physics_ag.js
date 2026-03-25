@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v4.92.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v5.1.1)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -404,6 +404,26 @@ function calculateShot(autoMiss = false) {
                     resultMsg = `Missed a ${formattedDist} putt. Missed ${latStr} and finished ${vertStr} the cup.`;
                 }
                 broadcast = `${baseBroadcast} ${resultMsg} ${calculateDistanceToPin()} yards left.`;
+                
+                // v5.1.1 Auto-Gimme / Max Score (Putting Interceptor)
+                if (gameMode === 'course') {
+                    let remainingDist = calculateDistanceToPin();
+                    if (typeof wizardGimmes !== 'undefined' && wizardGimmes > 1) {
+                        let thresh = wizardGimmes === 2 ? 1.0 : 2.0; // 3ft or 6ft
+                        if (remainingDist <= thresh) {
+                            strokes++; puttsThisHole++; isHoleComplete = true;
+                            let feetStr = Math.round(remainingDist * 3);
+                            broadcast += ` That's inside the leather. Gimme taken from ${feetStr} feet. Hole complete.`;
+                        }
+                    }
+                    if (!isHoleComplete && typeof wizardMaxScore !== 'undefined' && wizardMaxScore > 0) {
+                        let limit = wizardMaxScore === 1 ? par * 2 : 8;
+                        if (strokes >= limit) {
+                            isHoleComplete = true;
+                            broadcast += ` Reached max score of ${limit}. Hole complete.`;
+                        }
+                    }
+                }
             }
 
             // v4.39.0 Advanced Putting Telemetry (with Auto-Diagnostics)
@@ -982,6 +1002,25 @@ function calculateShot(autoMiss = false) {
         currentLie = "Green";
     }
 
+    // v5.0.7 Bot Infinite Hazard Loop Failsafe
+    if (isBotTurn && gameMode === 'course') {
+        let p = players[currentPlayerIndex];
+        if (inWater || currentLie === "Sand") {
+            p.consecutiveHazards = (p.consecutiveHazards || 0) + 1;
+            if (p.consecutiveHazards >= 3) {
+                ballY = Math.max(0, ballY - 80); // Move 80 yards back to force a full swing
+                ballX = 0;
+                currentLie = "Fairway";
+                strokes++; // Unplayable penalty stroke
+                p.consecutiveHazards = 0; // Reset counter
+                let unplayableMsg = "After repeatedly failing to clear the hazard, the bot declared an Unplayable Lie, taking an additional penalty stroke and dropping 80 yards back into the fairway.";
+                flightPathNarrative = flightPathNarrative ? flightPathNarrative + " " + unplayableMsg : unplayableMsg;
+            }
+        } else {
+            p.consecutiveHazards = 0;
+        }
+    }
+
     // v4.36.1 Linear Touch Magnetism (Approach/Hole-Out Logic)
     let isHoleOut = false;
     if ((gameMode === 'course' || gameMode === 'chipping') && currentLie === "Green" && club.name !== "Putter") {
@@ -1233,11 +1272,40 @@ function calculateShot(autoMiss = false) {
                         if (currentLie.toLowerCase().includes("water") && gameMode === 'course') {
                             penaltyStr = " (includes 1 stroke water penalty).";
                         }
-                        const broadcast = `${shotBroadcast} Stroke ${strokes + 1}${penaltyStr} ${distanceToPin} yards to the pin.`;
+                        let broadcast = `${shotBroadcast} Stroke ${strokes + 1}${penaltyStr} ${distanceToPin} yards to the pin.`;
                         
                         // Track the Caddy/Transition sequence
                         stateTimeouts.push(setTimeout(() => {
-                            if (!quick) window.announce(broadcast);
+                            // v5.1.0 Auto Rules Engines
+                            if (!isHoleComplete && gameMode === 'course') {
+                                let remainingDist = calculateDistanceToPin();
+
+                                // Auto-Gimme
+                                if (isPutting && wizardGimmes > 1) {
+                                    let thresh = wizardGimmes === 2 ? 1.0 : 2.0; // 3ft or 6ft
+                                    if (remainingDist <= thresh) {
+                                        strokes++; puttsThisHole++; isHoleComplete = true;
+                                        let feetStr = Math.round(remainingDist * 3);
+                                        broadcast += ` That's inside the leather. Gimme taken from ${feetStr} feet. Hole complete.`;
+                                    }
+                                }
+
+                                // Auto-Max Score
+                                if (!isHoleComplete && wizardMaxScore > 0) {
+                                    let limit = wizardMaxScore === 1 ? par * 2 : 8;
+                                    if (strokes >= limit) {
+                                        isHoleComplete = true;
+                                        broadcast += ` Reached max score of ${limit}. Hole complete.`;
+                                    }
+                                }
+                            }
+
+                            document.getElementById('visual-output').innerText = broadcast;
+                            if (typeof pacingModeIndex !== 'undefined' && pacingModes[pacingModeIndex] === 'Simulate') {
+                                // Suppress TTS for instant sim
+                            } else {
+                                window.announce(broadcast);
+                            }
                             lastShotReport = broadcast + "\n\nTelemetry:\n" + metrics;
                             holeTelemetry.push(lastShotReport);
                             if (!quick) window.setCaddyPanelText(lastShotReport);

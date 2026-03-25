@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v4.92.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.1.1)
 
 window.confirmingUnplayable = false;
 
@@ -8,6 +8,44 @@ window.addEventListener('keydown', (e) => {
         e.preventDefault();
         window.confirmingUnplayable = false;
         window.announce("Unplayable penalty cancelled.");
+        return;
+    }
+
+    if (window.confirmingMulligan || window.confirmingGimme || window.confirmingSnowman) {
+        e.preventDefault();
+        if (e.code === 'KeyY' || e.code === 'Enter') {
+            if (window.confirmingMulligan) {
+                window.confirmingMulligan = false;
+                ballX = window.preShotState.ballX; ballY = window.preShotState.ballY; currentLie = window.preShotState.currentLie;
+                strokes = window.preShotState.strokes; isPutting = window.preShotState.isPutting;
+                if (typeof puttTargetDist !== 'undefined') puttTargetDist = window.preShotState.puttTargetDist;
+                if (typeof holeTelemetry !== 'undefined' && holeTelemetry.length > window.preShotState.telemetryLength) holeTelemetry.pop();
+
+                let p = players[currentPlayerIndex];
+                if (wizardMulligans === 1) p.mulligansUsed = (p.mulligansUsed || 0) + 1;
+
+                let remainStr = wizardMulligans === 1 ? ` You have ${3 - p.mulligansUsed} left.` : " Unlimited remaining.";
+                let msg = `Mulligan taken. Stroke erased and ball returned to previous position.${remainStr} ${Math.round(calculateDistanceToPin())} yards to pin.`;
+                window.announce(msg); document.getElementById('visual-output').innerText = msg;
+                window.updateDashboard();
+            } else if (window.confirmingGimme) {
+                window.confirmingGimme = false;
+                strokes++; puttsThisHole++; isHoleComplete = true;
+                let msg = `Gimme taken. 1 stroke added. Hole complete.`;
+                window.announce(msg); document.getElementById('visual-output').innerText = msg;
+            } else if (window.confirmingSnowman) {
+                window.confirmingSnowman = false;
+                strokes = 8; isHoleComplete = true;
+                let msg = `Snowman taken. Score recorded as an 8. Hole complete.`;
+                window.announce(msg); document.getElementById('visual-output').innerText = msg;
+            }
+            if (isHoleComplete) {
+                setTimeout(() => { if (typeof window.advanceTurn === 'function') window.advanceTurn(); }, 2000);
+            }
+        } else {
+            window.confirmingMulligan = false; window.confirmingGimme = false; window.confirmingSnowman = false;
+            window.announce("Action cancelled.");
+        }
         return;
     }
 
@@ -233,7 +271,20 @@ window.addEventListener('keydown', (e) => {
     // v4.12.0 Clubhouse Interceptor
     if (gameMode === 'clubhouse') {
         e.preventDefault();
-        
+
+        // v5.1.0 Fast-Forward Setup
+        if (e.ctrlKey && e.code === 'Enter') {
+            let forwardAction = null;
+            for (let i = clubhouseMenu.length - 1; i >= 0; i--) {
+                if (!clubhouseMenu[i].text.includes("Back")) { forwardAction = clubhouseMenu[i].action; break; }
+            }
+            if (forwardAction) {
+                if (typeof window.playGolfSound === 'function') window.playGolfSound('menu_01');
+                forwardAction();
+            }
+            return;
+        }
+
         // Pass Escape out of the Help Menu back to the Clubhouse
         if (viewingHelp) {
             if (e.code === 'ArrowDown') { if (helpIndex < helpMenuText.length - 1) helpIndex++; window.announceHelp(); }
@@ -260,6 +311,7 @@ window.addEventListener('keydown', (e) => {
             if (typeof window.playGolfSound === 'function') window.playGolfSound('menu_02'); // Back Cancel
             if (typeof clubhouseState !== 'undefined') {
                 if (clubhouseState === 'settings') { clubhouseState = 'roster'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
+                else if (clubhouseState === 'practice') { clubhouseState = 'root'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
                 else if (clubhouseState === 'roster_bot_amateur' || clubhouseState === 'roster_bot_tour') { clubhouseState = 'roster_type'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
                 else if (clubhouseState === 'roster_type') { clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true); }
                 else if (clubhouseState === 'roster') { clubhouseState = 'size'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
@@ -434,26 +486,56 @@ window.addEventListener('keydown', (e) => {
             return;
         }
 
-        // v4.44.0 Manual Player Swap (Hot Seat Testing)
-        if (e.code === 'KeyM') {
+        // v5.1.0 Next Player
+        if (e.code === 'KeyN') {
             e.preventDefault();
-            if (gameMode !== 'course') {
-                window.announce("Multiplayer swap is only available on the course.");
-                return;
-            }
+            if (gameMode !== 'course') { window.announce("Multiplayer swap is only available on the course."); return; }
 
             window.saveActivePlayer();
             let nextIndex = (currentPlayerIndex + 1) % activePlayerCount;
             window.loadActivePlayer(nextIndex);
 
             if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_07');
-
             let pName = players[currentPlayerIndex].name;
             let distMsg = players[currentPlayerIndex].isHoleComplete ? "Already in the hole." : `${Math.round(calculateDistanceToPin())} yards to pin. Lie: ${currentLie}.`;
             let msg = `Swapped to ${pName}. ${distMsg} Holding ${club.name}.`;
+            window.announce(msg); document.getElementById('visual-output').innerText = msg;
+            return;
+        }
 
-            window.announce(msg);
-            document.getElementById('visual-output').innerText = msg;
+        // v5.1.0 Mulligan & Snowman
+        if (e.code === 'KeyM') {
+            e.preventDefault();
+            if (gameMode !== 'course') return;
+
+            if (e.shiftKey) {
+                if (wizardMaxScore !== 2) { window.announce("Snowman rule is not active in match settings."); return; }
+                window.confirmingSnowman = true;
+                window.announce("Take a Snowman? Your score will be 8 and the hole will end. Press Y to confirm.");
+            } else {
+                if (wizardMulligans === 0) { window.announce("Mulligans are disabled in match settings."); return; }
+                if (!window.preShotState || window.preShotState.strokes === strokes) { window.announce("You have not taken a shot yet."); return; }
+
+                let p = players[currentPlayerIndex];
+                let used = p.mulligansUsed || 0;
+                if (wizardMulligans === 1 && used >= 3) { window.announce("You have used all 3 Mulligans for this round."); return; }
+
+                window.confirmingMulligan = true;
+                let countMsg = wizardMulligans === 1 ? ` You have ${3 - used} left.` : "";
+                window.announce(`Use a Mulligan?${countMsg} Press Y to confirm.`);
+            }
+            return;
+        }
+
+        // v5.1.0 Gimme
+        if (e.code === 'KeyG') {
+            e.preventDefault();
+            if (gameMode !== 'course') return;
+            if (wizardGimmes === 0) { window.announce("Gimmes are disabled in match settings."); return; }
+            if (!isPutting) { window.announce("You must be on the putting green to take a Gimme."); return; }
+
+            window.confirmingGimme = true;
+            window.announce("Take a Gimme? This will add 1 stroke to your score and complete the hole. Press Y to confirm.");
             return;
         }
 
@@ -523,9 +605,6 @@ window.addEventListener('keydown', (e) => {
             helpIndex = 0;
             window.announceHelp();
             return;
-        }
-        if (e.code === 'KeyP' && e.shiftKey) {
-            e.preventDefault(); confirmingPutting = true; window.announce("Go to Practice Putting Green? Press Y or Enter to confirm."); return;
         }
         if ((gameMode === 'range' || (gameMode === 'chipping' && chippingRange === 'long'))) {
             if (e.code === 'KeyY') {
@@ -638,23 +717,6 @@ window.addEventListener('keydown', (e) => {
             document.getElementById('visual-output').innerText = msg;
             window.announce(msg);
             window.updateDashboard();
-            return;
-        }
-        if (e.code === 'KeyG') {
-            e.preventDefault();
-            if (e.shiftKey) {
-                chippingRange = chippingRange === 'short' ? 'long' : 'short';
-                let newTarget = chippingRange === 'short' ? Math.floor(Math.random() * 16) + 5 : Math.floor(Math.random() * 61) + 20;
-                if (gameMode === 'chipping') {
-                    ballX = 0; ballY = 0; pinX = 0; pinY = newTarget;
-                    let targetDist = calculateDistanceToPin();
-                    window.announce(`Chipping range set to ${chippingRange}. New target: ${targetDist} yards.`);
-                } else {
-                    window.announce(`Chipping range set to ${chippingRange}.`);
-                }
-            } else {
-                confirmingGreen = true; window.announce("Go to Chipping Green? Press Y or Enter to confirm.");
-            }
             return;
         }
         if (e.code.startsWith('Digit') && e.code !== 'Digit0') {
