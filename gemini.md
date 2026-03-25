@@ -378,3 +378,8 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Oracle Elevation Math:** Added `elevationDiff` subtraction to the `effectiveCarry` calculation in `getCaddyAdvice` and `getOracleBlueprint`. This mirrors the true physics engine, forcing the AI to dynamically club up/down when `targetZ` dictates a severe slope.
 - **Quick Roster:** Added `Shift + L` listener to the Clubhouse roster menu to instantly populate a 4-bot simulation group.
 - **Telemetry Scoreboard:** The `Shift + C` master dump now synthesizes and prepends a player scoreboard to the top of the exported log.
+
+### 82. v5.1.3 Engine Addendum (Universal Help UI & Explorer Updates)
+- **Visual Overlay:** Created `#help-panel` in `index.html`. `main_ag.js` now dynamically renders the `helpMenuText` array and syncs a visual highlight with the ARIA `helpIndex`, allowing sighted users to follow along with screen reader navigation.
+- **Help Menu Content:** Overhauled `helpMenuText` in `data_ag.js`. Consolidated `Shift` functions into primary key descriptions to reduce guessing. Pushed `F12` to the top of the array.
+- **Keyboard Explorer:** `input_ag.js`'s `isExploreMode` interceptor now accurately passes and reads `e.ctrlKey` and `e.shiftKey` variables. Synchronized `getKeyDescription` with the new V5 map.

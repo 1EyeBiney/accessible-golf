@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.1.2)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.1.3)
 
 window.confirmingUnplayable = false;
 
@@ -60,7 +60,10 @@ window.addEventListener('keydown', (e) => {
         e.preventDefault();
         let keyName = e.key.toUpperCase();
         if (e.code === 'Space') keyName = 'SPACEBAR';
-        let funcMsg = window.getKeyDescription(e.code, e.shiftKey);
+        if (e.ctrlKey) keyName = 'CONTROL + ' + keyName;
+        else if (e.shiftKey && e.code !== 'Space') keyName = 'SHIFT + ' + keyName;
+        
+        let funcMsg = window.getKeyDescription(e.code, e.shiftKey, e.ctrlKey);
         window.announce(`${keyName}: ${funcMsg}`);
         document.getElementById('visual-output').innerText = `${keyName}: ${funcMsg}`;
         return;
@@ -334,7 +337,9 @@ window.addEventListener('keydown', (e) => {
             else if (e.code === 'ArrowUp') { if (helpIndex > 0) helpIndex--; window.announceHelp(); }
             else if (e.code === 'Escape' || e.code === 'Enter') {
                 if (e.code === 'Escape' && typeof window.playGolfSound === 'function') window.playGolfSound('bunker_33');
-                viewingHelp = false; window.announce("Exited Help Menu."); window.announceClubhouse();
+                viewingHelp = false; 
+                document.getElementById('help-panel').style.display = 'none';
+                window.announce("Exited Help Menu."); window.announceClubhouse();
             }
             return;
         }
@@ -465,6 +470,7 @@ window.addEventListener('keydown', (e) => {
         } else if (e.code === 'Escape' || e.code === 'Enter') {
             if (e.code === 'Escape' && typeof window.playGolfSound === 'function') window.playGolfSound('bunker_33');
             viewingHelp = false;
+            document.getElementById('help-panel').style.display = 'none';
             window.announce("Exited Help Menu.");
             if (gameMode === 'clubhouse') window.announceClubhouse(); 
             else document.getElementById('visual-output').innerText = getSetupReport();
@@ -646,6 +652,8 @@ window.addEventListener('keydown', (e) => {
             e.preventDefault();
             viewingHelp = true;
             helpIndex = 0;
+            document.getElementById('help-panel').style.display = 'block';
+            if (typeof window.renderHelpMenu === 'function') window.renderHelpMenu();
             window.announceHelp();
             return;
         }
@@ -1406,17 +1414,11 @@ window.announceHazard = function(h) {
     document.getElementById('visual-output').innerText = finalMsg;
 };
 
-window.announceHelp = function() {
-    const line = helpMenuText[helpIndex];
-    window.announce(line.text);
-    document.getElementById('visual-output').innerText = line.text;
-};
-
-window.getKeyDescription = function(code, shift) {
+window.getKeyDescription = function(code, shift, ctrl) {
     const desc = {
         'ArrowDown': "Starts the backswing, locks power, and executes the strike.",
         'ArrowUp': "Initiates a practice swing.",
-        'Space': "Sets hinge timing during the swing.",
+        'Space': "Sets hinge timing during the swing. Inside Scorecard, flips pages.",
         'ArrowLeft': shift ? "Closes your stance to add draw spin." : "Aims 1 degree left.",
         'ArrowRight': shift ? "Opens your stance to add fade spin." : "Aims 1 degree right.",
         'Home': "Moves the ball forward in your stance, adding loft.",
@@ -1426,25 +1428,28 @@ window.getKeyDescription = function(code, shift) {
         'KeyZ': shift ? "Opens the Pin Finder grid." : "Cycles through tactical landing zones.",
         'KeyJ': shift ? "Cycles Shot Focus backward." : "Cycles Shot Focus forward.",
         'KeyI': shift ? "Cycles Difficulty backward." : "Cycles Difficulty forward.",
-        'KeyM': "Manually swaps control to the next player (Hot Seat).",
+        'KeyM': shift ? "Takes a Snowman (Max score of 8) and ends the hole." : "Uses a Mulligan to erase the last shot.",
+        'KeyN': shift ? "Copies the Post-Round Summary to your clipboard." : "Swaps control to the Next Player.",
+        'KeyG': "Takes a Gimme and finishes the hole (Only available on the putting green).",
+        'KeyY': shift ? "Cycles equipped golf ball brand." : "Toggles the Synth Tree on the driving range.",
         'KeyX': "Announces the active club and expected 100 percent distance.",
         'KeyS': shift ? "Cycles swing styles backward." : "Cycles swing styles forward.",
         'KeyV': "Toggles choked down grip for increased control.",
         'Tab': "Provides a quick summary of hole, stroke, distance, and lie.",
         'KeyT': "Provides a full distance and targeting report.",
         'KeyW': shift ? "Cycles wind conditions in practice modes." : "Reads the current wind speed and direction.",
-        'KeyL': "Announces current lie. Shift + L on range toggles target terrain.",
-        'KeyA': shift ? "Cycles the Caddy skill level." : "Asks the Caddy for strategic advice.",
+        'KeyL': shift ? "On range, cycles target terrain. In clubhouse, loads Sim Roster." : "Announces current lie.",
+        'KeyA': shift ? "Cycles the Caddy skill level." : "Asks the Oracle Caddy for a strategic shot blueprint.",
         'KeyF': "Reads the fairway description.",
         'KeyH': "Opens the navigable Hazard and Tree list.",
-        'Semicolon': shift ? "Reads your quick timing and spin diagnostics." : "Unassigned key.",
-        'KeyC': shift ? "Copies your telemetry to the clipboard." : "Repeats the last shot report.",
+        'Semicolon': shift ? "Reads your quick timing and spin diagnostics." : "Cycles global green speed (Stimp).",
+        'KeyC': shift ? "Copies your session telemetry to the clipboard." : "Repeats the last shot report.",
         'KeyB': "Reads the green elevation and break when putting.",
         'KeyU': "Takes an unplayable lie penalty and drops the ball in the fairway.",
         'KeyE': shift ? "Opens the full scorecard." : "Announces your quick score summary.",
-        'KeyN': shift ? "Copies the Post-Round Summary to your clipboard." : "Reads the narrative of the last completed hole.",
-        'KeyP': "Cycles through the Multiplayer Game Pacing modes.",
+        'KeyP': "Cycles through the Multiplayer Game Pacing modes. Inside Scorecard, swaps players.",
         'KeyQ': "Opens the Quit and Save menu.",
+        'Enter': ctrl ? "Fast-forwards through Clubhouse setup menus." : "Confirms selections and targets.",
         'F1': "Toggles Dev Power.",
         'F2': "Toggles Dev Hinge.",
         'F3': "Toggles Dev Impact.",

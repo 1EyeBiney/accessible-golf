@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.1.1)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.1.3)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -1511,6 +1511,60 @@ window.drawMeter = function() {
             ctx.fillText(`IMPACT LOCKED: ${Math.abs(diff)}ms ${diff < 0 ? 'Early' : diff > 0 ? 'Late' : 'Perfect'}`, 15, 30);
         }
     }
+
+window.renderHelpMenu = function() {
+    const panel = document.getElementById('help-panel');
+    if (!panel) return;
+    panel.innerHTML = '<h2 style="color: #2196F3; margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px;">Master Keybindings</h2>';
+    
+    helpMenuText.forEach((item, i) => {
+        let el = document.createElement('div');
+        el.id = `help-line-${i}`;
+        el.style.padding = '8px 12px';
+        el.style.marginBottom = '4px';
+        el.style.borderRadius = '4px';
+        el.style.transition = 'background-color 0.2s, color 0.2s';
+        
+        if (item.heading) {
+            el.style.fontWeight = 'bold';
+            el.style.color = '#2196F3';
+            el.style.marginTop = '15px';
+            el.style.fontSize = '1.1em';
+            el.innerText = item.text.replace(/: Heading Level [0-9]\./g, '');
+        } else {
+            el.style.color = '#ccc';
+            el.innerText = item.text;
+        }
+        panel.appendChild(el);
+    });
+    window.updateHelpHighlight();
+};
+
+window.updateHelpHighlight = function() {
+    helpMenuText.forEach((_, i) => {
+        let el = document.getElementById(`help-line-${i}`);
+        if (el) {
+            if (i === helpIndex) {
+                el.style.backgroundColor = '#2196F3';
+                el.style.color = '#fff';
+                // Scroll into view safely
+                let panel = document.getElementById('help-panel');
+                let offset = el.offsetTop - panel.offsetTop - (panel.clientHeight / 2) + (el.clientHeight / 2);
+                panel.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
+            } else {
+                el.style.backgroundColor = 'transparent';
+                el.style.color = helpMenuText[i].heading ? '#2196F3' : '#ccc';
+            }
+        }
+    });
+};
+
+window.announceHelp = function() {
+    const line = helpMenuText[helpIndex];
+    window.announce(line.text);
+    document.getElementById('visual-output').innerText = line.text;
+    window.updateHelpHighlight();
+};
 };
 
 // --- 3D FLIGHT AUDIO ENGINE INTEGRATION ---
