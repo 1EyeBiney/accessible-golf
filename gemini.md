@@ -340,3 +340,6 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Pebble Beach Data:** Injected a hyper-realistic 18-hole layout for Pebble Beach into `courses`.
 - **Z-Axis Navigation:** Holes like 6 (Uphill), 7 (Downhill), and 14 heavily utilize `pinZ` and `landingZones` with `z` coordinates to force players to manage club selection against gravity.
 - **AABB Ocean Mapping:** Holes 4, 5, 6, 9, 10, and 18 map massive `Water` boundaries running parallel to the fairway to mimic the Pacific coastline.
+
+### 73. v5.0.2 Engine Addendum (Menu Hotfix)
+- **Duplicate Course Fix:** Removed the hardcoded "Coming Soon" Pebble Beach placeholder from `buildClubhouseMenu` in `main_ag.js` to prevent it from appearing alongside the actual playable course generated from `data_ag.js`.
