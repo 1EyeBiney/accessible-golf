@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.0.2)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.0.3)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -1055,10 +1055,6 @@ window.buildClubhouseMenu = function() {
                 window.buildClubhouseMenu(); window.announceClubhouse(true);
             }});
         });
-        clubhouseMenu.push({ text: "Pebble Beach", action: () => {
-            if (typeof window.playGolfSound === 'function') window.playGolfSound('swing_07'); // Error Buzz
-            window.announce("Pebble Beach is coming soon!");
-        }});
         clubhouseMenu.push({ text: "Back (Escape)", action: () => {
             clubhouseState = 'root'; clubhouseIndex = 0;
             window.buildClubhouseMenu(); window.announceClubhouse(true);

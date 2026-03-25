@@ -343,3 +343,8 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 
 ### 73. v5.0.2 Engine Addendum (Menu Hotfix)
 - **Duplicate Course Fix:** Removed the hardcoded "Coming Soon" Pebble Beach placeholder from `buildClubhouseMenu` in `main_ag.js` to prevent it from appearing alongside the actual playable course generated from `data_ag.js`.
+
+### 74. v5.0.3 Engine Addendum (Pebble Beach Full Correction)
+- **Schema Fix:** Changed `hole` to `number` in the Pebble Beach `data_ag.js` array to prevent initialization crashes.
+- **Targeting Fix:** Appended `zones` arrays to all Pebble Beach holes to restore the Z-key targeting system.
+- **Menu Syntax Fix:** Replaced the broken `clubhouseState === 'course'` logic block in `main_ag.js` to clear the orphaned duplicate entry and fix a stray bracket syntax error.
