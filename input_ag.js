@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.3.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.5.0)
 
 window.confirmingUnplayable = false;
 
@@ -45,6 +45,33 @@ window.addEventListener('keydown', (e) => {
         } else {
             window.confirmingMulligan = false; window.confirmingGimme = false; window.confirmingSnowman = false;
             window.announce("Action cancelled.");
+        }
+        return;
+    }
+
+    // v5.5.0 Quick Telemetry Readout
+    if (e.code === 'ArrowUp' && e.shiftKey) {
+        e.preventDefault();
+        if (typeof holeTelemetry !== 'undefined' && holeTelemetry.length > 0) {
+            // Search backwards for the most recent Execution line
+            let execLine = [...holeTelemetry].reverse().find(log => log.includes("**Execution:**"));
+            if (execLine) {
+                let match = execLine.match(/\*\*Execution:\*\* (.*)/);
+                if (match) {
+                    // Clean up math symbols so the ARIA screen reader pronounces them smoothly
+                    let cleanText = match[1]
+                        .replace(/-/g, "minus ")
+                        .replace(/%/g, " percent")
+                        .replace(/ms/g, " milliseconds")
+                        .replace(/RPM/g, " R P M");
+                    window.announce("Quick Telemetry: " + cleanText);
+                    if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_05');
+                }
+            } else {
+                window.announce("No telemetry logged yet for this shot.");
+            }
+        } else {
+            window.announce("No telemetry available.");
         }
         return;
     }
@@ -571,9 +598,10 @@ window.addEventListener('keydown', (e) => {
         if (e.code === 'KeyE') {
             e.preventDefault();
             if (e.shiftKey) {
-                scorecardPlayerIndex = currentPlayerIndex; // v4.85.0 Start on active player
-                viewingScorecard = true; window.showScorecard();
-                // v4.30.3 Removed hardcoded announce to allow main_ag.js to handle it
+                e.preventDefault();
+                if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_03');
+                if (typeof window.renderScorecard === 'function') window.renderScorecard();
+                return;
             } else {
                 let quick = window.getQuickScore();
                 document.getElementById('visual-output').innerText = quick; window.announce(quick);
@@ -733,8 +761,10 @@ window.addEventListener('keydown', (e) => {
                     exportData = header + exportData;
                 }
                 navigator.clipboard.writeText(exportData).then(() => {
+                    if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_06');
+                    window.announce("Telemetry copied to clipboard.");
                     const msg = `Copied ${holeTelemetry.length} shots to clipboard.`;
-                    document.getElementById('visual-output').innerText = msg; window.announce(msg);
+                    document.getElementById('visual-output').innerText = msg;
                 });
             } else {
                 document.getElementById('visual-output').innerText = lastShotReport; window.announce(lastShotReport);
@@ -1222,7 +1252,7 @@ window.addEventListener('keydown', (e) => {
             if (vis) vis.innerText = msg;
             return;
         }
-        if (e.code === 'KeyZ' && gameMode === 'course') {
+        if (e.code === 'KeyZ' && (gameMode === 'course' || gameMode === 'range')) {
             e.preventDefault();
 
             // v4.18.0 Unified Fairway Pin Finder
@@ -1316,7 +1346,7 @@ window.addEventListener('keydown', (e) => {
             if (!e.shiftKey) {
                 let distToPin = calculateDistanceToPin();
                 let distMsg = "";
-                if (gameMode === 'course') {
+                if (gameMode === 'course' || gameMode === 'range') {
                     const holeData = courses[currentCourseIndex].holes[hole - 1];
                     if (targetY !== holeData.pinY || targetX !== holeData.pinX) {
                         let distToTarget = Math.round(Math.sqrt(Math.pow(targetX - ballX, 2) + Math.pow(targetY - ballY, 2)));
@@ -1421,7 +1451,7 @@ window.announceHazard = function(h) {
 window.getKeyDescription = function(code, shift, ctrl) {
     const desc = {
         'ArrowDown': "Starts the backswing, locks power, and executes the strike.",
-        'ArrowUp': "Initiates a practice swing.",
+        'ArrowUp': shift ? "Reads the quick telemetry for your last shot." : "Aims your shot to the Left. Hold Shift for micro-adjustments.",
         'Space': "Sets hinge timing during the swing. Inside Scorecard, flips pages.",
         'ArrowLeft': shift ? "Closes your stance to add draw spin." : "Aims 1 degree left.",
         'ArrowRight': shift ? "Opens your stance to add fade spin." : "Aims 1 degree right.",
@@ -1448,7 +1478,7 @@ window.getKeyDescription = function(code, shift, ctrl) {
         'KeyF': "Reads the fairway description.",
         'KeyH': "Opens the navigable Hazard and Tree list.",
         'Semicolon': shift ? "Reads your quick timing and spin diagnostics." : "Cycles global green speed (Stimp).",
-        'KeyC': shift ? "Copies your session telemetry to the clipboard." : "Repeats the last shot report.",
+        'KeyC': shift ? "Copies the raw telemetry data to your clipboard." : "Announces your current club.",
         'KeyB': "Reads the green elevation and break when putting.",
         'KeyU': "Takes an unplayable lie penalty and drops the ball in the fairway.",
         'KeyE': shift ? "Opens the full scorecard." : "Announces your quick score summary.",

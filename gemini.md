@@ -398,6 +398,18 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Spatial Controls:** Brackets move objects laterally. Dash/Equals move objects longitudinally. `Shift + Dash/Equals` adjusts `pinZ` elevation for flags, or physical `height` for trees.
 - **Smart Help System:** `?` acts progressively. If pressed in a practice area, it overrides to `helpState = 'area'` and plays contextual orientation logic. Pressing `?` again unlocks the `helpState = 'master'` keybindings matrix.
 
+### 94. v5.5.0 Engine Addendum (Quick Telemetry & UI Audio)
+- **Quick Telemetry (`Shift + ArrowUp`):** Parses the `holeTelemetry` array for the most recent `**Execution:**` string, cleans the math formatting (e.g., changing `-` to `minus` and `%` to `percent`), and sends it to the ARIA announcer. This gives players instant P/H/I and Spin readouts on the practice range.
+- **Invisible UI Audio:** Added `ui_nav_03` to `Shift + E` (Scorecard) and `ui_nav_06` to `Shift + C` (Clipboard Export) to provide confirming audio feedback for non-visual actions.
+
+### 93. v5.4.0 Engine Addendum (The Impact Target)
+- **Audio Bullseye:** `startImpactPhase` now schedules an isolated 800Hz triangle ping at exactly `dropDurationMs`. It deliberately ignores `swingState` interruptions to guarantee it always fires, providing players with a consistent metronome tick to measure their early/late impact variance against.
+
+### 92. v5.3.1 Engine Addendum (Scoring & Sandbox Failsafes)
+- **Range Targeting:** Re-authorized `KeyZ` (Pin Finder) and `KeyT` (Distance Report) to function during `gameMode === 'range'`.
+- **Scorecard Failsafe:** `advanceTurn` now physically audits the `roundData` array and force-pushes a record if `isHoleComplete` is true but the hole is missing, preventing Auto-Snowmen and manual Gimmes from vanishing from the final score.
+- **Bot AI Nerf:** Widened base impact variance for Skill 3 (30ms) and Skill 2 (55ms) to ensure high-tier bots experience natural lateral scatter on approach shots, curbing robotic proximity.
+
 ### 91. v5.3.0 Engine Addendum (Practice Sandbox Unification)
 - **Architecture Shift:** Deprecated the separate `gameMode = 'chipping'`. The Short Chipping Green (5-30y) and Pitching Green (30-100y) now boot into `gameMode = 'range'`, natively inheriting the dummy course, Object Manager (`O`), Edge Finder (`H`), and Oracle Caddy (`A`).
 - **Target Randomization (`R`):** A global range listener dynamically randomizes `pinY` and `pinZ` based on the active `window.rangeMode` (`short`, `long`, or `holo`), allowing players to practice elevated targets without manual manipulation.

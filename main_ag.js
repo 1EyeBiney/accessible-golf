@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.3.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.4.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -177,6 +177,24 @@ window.advanceTurn = function(isPuttingTransition = false) {
         if (gameMode !== 'course') return;
         window.saveActivePlayer();
 
+        // v5.3.1 Scorecard Failsafe (Catches Snowmen & Gimmes missing from array)
+        players.forEach(p => {
+            if (p.isHoleComplete) {
+                let hasRecord = p.roundData.find(r => r.hole === hole);
+                if (!hasRecord) {
+                    p.roundData.push({
+                        hole: hole, par: par, strokes: p.strokes, putts: p.puttsThisHole || 0,
+                        fir: p.currentHoleStats ? p.currentHoleStats.fir : null,
+                        gir: p.currentHoleStats ? p.currentHoleStats.gir : false,
+                        driveDistance: p.currentHoleStats ? p.currentHoleStats.driveDistance : null,
+                        approachStart: p.currentHoleStats ? p.currentHoleStats.approachStart : null,
+                        approachProx: p.currentHoleStats ? p.currentHoleStats.approachProx : null,
+                        puttDistance: p.currentHoleStats ? p.currentHoleStats.puttDistance : null
+                    });
+                }
+            }
+        });
+
         let allDone = players.every(p => p.isHoleComplete);
         if (allDone) {
             let compMsg = `All players have finished Hole ${hole}. Press Enter to proceed to the next hole.`;
@@ -326,7 +344,7 @@ window.takeAITurn = function(isSim = false) {
         p.botPower = Math.max(10, Math.round(rawPower / 5) * 5);
     }
 
-    let variance = p.botSkill === 3 ? 15 : p.botSkill === 2 ? 45 : p.botSkill === 1 ? 100 : 200;
+    let variance = p.botSkill === 3 ? 30 : p.botSkill === 2 ? 55 : p.botSkill === 1 ? 100 : 200;
     let baseImpact = Math.floor((Math.random() * variance * 2) - variance);
     let baseHinge = Math.floor((Math.random() * variance * 2) - variance);
     p.botImpact = baseImpact + (p.impactBias || 0);
@@ -673,7 +691,7 @@ function getSightReport() {
 }
 
 window.updateTargetZone = function() {
-    if (gameMode !== 'course') return;
+    if (gameMode !== 'course' && gameMode !== 'range') return;
     const holeData = courses[currentCourseIndex].holes[hole - 1];
     let validTargets = [];
     if (holeData.zones) validTargets = holeData.zones.filter(z => z.y > ballY + 15);
@@ -1438,6 +1456,13 @@ function startImpactPhase() {
 
     [75, 50, 25].forEach(m => { if (finalPower > m) stateTimeouts.push(setTimeout(() => triggerMilestone(m), (finalPower - m) * 15)); });
     
+    // v5.4.0 The Impact Target Tick (Audio Bullseye)
+    // Note: We deliberately do not check swingState here so the tick always plays, 
+    // providing relative early/late feedback even after the ball is struck.
+    stateTimeouts.push(setTimeout(() => { 
+        if (typeof playTone === 'function') playTone(800, 'triangle', 0.1, 0.5); 
+    }, dropDurationMs));
+
     // v4.19.0 Restoration: Timeout only triggers the Whiff (calculateShot true)
     stateTimeouts.push(setTimeout(() => { 
         if (swingState === 4) {
