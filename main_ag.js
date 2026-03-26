@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.4.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.5.1)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -1823,4 +1823,11 @@ window.trigger3DFlight = function(hangTimeSecs, dynamicLoft, startPan, endPan, b
         setTimeout(flightLoop, speedDelay);
     }
     flightLoop();
+};
+
+window.generateTelemetryDump = function() {
+    let p = players[currentPlayerIndex];
+    let dump = `# MATCH SETTINGS\n`;
+    dump += `**Engine Version:** v5.5.1\n`;
+    dump += `**Course:** ${courses[currentCourseIndex].name}\n`;
 };
