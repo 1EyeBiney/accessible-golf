@@ -398,6 +398,13 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Spatial Controls:** Brackets move objects laterally. Dash/Equals move objects longitudinally. `Shift + Dash/Equals` adjusts `pinZ` elevation for flags, or physical `height` for trees.
 - **Smart Help System:** `?` acts progressively. If pressed in a practice area, it overrides to `helpState = 'area'` and plays contextual orientation logic. Pressing `?` again unlocks the `helpState = 'master'` keybindings matrix.
 
+### 98. v5.8.0 Engine Addendum (Audio Ducks & Roster Completion)
+- **Duck Audio Penalty:** Implemented a new flight-phase auditory cue. Any shot with an `accuracyScore < 80` will trigger a randomized `duck.mp3` file 800ms into the ball flight, providing immediate, visceral feedback for severe miss-hits without stepping on the Hinge/Impact execution tones.
+- **Roster Fix:** Restored Dusty Bunkers to the Amateur Bot selection menu in the Clubhouse Wizard.
+
+### 99. v5.9.0 Engine Addendum (High Accuracy Audio Rewards)
+- **Strike Audio:** Shots achieving an `accuracyScore > 90` now immediately trigger external MP3 assets (`woods_blast[1-5].mp3` for Woods/Drivers, `bullseye[1-6].mp3` for Irons/Wedges). These fire directly on impact, running concurrently with the web audio execution pings to provide a layered, satisfying reward for optimal timing.
+
 ### 97. v5.7.0 Engine Addendum (Scorecard Focus Lock)
 - **Input Bleed Prevention:** Opening the Scorecard (`Shift + E`) now correctly flips the `viewingScorecard` state flag to `true`. This acts as an input firewall, preventing navigation arrow keys from bleeding through and accidentally triggering swings or aiming adjustments in the background game state.
 

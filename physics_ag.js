@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v5.1.8)
+// physics_ag.js - Math, Wind, and Shot Calculation (v5.9.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -607,6 +607,35 @@ function calculateShot(autoMiss = false) {
         }
         
         window.playGolfSound(strikeSound);
+    }
+
+    // v5.8.0 The Duck Hook Penalty (Sub-80% Accuracy)
+    if (accuracyScore < 80 && !quick) {
+        let duckVariant = Math.floor(Math.random() * 4) + 1; // 1 to 4
+        let duckAudio = new Audio(`audio/swings/duck${duckVariant}.mp3`);
+        duckAudio.volume = 0.8;
+        // Delay the quack so it plays mid-flight, after the execution pings
+        stateTimeouts.push(setTimeout(() => {
+            duckAudio.play().catch(e => console.warn("Duck audio missing:", e));
+        }, 800));
+    }
+
+    // v5.9.0 High Accuracy Strike Audio
+    if (accuracyScore > 90 && !quick && club.name !== "Putter") {
+        let isWood = club.name === "Driver" || club.name.includes("Wood");
+        let isIron = club.name.includes("Iron") || club.name.includes("Wedge");
+        
+        if (isWood) {
+            let variant = Math.floor(Math.random() * 5) + 1; // 1 to 5
+            let blastAudio = new Audio(`audio/swings/woods_blast${variant}.mp3`);
+            blastAudio.volume = 0.9;
+            blastAudio.play().catch(e => console.warn("Wood blast audio missing:", e));
+        } else if (isIron) {
+            let variant = Math.floor(Math.random() * 6) + 1; // 1 to 6
+            let blastAudio = new Audio(`audio/swings/bullseye${variant}.mp3`);
+            blastAudio.volume = 0.9;
+            blastAudio.play().catch(e => console.warn("Iron bullseye audio missing:", e));
+        }
     }
 
     // v5.6.0 Extended Feedback Tails

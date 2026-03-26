@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.7.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.9.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -1286,6 +1286,10 @@ window.buildClubhouseMenu = function() {
         }});
         clubhouseMenu.push({ text: "Shankin' Shawn", action: () => {
             wizardRoster[wizardSlot] = { name: "Shankin' Shawn", isBot: true, skill: 0, iBias: 80, hBias: -40, focus: 0, ball: 5 };
+            clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
+        }});
+        clubhouseMenu.push({ text: "Dusty Bunkers", action: () => {
+            wizardRoster[wizardSlot] = { name: "Dusty Bunkers", isBot: true, skill: 1, iBias: 0, hBias: 0, focus: 0, ball: 2 };
             clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
         clubhouseMenu.push({ text: "Back (Escape)", action: () => {
