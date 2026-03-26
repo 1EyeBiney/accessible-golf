@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.5.1)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.7.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -914,6 +914,17 @@ window.showScorecard = function() {
 
     // Only call the Init Announcement if we are opening it fresh (Row 0, Col 0)
     if (scRow === 0 && scCol === 0) window.announceScorecardCell(true);
+};
+
+window.renderScorecard = function() {
+    if (!players || players.length === 0) {
+        window.announce("Scorecard unavailable: No player data found.");
+        return;
+    }
+    // v5.7.0 Lock out background game controls
+    viewingScorecard = true;
+    window.viewingScorecard = true;
+    window.showScorecard();
 };
 
 window.announceScorecardCell = function(isInit = false, isPageFlip = false) {

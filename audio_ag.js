@@ -153,7 +153,12 @@ function triggerMilestone(percent) {
     if (percent === 25) playTone(220, 'square', 0.3, 0.2);
     if (percent === 50) playTone(440, 'triangle', 0.2, 0.4);
     if (percent === 75) { playTone(660, 'triangle', 0.1, 0.4); setTimeout(() => playTone(660, 'triangle', 0.1, 0.4), 120); }
-    if (percent === 100) playTone(1200, 'sine', 0.8, 0.6);
+    if (percent === 100) {
+        if (typeof playTone === 'function') {
+            playTone(1200, 'square', 0.05, 0.4);
+            setTimeout(() => playTone(1200, 'square', 0.05, 0.4), 80);
+        }
+    }
     if (percent === 120) playTone(150, 'sawtooth', 0.4, 0.7);
 }
 

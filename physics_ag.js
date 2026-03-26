@@ -609,6 +609,14 @@ function calculateShot(autoMiss = false) {
         window.playGolfSound(strikeSound);
     }
 
+    // v5.6.0 Extended Feedback Tails
+    let impactPitch = Math.round(300 + (impactAcc * 6));
+    let hingePitch = Math.round(300 + (hingeAcc * 6));
+    if (typeof playTone === 'function') playTone(impactPitch, 'sine', 0.5, 0.3);
+    setTimeout(() => {
+        if (typeof playTone === 'function') playTone(hingePitch, 'triangle', 0.5, 0.3);
+    }, 600);
+
     let dynamicLoft = Math.max(0, club.loft + currentStyle.loftMod + ((2 - stanceIndex) * 5));
     
     let styleSideSpinMod = currentStyle.name === "Full" ? 1.0 : (currentStyle.distMod * 0.4);

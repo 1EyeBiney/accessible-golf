@@ -398,6 +398,14 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Spatial Controls:** Brackets move objects laterally. Dash/Equals move objects longitudinally. `Shift + Dash/Equals` adjusts `pinZ` elevation for flags, or physical `height` for trees.
 - **Smart Help System:** `?` acts progressively. If pressed in a practice area, it overrides to `helpState = 'area'` and plays contextual orientation logic. Pressing `?` again unlocks the `helpState = 'master'` keybindings matrix.
 
+### 97. v5.7.0 Engine Addendum (Scorecard Focus Lock)
+- **Input Bleed Prevention:** Opening the Scorecard (`Shift + E`) now correctly flips the `viewingScorecard` state flag to `true`. This acts as an input firewall, preventing navigation arrow keys from bleeding through and accidentally triggering swings or aiming adjustments in the background game state.
+
+### 96. v5.6.0 Engine Addendum (Audio Texture & Scorecard Safety)
+- **Power Milestones:** The 100% marker is now a 1200Hz square-wave double-chirp.
+- **Tone Duration:** Execution feedback tones for Hinge and Impact have been extended to 0.5s.
+- **Scorecard Failsafe:** Added a validation check to `renderScorecard` to ensure an ARIA announcement triggers even if the UI element fails to populate, preventing user disorientation.
+
 ### 95. v5.5.1 Engine Addendum (Telemetry Versioning)
 - **Metadata Expansion:** The Markdown Telemetry Dump (`Shift + C`) now includes a `**Engine Version:**` field in the match header. This allows for automated parsing and filtering of simulation data based on the specific version of the AI and physics engine used during the round.
 
