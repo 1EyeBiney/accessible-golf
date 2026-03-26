@@ -398,6 +398,17 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Spatial Controls:** Brackets move objects laterally. Dash/Equals move objects longitudinally. `Shift + Dash/Equals` adjusts `pinZ` elevation for flags, or physical `height` for trees.
 - **Smart Help System:** `?` acts progressively. If pressed in a practice area, it overrides to `helpState = 'area'` and plays contextual orientation logic. Pressing `?` again unlocks the `helpState = 'master'` keybindings matrix.
 
+### 90. v5.2.0 Engine Addendum (Help Menu Architecture)
+- **Synthetic Event Crash:** Replaced the `KeyboardEvent` hack in the Clubhouse menu with a dedicated `window.openHelpMenu()` function. This solves a silent JS crash where the browser rejected `e.preventDefault()` on an uncancelable synthetic event. Both the physical `?` key and the UI button now route to this central launcher.
+
+### 89. v5.1.10 Engine Addendum (Visual UX Restoration)
+- **Visual Output Marquee:** Removed the scrolling marquee CSS from `index.html`, replacing it with a static, centered, wrapping text box to prevent motion sickness for sighted players.
+- **Swing Meter Render Loop:** Restored a dedicated `window.drawMeter` `requestAnimationFrame` loop at the bottom of `main_ag.js`. It visually maps `swingState` timing back to the canvas, and uses the `hingeTimeBack` and `hingeTimeDown` timestamps to dynamically drop blue triangle markers to visualize the hinge rhythm mechanics.
+
+### 88. v5.1.9 Engine Addendum (AI Humanization Math)
+- **The Pro Scramble (Skill 3):** Introduced a 15% tee-shot lapse rate for top-tier bots to prevent robotic perfection. Compensated with an "Elite Scrambling" override that clamps their impact variance to `+/- 10ms` when hitting from the rough or hazards, mimicking real-world Tour recovery abilities.
+- **Forced Dispersion Ceiling (Skill 1 & 2):** To prevent lower-tier bots from accidentally shooting under par due to pure RNG luck, a deadzone is applied to their impact math. Skill 1 bots are forced to miss the sweet spot by at least 40ms, and Skill 2 bots by 25ms, ensuring consistent amateur shot-shaping and scoring brackets.
+
 ### 87. v5.1.8 Engine Addendum (AI Personalities & 4F Roster)
 - **Personality Injection:** `getOracleBlueprint()` in `physics_ag.js` now dynamically adjusts `adjustedMiss` scores based on the active bot's name. "Fairway Fred" applies a +30 penalty to Woods/Drivers, mathematically forcing him to lay up. "Dusty Bunkers" applies a -20 bonus to 105%+ power requirements and a +25 penalty to <95% power, forcing him to aggressively overswing short irons.
 - **4F Roster Alignment:** The `Shift + L` Quick Load now constructs a perfectly linear skill progression for telemetry testing: Shawn (0), Dusty (1), Fred (2), and Ted (3).

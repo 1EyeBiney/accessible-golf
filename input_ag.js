@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.1.8)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.2.0)
 
 window.confirmingUnplayable = false;
 
@@ -366,8 +366,26 @@ window.addEventListener('keydown', (e) => {
             clubhouseIndex = (clubhouseIndex - 1 + clubhouseMenu.length) % clubhouseMenu.length;
             window.announceClubhouse(false);
         } else if (e.code === 'Enter') {
-            if (typeof window.playGolfSound === 'function') window.playGolfSound('menu_01');
-            clubhouseMenu[clubhouseIndex].action();
+            if (e.ctrlKey) {
+                // Fast-forward sequence...
+                let foundTarget = false;
+                for (let i = clubhouseMenu.length - 1; i >= 0; i--) {
+                    let txt = clubhouseMenu[i].text.toLowerCase();
+                    if (txt.includes("start round") || txt.includes("proceed to match settings") || txt.includes("human player") || txt.includes("group size")) {
+                        clubhouseIndex = i; foundTarget = true; break;
+                    }
+                }
+                if (!foundTarget && clubhouseMenu.length > 0) clubhouseIndex = 0;
+                if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_05');
+                clubhouseMenu[clubhouseIndex].action();
+            } else {
+                // v5.2.0 Mute standard click if it's the Help button
+                if (!clubhouseMenu[clubhouseIndex].text.includes("Help") && typeof window.playGolfSound === 'function') {
+                    window.playGolfSound('ui_nav_01');
+                }
+                clubhouseMenu[clubhouseIndex].action();
+            }
+            return;
         } else if (e.code === 'Escape') {
             if (typeof window.playGolfSound === 'function') window.playGolfSound('menu_02'); // Back Cancel
             if (typeof clubhouseState !== 'undefined') {
@@ -593,12 +611,7 @@ window.addEventListener('keydown', (e) => {
 
         if (e.key === '?') {
             e.preventDefault();
-            if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_03');
-            viewingHelp = true;
-            helpIndex = 0;
-            document.getElementById('help-panel').style.display = 'block';
-            if (typeof window.renderHelpMenu === 'function') window.renderHelpMenu();
-            if (typeof window.announceHelp === 'function') window.announceHelp();
+            if (typeof window.openHelpMenu === 'function') window.openHelpMenu();
             return;
         }
         // v5.1.5 Holo Range Object Manager

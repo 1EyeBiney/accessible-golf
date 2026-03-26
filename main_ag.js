@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.1.8)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.2.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -330,7 +330,28 @@ window.takeAITurn = function(isSim = false) {
     let baseHinge = Math.floor((Math.random() * variance * 2) - variance);
     p.botImpact = baseImpact + (p.impactBias || 0);
     p.botHinge = baseHinge + (p.hingeBias || 0);
-    
+
+    // --- v5.1.9 AI Humanizing Math (The Pro Scramble & Forced Dispersion) ---
+    if (p && p.isBot) {
+        if (p.botSkill === 3) {
+            // Tour-Pro Ted: 15% Tee-Shot Lapses & Elite Scrambling
+            if (strokes === 0 && Math.random() < 0.15) {
+                // Force a bad drive (70-100ms off)
+                p.botImpact = (Math.random() < 0.5 ? 1 : -1) * (70 + Math.random() * 30);
+            } else if (currentLie !== 'Fairway' && currentLie !== 'Tee' && currentLie !== 'Green') {
+                // Elite Scramble recovery from rough/hazards (0-10ms off)
+                p.botImpact = (Math.random() < 0.5 ? 1 : -1) * (Math.random() * 10);
+                p.botHinge = (Math.random() < 0.5 ? 1 : -1) * (Math.random() * 15);
+            }
+        } else if (p.botSkill === 1 || p.botSkill === 2) {
+            // Dusty & Fred: Forced Dispersion Ceiling (Prevents lucky RNG streaks)
+            let minOffset = p.botSkill === 1 ? 40 : 25; // Dusty misses by at least 40ms, Fred by 25ms
+            if (Math.abs(p.botImpact) < minOffset) {
+                p.botImpact = (p.botImpact >= 0 ? 1 : -1) * (minOffset + Math.random() * 20);
+            }
+        }
+    }
+    // ------------------------------------------------------------------------
     window.autoSetFocus(true);
     window.updateDashboard();
 
@@ -1099,8 +1120,7 @@ window.buildClubhouseMenu = function() {
             window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
         clubhouseMenu.push({ text: "Help & Master Keybindings", action: () => {
-            const ev = new KeyboardEvent('keydown', { key: '?', code: 'Slash' });
-            window.dispatchEvent(ev);
+            if (typeof window.openHelpMenu === 'function') window.openHelpMenu();
         }});
     }
     else if (clubhouseState === 'practice') {
@@ -1457,114 +1477,113 @@ window.evaluatePracticeSwing = function() {
     window.updateDashboard();
 };
 
+// --- v5.1.10 Visual Swing Meter Restoration (With Hinge Markers) ---
 window.drawMeter = function() {
-    requestAnimationFrame(window.drawMeter);
     const canvas = document.getElementById('swing-meter');
-    if (!canvas) return;
+    if (!canvas) {
+        requestAnimationFrame(window.drawMeter);
+        return;
+    }
+    
+    // Only draw if we are actively playing (not in clubhouse or help menus)
+    if (typeof gameMode === 'undefined' || gameMode === 'clubhouse' || window.viewingHelp) {
+        canvas.style.display = 'none';
+        requestAnimationFrame(window.drawMeter);
+        return;
+    } else {
+        canvas.style.display = 'block';
+    }
+
     const ctx = canvas.getContext('2d');
     const w = canvas.width;
     const h = canvas.height;
-
-    // Clear background
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#111';
+
+    // Background Track
+    ctx.fillStyle = '#222';
     ctx.fillRect(0, 0, w, h);
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(0, 0, w, h);
 
-    if (swingState === 0 || isHoleComplete) {
-        ctx.fillStyle = '#4CAF50';
-        ctx.font = '24px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText("READY - Hold Down Arrow to Swing", w/2, h/2 + 8);
-        return;
-    }
+    // Anchor Points
+    let impactX = w * 0.2;  // Sweet Spot (20% from left)
+    let powerX = w * 0.8;   // 100% Power Line (80% from left)
 
-    const now = performance.now();
+    // Draw Sweet Spot (Impact Zone)
+    ctx.fillStyle = '#4CAF50';
+    ctx.fillRect(impactX - 10, 0, 20, h);
 
-    const drawHinges = () => {
-        if (hingeTimeBack > 0) {
-            let x = (hingeTimeBack / 2000) * w;
-            ctx.fillStyle = '#ffeb3b'; 
-            ctx.beginPath(); ctx.moveTo(x - 12, 0); ctx.lineTo(x + 12, 0); ctx.lineTo(x, 25); ctx.fill();
-        }
-        if (hingeTimeDown > 0) {
-            let x = (hingeTimeDown / 2000) * w;
-            ctx.fillStyle = '#ff9800'; 
-            ctx.beginPath(); ctx.moveTo(x - 12, h); ctx.lineTo(x + 12, h); ctx.lineTo(x, h - 25); ctx.fill();
-        }
-    };
+    // Draw 100% Power Line
+    ctx.fillStyle = '#FFC107';
+    ctx.fillRect(powerX - 2, 0, 4, h);
 
-    if (swingState === 1 || swingState === 3) {
-        let isBack = swingState === 1;
-        let start = isBack ? backswingStartTime : downswingStartTime;
-        let elapsed = now - start;
-        let progress = Math.min(1, Math.max(0, elapsed / 2000));
-        
-        // Fill the bar
-        ctx.fillStyle = isBack ? '#2e7d32' : '#0277bd';
-        ctx.fillRect(0, 0, w * progress, h);
-        
-        // Draw Audio Metronome Hash Marks
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        for(let i=1; i<=4; i++) {
-            ctx.fillRect((w * (i * 0.25)) - 2, 0, 4, h);
-        }
-        
-        ctx.fillStyle = 'white';
-        ctx.font = '20px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(isBack ? "BACKSWING (Tap Space for Hinge)" : "DOWNSWING (Tap Space for Hinge)", 15, 30);
-        
-        drawHinges();
-    }
-    else if (swingState === 2) {
-        let elapsed = now - powerStartTime;
-        let pwr = 25 + ((elapsed / 2000) * 75);
-        let progress = Math.min(1, Math.max(0, pwr / 120));
-        
-        ctx.fillStyle = pwr > 100 ? '#c62828' : '#6a1b9a';
-        ctx.fillRect(0, 0, w * progress, h);
-        
-        let mark100 = (100 / 120) * w;
-        ctx.fillStyle = 'rgba(255,255,255,0.8)';
-        ctx.fillRect(mark100 - 3, 0, 6, h);
-        
-        ctx.fillStyle = 'white';
-        ctx.font = '20px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(`POWER PHASE: ${Math.round(pwr)}% (Release to Lock)`, 15, 30);
-    }
-    else if (swingState === 4 || swingState === 5) {
-        let targetX = w * 0.8; 
-        let currentElapsed = swingState === 4 ? now - impactStartTime : lockedImpactTime;
-        
-        // Sweet Spot (Green Zone)
-        let sweetSpotWidth = (60 / dropDurationMs) * targetX * 2;
-        ctx.fillStyle = 'rgba(76, 175, 80, 0.4)';
-        ctx.fillRect(targetX - (sweetSpotWidth/2), 0, sweetSpotWidth, h);
-        
-        // White Target Line
-        ctx.fillStyle = 'white';
-        ctx.fillRect(targetX - 2, 0, 4, h);
-        
-        // Moving Cursor
-        let cursorX = (currentElapsed / dropDurationMs) * targetX;
-        ctx.fillStyle = '#ffeb3b';
-        ctx.fillRect(cursorX - 4, 0, 8, h);
-        
-        ctx.fillStyle = 'white';
-        ctx.font = '20px sans-serif';
-        ctx.textAlign = 'left';
-        if (swingState === 4) {
-            ctx.fillText("IMPACT ZONE (Press Down Arrow at the White Line)", 15, 30);
+    // Draw 120% Over-Torque Zone
+    ctx.fillStyle = '#f44336';
+    ctx.fillRect(w * 0.95, 0, w * 0.05, h);
+
+    // Helper function for Hinge Markers
+    function drawHingeMarker(x, isTop) {
+        ctx.fillStyle = '#2196F3'; // Blue hinge color
+        ctx.beginPath();
+        if (isTop) {
+            ctx.moveTo(x, 15); ctx.lineTo(x - 8, 0); ctx.lineTo(x + 8, 0);
         } else {
-            let diff = Math.round(currentElapsed - dropDurationMs);
-            ctx.fillText(`IMPACT LOCKED: ${Math.abs(diff)}ms ${diff < 0 ? 'Early' : diff > 0 ? 'Late' : 'Perfect'}`, 15, 30);
+            ctx.moveTo(x, h - 15); ctx.lineTo(x - 8, h); ctx.lineTo(x + 8, h);
         }
+        ctx.fill();
     }
+
+    // Draw Hinge Triangles based on Spacebar timestamps
+    if (typeof hingeTimeBack !== 'undefined' && hingeTimeBack > 0 && backswingStartTime > 0) {
+        let elapsedHinge = hingeTimeBack - backswingStartTime;
+        let hingePower = Math.min(120, (elapsedHinge / 1000) * 100);
+        let hX = impactX + (hingePower / 100) * (powerX - impactX);
+        drawHingeMarker(hX, false); // Bottom triangle for backswing
+    }
+
+    if (typeof hingeTimeDown !== 'undefined' && hingeTimeDown > 0 && downswingStartTime > 0 && dropDurationMs > 0) {
+        let elapsedHinge = hingeTimeDown - downswingStartTime;
+        let hingePower = Math.max(0, finalPower - ((elapsedHinge / dropDurationMs) * finalPower));
+        let hX = impactX + (hingePower / 100) * (powerX - impactX);
+        drawHingeMarker(hX, true); // Top triangle for downswing
+    }
+
+    // Calculate Moving Cursor
+    let cursorX = impactX;
+    let now = performance.now();
+
+    if (swingState === 1 || swingState === 2) {
+        let elapsed = now - backswingStartTime;
+        let currentPower = Math.min(120, (elapsed / 1000) * 100);
+        cursorX = impactX + (currentPower / 100) * (powerX - impactX);
+    } else if (swingState === 3) {
+        let elapsed = now - downswingStartTime;
+        let currentPower = Math.max(0, finalPower - ((elapsed / dropDurationMs) * finalPower));
+        cursorX = impactX + (currentPower / 100) * (powerX - impactX);
+    } else if (swingState === 4 || swingState === 5) {
+        let visualOffset = (window.lockedImpactTime || 0) * (w / 1500); // Scale ms to pixels
+        cursorX = impactX + visualOffset;
+    }
+
+    // Draw White Cursor
+    ctx.fillStyle = '#FFF';
+    ctx.fillRect(cursorX - 3, 0, 6, h);
+
+    requestAnimationFrame(window.drawMeter);
 }; // <-- THIS CLOSES window.drawMeter
+
+// Initialize the render loop
+requestAnimationFrame(window.drawMeter);
+
+// --- v5.2.0 Dedicated Help Menu Launcher ---
+window.openHelpMenu = function() {
+    if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_03');
+    viewingHelp = true;
+    window.viewingHelp = true; // Safety redundancy
+    helpIndex = 0;
+    const panel = document.getElementById('help-panel');
+    if (panel) panel.style.display = 'block';
+    if (typeof window.renderHelpMenu === 'function') window.renderHelpMenu();
+    if (typeof window.announceHelp === 'function') window.announceHelp();
+};
 
 window.renderHelpMenu = function() {
     const panel = document.getElementById('help-panel');
