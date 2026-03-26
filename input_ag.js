@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.2.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.3.0)
 
 window.confirmingUnplayable = false;
 
@@ -628,6 +628,28 @@ window.addEventListener('keydown', (e) => {
                 return warns.length > 0 ? ` Warning: Close proximity to ${warns.join(" and ")}.` : "";
             };
 
+            // v5.3.0 Target Randomizer
+            if (e.code === 'KeyR' && !e.shiftKey) {
+                e.preventDefault();
+                if (window.rangeMode === 'short') {
+                    pinY = Math.floor(Math.random() * 26) + 5; // 5 to 30
+                    pinZ = Math.floor(Math.random() * 6); // 0 to 5
+                } else if (window.rangeMode === 'long') {
+                    pinY = Math.floor(Math.random() * 71) + 30; // 30 to 100
+                    pinZ = Math.floor(Math.random() * 11); // 0 to 10
+                } else {
+                    pinY = Math.floor(Math.random() * 251) + 50; // 50 to 300
+                    pinZ = Math.floor(Math.random() * 21); // 0 to 20
+                }
+                pinX = 0; targetX = pinX; targetY = pinY; targetZ = pinZ;
+                
+                if (typeof window.playGolfSound === 'function') window.playGolfSound('club_09');
+                let msg = `Target randomized to ${pinY} yards away, elevated ${pinZ} yards.`;
+                window.announce(msg);
+                document.getElementById('visual-output').innerText = msg;
+                window.updateDashboard();
+                return;
+            }
             if (e.code === 'KeyO') {
                 e.preventDefault();
                 window.holoFocusIndex = (window.holoFocusIndex + 1) % holoTypes.length;
@@ -675,7 +697,10 @@ window.addEventListener('keydown', (e) => {
                 } else {
                     // X/Y Adjustments
                     let inc = t === "Sand Bunker" ? 5 : 10;
-                    if (t === "Target Flag") { if (isX) pinX += (dir * inc); else pinY = Math.max(10, pinY + (dir * inc)); }
+                    if (window.rangeMode === 'short') inc = 1;
+                    else if (window.rangeMode === 'long') inc = Math.round(inc / 2);
+                    
+                    if (t === "Target Flag") { if (isX) pinX += (dir * inc); else pinY = Math.max(5, pinY + (dir * inc)); }
                     else if (t === "Sand Bunker") { if (isX) hd.hazards[0].offset += (dir * inc); else hd.hazards[0].distance = Math.max(5, hd.hazards[0].distance + (dir * inc)); }
                     else { if (isX) hd.trees[0].x += (dir * inc); else hd.trees[0].y = Math.max(5, hd.trees[0].y + (dir * inc)); }
                     
@@ -1429,6 +1454,7 @@ window.getKeyDescription = function(code, shift, ctrl) {
         'KeyE': shift ? "Opens the full scorecard." : "Announces your quick score summary.",
         'KeyP': "Cycles through the Multiplayer Game Pacing modes. Inside Scorecard, swaps players.",
         'KeyQ': "Opens the Quit and Save menu.",
+        'KeyR': gameMode === 'range' ? "Practice Facility: Randomizes target distance and elevation." : "Unassigned key.",
         'BracketLeft': gameMode === 'range' ? "Holo Range: Moves active object Left." : "Unassigned key.",
         'BracketRight': gameMode === 'range' ? "Holo Range: Moves active object Right." : "Unassigned key.",
         'Minus': gameMode === 'range' ? (shift ? "Holo Range: Lowers Elevation/Height." : "Holo Range: Moves active object Closer.") : "Unassigned key.",

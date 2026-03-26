@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.2.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.3.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -47,16 +47,17 @@ let viewingHelp = false, helpIndex = 0;
 window.helpState = 'master'; 
 window.hasHeardHoloOrientation = false;
 window.holoFocusIndex = 0; // 0:Flag, 1:Tree, 2:Wall, 3:Cluster, 4:Bunker
-window.holoOrientationText = "Welcome to the Holo Range. Press Question Mark to view the Holo Range editor controls, and F12 to access the keyboard explorer. Use O to cycle through objects, pressing Enter to spawn and Delete or Backspace to remove. Also, use A for caddy advice.";
+window.rangeOrientationText = "Press Question Mark to view the editor controls, and F12 to access the keyboard explorer. Use O to cycle through objects, Enter to spawn, and Delete or Backspace to remove. Use R to randomize the target, and A for caddy advice.";
 
 window.holoHelpData = [
-    { text: "Holo Range Editor: Heading Level 2.", heading: true },
+    { text: "Practice Facility Editor: Heading Level 2.", heading: true },
     { text: "O: Cycles the Object Manager between Target Flag, Trees, and Bunkers.", heading: false },
     { text: "Enter: Spawns the currently selected object.", heading: false },
     { text: "Backspace or Delete: Removes the currently selected object.", heading: false },
     { text: "Bracket Keys: Moves the object Left or Right.", heading: false },
     { text: "Dash and Equals: Moves the object Closer or Further.", heading: false },
     { text: "Shift + Dash or Equals: Adjusts the Elevation or Height of the object.", heading: false },
+    { text: "R: Randomizes the Target Flag distance and elevation.", heading: false },
     { text: "Shift + Z: Opens the Pin Finder to target specific landing squares around your custom setup.", heading: false },
     { text: "A: Asks the Oracle Caddy for advice on how to navigate your custom setup.", heading: false }
 ];
@@ -1124,39 +1125,42 @@ window.buildClubhouseMenu = function() {
         }});
     }
     else if (clubhouseState === 'practice') {
-        clubhouseMenu.push({ text: "The Holo Range", action: () => {
-            gameMode = 'range'; strokes = 0; holeTelemetry = []; 
-            let holoCourseIdx = courses.findIndex(c => c.name === "Holo Range Simulator");
-            if (holoCourseIdx === -1) {
-                courses.push({ name: "Holo Range Simulator", holes: [{ number: 1, par: 4, distance: 600, pinX: 0, pinY: club.baseDistance, pinZ: 0, trees: [], hazards: [] }] });
-                holoCourseIdx = courses.length - 1;
-            }
-            currentCourseIndex = holoCourseIdx; hole = 1;
-            ballX = 0; ballY = 0; pinX = 0; pinY = club.baseDistance; pinZ = 0; rangeLie = 'Fairway'; isHoleComplete = false; swingState = 0;
-            window.holoFocusIndex = 0;
-            
-            let msg = `Target set to ${pinY} yards. ${window.holoOrientationText}`;
-            setTimeout(() => { window.announce(msg); }, 1000);
-            document.getElementById('visual-output').innerText = "Holo Range Active.";
-            
-            clubhouseState = 'root';
-        }});
-        clubhouseMenu.push({ text: "Pitching & Long Chipping Green", action: () => {
-            gameMode = 'chipping'; chippingRange = 'long'; strokes = 0; holeTelemetry = []; isHoleComplete = false; swingState = 0;
-            ballX = 0; ballY = 0; pinX = 0; pinY = Math.floor(Math.random() * 61) + 20;
-            let targetDist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 20;
-            window.announce(`Pitching Green. Target is ${targetDist} yards.`);
-            document.getElementById('visual-output').innerText = `Pitching Green. Target: ${targetDist} yards.`;
-            clubhouseState = 'root';
-        }});
-        clubhouseMenu.push({ text: "Short Chipping Green", action: () => {
-            gameMode = 'chipping'; chippingRange = 'short'; strokes = 0; holeTelemetry = []; isHoleComplete = false; swingState = 0;
-            ballX = 0; ballY = 0; pinX = 0; pinY = Math.floor(Math.random() * 16) + 5;
-            let targetDist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 10;
-            window.announce(`Short Chipping Green. Target is ${targetDist} yards.`);
-            document.getElementById('visual-output').innerText = `Short Chipping Green. Target: ${targetDist} yards.`;
-            clubhouseState = 'root';
-        }});
+            // Helper function to build the dummy course
+            const setupDummyCourse = () => {
+                strokes = 0; holeTelemetry = []; isHoleComplete = false; swingState = 0; window.holoFocusIndex = 0;
+                let holoCourseIdx = courses.findIndex(c => c.name === "Holo Range Simulator");
+                if (holoCourseIdx === -1) {
+                    courses.push({ name: "Holo Range Simulator", holes: [{ number: 1, par: 4, distance: 600, pinX: 0, pinY: 100, pinZ: 0, trees: [], hazards: [] }] });
+                    holoCourseIdx = courses.length - 1;
+                }
+                currentCourseIndex = holoCourseIdx; hole = 1;
+                ballX = 0; ballY = 0; pinX = 0; pinZ = 0; rangeLie = 'Fairway';
+            };
+
+            clubhouseMenu.push({ text: "The Holo Range", action: () => {
+                gameMode = 'range'; window.rangeMode = 'holo'; setupDummyCourse();
+                pinY = club.baseDistance;
+                let msg = `Welcome to the Holo Range. Target set to ${pinY} yards. ${window.rangeOrientationText}`;
+                setTimeout(() => { window.announce(msg); }, 1000);
+                document.getElementById('visual-output').innerText = "Holo Range Active.";
+                clubhouseState = 'root';
+            }});
+            clubhouseMenu.push({ text: "Pitching & Long Chipping Green", action: () => {
+                gameMode = 'range'; window.rangeMode = 'long'; setupDummyCourse();
+                pinY = Math.floor(Math.random() * 71) + 30; // 30 to 100
+                let msg = `Welcome to the Pitching Green. Target set to ${pinY} yards. ${window.rangeOrientationText}`;
+                setTimeout(() => { window.announce(msg); }, 1000);
+                document.getElementById('visual-output').innerText = "Pitching Green Active.";
+                clubhouseState = 'root';
+            }});
+            clubhouseMenu.push({ text: "Short Chipping Green", action: () => {
+                gameMode = 'range'; window.rangeMode = 'short'; setupDummyCourse();
+                pinY = Math.floor(Math.random() * 26) + 5; // 5 to 30
+                let msg = `Welcome to the Short Chipping Green. Target set to ${pinY} yards. ${window.rangeOrientationText}`;
+                setTimeout(() => { window.announce(msg); }, 1000);
+                document.getElementById('visual-output').innerText = "Short Chipping Green Active.";
+                clubhouseState = 'root';
+            }});
         clubhouseMenu.push({ text: "Putting Green", action: () => {
             gameMode = 'putting'; strokes = 0; holeTelemetry = []; isHoleComplete = false;
             ballX = 0; ballY = 0; pinX = 0; pinY = Math.floor(Math.random() * 41) + 5;

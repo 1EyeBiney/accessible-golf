@@ -398,6 +398,11 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Spatial Controls:** Brackets move objects laterally. Dash/Equals move objects longitudinally. `Shift + Dash/Equals` adjusts `pinZ` elevation for flags, or physical `height` for trees.
 - **Smart Help System:** `?` acts progressively. If pressed in a practice area, it overrides to `helpState = 'area'` and plays contextual orientation logic. Pressing `?` again unlocks the `helpState = 'master'` keybindings matrix.
 
+### 91. v5.3.0 Engine Addendum (Practice Sandbox Unification)
+- **Architecture Shift:** Deprecated the separate `gameMode = 'chipping'`. The Short Chipping Green (5-30y) and Pitching Green (30-100y) now boot into `gameMode = 'range'`, natively inheriting the dummy course, Object Manager (`O`), Edge Finder (`H`), and Oracle Caddy (`A`).
+- **Target Randomization (`R`):** A global range listener dynamically randomizes `pinY` and `pinZ` based on the active `window.rangeMode` (`short`, `long`, or `holo`), allowing players to practice elevated targets without manual manipulation.
+- **Dynamic Increments:** The Object Manager's coordinate scaling (`inc`) checks `window.rangeMode` to automatically snap movement by 1 yard in Short Chipping, 3-5 yards in Long Chipping, and 5-10 yards on the Holo Range.
+
 ### 90. v5.2.0 Engine Addendum (Help Menu Architecture)
 - **Synthetic Event Crash:** Replaced the `KeyboardEvent` hack in the Clubhouse menu with a dedicated `window.openHelpMenu()` function. This solves a silent JS crash where the browser rejected `e.preventDefault()` on an uncancelable synthetic event. Both the physical `?` key and the UI button now route to this central launcher.
 
