@@ -1,4 +1,4 @@
-// data_ag.js - Course Data, Clubs, and Shot Styles (v5.1.3)
+// data_ag.js - Course Data, Clubs, and Shot Styles (v5.1.7)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -820,7 +820,7 @@ const helpMenuText = [
     { text: "W: Reads the current wind speed and direction. Shift + W changes wind in practice modes.", heading: false },
     { text: "B: Reads the green elevation and break. Only available when putting.", heading: false },
     { text: "D and F: Reads the hole description and fairway dimensions.", heading: false },
-    { text: "L: Announces your current lie. Shift + L on range cycles target terrain. Shift + L in clubhouse loads Sim Roster.", heading: false },
+    { text: "L: Announces your current lie. Shift + L on the Holo Range cycles target terrain. Shift + L in clubhouse loads Sim Roster.", heading: false },
 
     { text: "Caddy & Diagnostics: Heading Level 2.", heading: true },
     { text: "A: Asks the Oracle Caddy for a strategic shot blueprint.", heading: false },

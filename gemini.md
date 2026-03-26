@@ -387,3 +387,24 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 ### 83. v5.1.4 Engine Addendum (Help UI Initialization Hotfix)
 - **Scope Correction:** Rescued `renderHelpMenu` and `announceHelp` from the `drawMeter` loop scope in `main_ag.js`, allowing the global `keydown` listener to correctly trigger them.
 - **Input Priority:** Consolidated duplicate `viewingHelp` interceptors in `input_ag.js` into a single, high-priority block at the top of the event listener, ensuring `KeyH` heading jumps work seamlessly in both the Clubhouse and on the course. Added the `ui_nav_03/04` audio cues to the open/close sequence.
+
+### 85. v5.1.6 Engine Addendum (Menu Wraps & Holo Range Oracle)
+- **Menu Wrapping:** Updated the `clubhouseMenu` `ArrowUp` and `ArrowDown` listeners in `input_ag.js` to use modulo arithmetic, allowing infinite scrolling through the UI.
+- **Holo Range Oracle:** Unlocked `window.getCaddyAdvice` and `window.getOracleBlueprint` in `physics_ag.js` for `gameMode === 'range'`. The Caddy natively reads the dummy "Holo Range Simulator" course data, allowing it to provide exact tactical advice for custom `targetZ` elevations and spawned Object Manager obstacles.
+
+### 84. v5.1.5 Engine Addendum (Holo Range Sandbox)
+- **Dynamic Dummy Course:** `gameMode = 'range'` now generates and assigns a "Holo Range Simulator" dummy course in `courses`. This allows the engine's native AABB physics, Oracle Caddy, and Edge Finder (`KeyH`) to work perfectly in the practice sandbox without requiring new physics logic.
+- **Object Manager (Key O):** Replaced the static Synth Tree with a 3D level editor. Players can cycle, spawn (`Enter`), and despawn (`Backspace`) Target Flags, Sand Bunkers, Single Trees, Tree Walls (15x5 AABB), and Tree Clusters (30x30 AABB).
+- **Spatial Controls:** Brackets move objects laterally. Dash/Equals move objects longitudinally. `Shift + Dash/Equals` adjusts `pinZ` elevation for flags, or physical `height` for trees.
+- **Smart Help System:** `?` acts progressively. If pressed in a practice area, it overrides to `helpState = 'area'` and plays contextual orientation logic. Pressing `?` again unlocks the `helpState = 'master'` keybindings matrix.
+
+### 87. v5.1.8 Engine Addendum (AI Personalities & 4F Roster)
+- **Personality Injection:** `getOracleBlueprint()` in `physics_ag.js` now dynamically adjusts `adjustedMiss` scores based on the active bot's name. "Fairway Fred" applies a +30 penalty to Woods/Drivers, mathematically forcing him to lay up. "Dusty Bunkers" applies a -20 bonus to 105%+ power requirements and a +25 penalty to <95% power, forcing him to aggressively overswing short irons.
+- **4F Roster Alignment:** The `Shift + L` Quick Load now constructs a perfectly linear skill progression for telemetry testing: Shawn (0), Dusty (1), Fred (2), and Ted (3).
+- **Help & UI Polish:** Set the `?` menu to open with `ui_nav_03` (to pair with `Escape`'s `ui_nav_04`). The Holo Range now always plays its contextual `?`, `F12`, and `O` tool instructions upon entry.
+
+### 86. v5.1.7 Engine Addendum (Dynamic Help & Foursome Quick Load)
+- **Help Injection:** `helpMenuText` is now dynamically merged with `window.holoHelpData` via `window.currentActiveHelp` if `gameMode === 'range'`. This consolidates the contextual area help and the master keybindings into a single, navigable ARIA list.
+- **Clubhouse UX:** Added "Help & Master Keybindings" to the root Clubhouse menu. Pressing `?` triggers the `ui_nav_06` chime.
+- **Global Quick Load:** `Shift + L` in the Clubhouse forces `wizardSize = 4`, loads Moe/Shawn/Ted/Fred, and skips to `clubhouseState = 'course_quick'`, focusing the cursor on `wizardCourse`.
+- **Contextual Explorer:** `F12` `getKeyDescription` logic now checks `gameMode === 'range'` before announcing Holo Range specific bindings like `O` or the Brackets.

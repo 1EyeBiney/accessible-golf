@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.1.4)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.1.8)
 
 window.confirmingUnplayable = false;
 
@@ -72,8 +72,9 @@ window.addEventListener('keydown', (e) => {
     // --- v3.70.0 Help Menu Interceptor ---
     if (viewingHelp) {
         e.preventDefault();
+        let activeArr = window.currentActiveHelp || helpMenuText;
         if (e.code === 'ArrowDown') {
-            if (helpIndex < helpMenuText.length - 1) helpIndex++;
+            if (helpIndex < activeArr.length - 1) helpIndex++;
             if (typeof window.announceHelp === 'function') window.announceHelp();
         } else if (e.code === 'ArrowUp') {
             if (helpIndex > 0) helpIndex--;
@@ -81,11 +82,11 @@ window.addEventListener('keydown', (e) => {
         } else if (e.code === 'KeyH') {
             if (e.shiftKey) {
                 for (let i = helpIndex - 1; i >= 0; i--) {
-                    if (helpMenuText[i].heading) { helpIndex = i; break; }
+                    if (activeArr[i].heading) { helpIndex = i; break; }
                 }
             } else {
-                for (let i = helpIndex + 1; i < helpMenuText.length; i++) {
-                    if (helpMenuText[i].heading) { helpIndex = i; break; }
+                for (let i = helpIndex + 1; i < activeArr.length; i++) {
+                    if (activeArr[i].heading) { helpIndex = i; break; }
                 }
             }
             if (typeof window.announceHelp === 'function') window.announceHelp();
@@ -338,37 +339,31 @@ window.addEventListener('keydown', (e) => {
             return;
         }
 
-        // v5.1.2 Quick Roster Load
-        if (e.shiftKey && e.code === 'KeyL' && clubhouseState === 'roster') {
+        // v5.1.8 Global 4F Quick Load (Shawn, Dusty, Fred, Ted)
+        if (e.shiftKey && e.code === 'KeyL') {
             e.preventDefault();
-            if (typeof botProfiles !== 'undefined') {
-                const targetBots = ["Shankin' Shawn", "Mulligan Moe", "Tour-Pro Ted", "Bot Woods"];
-                players = [];
-                activePlayerCount = targetBots.length;
-                targetBots.forEach((name) => {
-                    let bp = botProfiles.find(b => b.name === name);
-                    if (bp) {
-                        players.push({
-                            name: bp.name, isBot: true, isHoleComplete: false, roundData: [],
-                            botHinge: bp.botHinge, botImpact: bp.botImpact, botPower: bp.botPower,
-                            skillLevel: bp.skillLevel
-                        });
-                    }
-                });
-                if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_02');
-                window.announce("Sim roster loaded: Shawn, Moe, Ted, and Woods.");
-                window.buildClubhouseMenu(); window.announceClubhouse(false);
-            }
+            wizardRoster = [
+                { name: "Shankin' Shawn", isBot: true, skill: 0, iBias: 80, hBias: -40, focus: 0, ball: 5 },
+                { name: "Dusty Bunkers", isBot: true, skill: 1, iBias: -30, hBias: 60, focus: 1, ball: 2 },
+                { name: "Fairway Fred", isBot: true, skill: 2, iBias: -15, hBias: 45, focus: 4, ball: 4 },
+                { name: "Tour-Pro Ted", isBot: true, skill: 3, iBias: 0, hBias: 0, focus: 3, ball: 0 }
+            ];
+            wizardSize = 4;
+            clubhouseState = 'course_quick';
+            clubhouseIndex = wizardCourse; 
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_02');
+            window.announce("Foursome loaded: Shawn, Dusty, Fred, and Ted. Select a course.");
+            window.buildClubhouseMenu(); window.announceClubhouse(false);
             return;
         }
 
         if (e.code === 'ArrowDown') {
             if (typeof window.playGolfSound === 'function') window.playGolfSound('bunker_04');
-            if (clubhouseIndex < clubhouseMenu.length - 1) clubhouseIndex++;
+            clubhouseIndex = (clubhouseIndex + 1) % clubhouseMenu.length;
             window.announceClubhouse(false);
         } else if (e.code === 'ArrowUp') {
             if (typeof window.playGolfSound === 'function') window.playGolfSound('bunker_03');
-            if (clubhouseIndex > 0) clubhouseIndex--;
+            clubhouseIndex = (clubhouseIndex - 1 + clubhouseMenu.length) % clubhouseMenu.length;
             window.announceClubhouse(false);
         } else if (e.code === 'Enter') {
             if (typeof window.playGolfSound === 'function') window.playGolfSound('menu_01');
@@ -396,45 +391,6 @@ window.addEventListener('keydown', (e) => {
     }
     if (e.code === 'F3') {
         e.preventDefault(); devImpact = !devImpact; window.announce(`Dev Perfect Impact ${devImpact ? 'On' : 'Off'}`);
-    }
-
-    if (confirmingRange) {
-        if (e.code === 'KeyY' || e.code === 'Enter') {
-            e.preventDefault();
-            gameMode = 'range'; confirmingRange = false; strokes = 0; holeTelemetry = []; ballX = 0; ballY = 0; pinX = 0; pinY = club.baseDistance; rangeLie = 'Fairway'; isHoleComplete = false; swingState = 0; if (typeof isPutting !== 'undefined') isPutting = false;
-            window.announce(`Welcome to the Driving Range. Target set to ${pinY} yards. Lie is ${rangeLie}.`);
-            document.getElementById('visual-output').innerText = `Driving Range. Target: ${pinY}. Lie: ${rangeLie}.`;
-        } else {
-            confirmingRange = false; window.announce("Range travel cancelled.");
-        }
-        return;
-    }
-
-    if (confirmingGreen) {
-        if (e.code === 'KeyY' || e.code === 'Enter') {
-            e.preventDefault();
-            gameMode = 'chipping'; confirmingGreen = false; strokes = 0; holeTelemetry = []; isHoleComplete = false; swingState = 0;
-            ballX = 0; ballY = 0; pinX = 0;
-            pinY = chippingRange === 'short' ? Math.floor(Math.random() * 16) + 5 : Math.floor(Math.random() * 61) + 20;
-            let targetDist = calculateDistanceToPin();
-            window.announce(`Welcome to the Chipping Green. Target is ${targetDist} yards.`);
-            document.getElementById('visual-output').innerText = `Chipping Green. Target: ${targetDist} yards.`;
-        } else {
-            confirmingGreen = false; window.announce("Chipping Green travel cancelled.");
-        }
-        return;
-    }
-
-    if (confirmingPutting) {
-        if (e.code === 'KeyY' || e.code === 'Enter') {
-            e.preventDefault();
-            gameMode = 'putting'; confirmingPutting = false; strokes = 0; holeTelemetry = []; isHoleComplete = false;
-            ballX = 0; ballY = 0; pinX = 0; pinY = Math.floor(Math.random() * 41) + 5; // 5 to 45 yards
-            window.initPutting();
-        } else {
-            confirmingPutting = false; window.announce("Putting Green travel cancelled.");
-        }
-        return;
     }
 
     // v4.13.0 Context-Sensitive Quit Confirmation
@@ -585,11 +541,11 @@ window.addEventListener('keydown', (e) => {
                 window.announce(msg);
                 document.getElementById('visual-output').innerText = msg;
             } else {
-                gameMode = 'clubhouse';
+                gameMode = 'clubhouse'; clubhouseState = 'practice'; clubhouseIndex = 0;
                 document.getElementById('dashboard-panel').style.display = 'none';
                 document.getElementById('swing-meter').style.display = 'none';
                 window.announce("Exited practice area.");
-                window.buildClubhouseMenu();
+                window.buildClubhouseMenu(); window.announceClubhouse(true);
             }
             return;
         }
@@ -645,51 +601,77 @@ window.addEventListener('keydown', (e) => {
             if (typeof window.announceHelp === 'function') window.announceHelp();
             return;
         }
-        if ((gameMode === 'range' || (gameMode === 'chipping' && chippingRange === 'long'))) {
-            if (e.code === 'KeyY') {
-                e.preventDefault();
-                if (e.shiftKey && synthTreeActive) {
-                    synthTreeHeight += 10;
-                    if (synthTreeHeight > 100) synthTreeHeight = 20;
-                    window.announce(`Synth Tree height manually adjusted to ${synthTreeHeight} feet.`);
-                } else if (!e.shiftKey) {
-                    synthTreeActive = !synthTreeActive;
-                    if (!synthTreeActive) {
-                        window.announce("Synth Tree removed. Practice area is clear.");
-                    } else {
-                        synthTreeDist = Math.round(calculateDistanceToPin() * 0.70);
-                        synthTreeX = 0;
-                        
-                        // Ghost Simulation for Threshold Math
-                        let currentStyle = shotStyles[shotStyleIndex];
-                        let dynamicLoft = Math.max(0, club.loft + currentStyle.loftMod + ((2 - stanceIndex) * 5));
-
-                        // v3.81.1 Parabolic Math (Simulating 110% power)
-                        let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
-                        let chokeMod = isChokedDown ? 0.9 : 1.0;
-                        let expectedTotal = club.baseDistance * currentStyle.distMod * loftDistMod * chokeMod * 1.1;
-
-                        let backspinRPM = Math.max(400, Math.round((club.loft * 150) + 1100 + 700 + ((stanceIndex - 2) * 500) + currentStyle.spinMod));
-                        let spinRollMod = Math.max(0.1, 1 - ((backspinRPM - 4000) / 10000));
-                        let expectedRoll = expectedTotal * club.rollPct * currentStyle.rollMod * spinRollMod;
-                        if (shotStyleIndex > 0 && shotStyleIndex < 5 && expectedRoll < (expectedTotal * 0.1)) expectedRoll = expectedTotal * 0.15 * spinRollMod;
-
-                        let expectedCarry = Math.max(1, expectedTotal - expectedRoll);
-                        let apexYards = (Math.tan(dynamicLoft * Math.PI / 180) / expectedCarry) * synthTreeDist * (expectedCarry - synthTreeDist);
-                        let perfectApexFeet = Math.max(0, apexYards * 3);
-                        synthTreeHeight = perfectApexFeet;
-                        
-                        window.announce(`Synth Tree spawned Dead Center, ${synthTreeDist} yards away. Threshold height set to ${Math.round(synthTreeHeight)} feet based on a 110% power shot with your active club.`);
-                    }
+        // v5.1.5 Holo Range Object Manager
+        if (gameMode === 'range') {
+            const holoTypes = ["Target Flag", "Single Tree", "Tree Wall", "Tree Cluster", "Sand Bunker"];
+            let hd = typeof courses !== 'undefined' ? courses[currentCourseIndex].holes[hole - 1] : null;
+            
+            let checkCollisions = () => {
+                let warns = [];
+                if (hd.hazards && hd.hazards.length > 0 && Math.abs(pinY - hd.hazards[0].distance) < 5) warns.push("Bunker");
+                if (hd.trees && hd.trees.length > 0) {
+                    hd.trees.forEach(t => { if (Math.abs(pinY - t.y) < 10) warns.push("Trees"); });
                 }
-                window.updateDashboard();
+                return warns.length > 0 ? ` Warning: Close proximity to ${warns.join(" and ")}.` : "";
+            };
+
+            if (e.code === 'KeyO') {
+                e.preventDefault();
+                window.holoFocusIndex = (window.holoFocusIndex + 1) % holoTypes.length;
+                let t = holoTypes[window.holoFocusIndex];
+                let isSp = t === "Target Flag" ? pinY > 0 : (t === "Sand Bunker" ? hd.hazards.length > 0 : hd.trees.length > 0 && hd.trees[0].name === t);
+                window.announce(`${t} selected. ${isSp ? "Spawned." : "Not spawned."}`);
                 return;
             }
-            if (synthTreeActive) {
-                if (e.code === 'BracketRight') { e.preventDefault(); synthTreeX += 5; window.announce(`Synth Tree moved to ${synthTreeX} yards Right.`); window.updateDashboard(); return; }
-                if (e.code === 'BracketLeft') { e.preventDefault(); synthTreeX -= 5; window.announce(`Synth Tree moved to ${Math.abs(synthTreeX)} yards Left.`); window.updateDashboard(); return; }
-                if (e.code === 'Equal') { e.preventDefault(); synthTreeDist += 5; window.announce(`Synth Tree moved back to ${synthTreeDist} yards.`); window.updateDashboard(); return; }
-                if (e.code === 'Minus') { e.preventDefault(); synthTreeDist = Math.max(5, synthTreeDist - 5); window.announce(`Synth Tree moved closer to ${synthTreeDist} yards.`); window.updateDashboard(); return; }
+            if (e.code === 'Enter') {
+                e.preventDefault();
+                let t = holoTypes[window.holoFocusIndex];
+                let isSp = t === "Target Flag" ? pinY > 0 : (t === "Sand Bunker" ? hd.hazards.length > 0 : hd.trees.length > 0 && hd.trees[0].name === t);
+                if (isSp) { window.announce(`${t} is already spawned.`); return; }
+                
+                let baseD = pinY > 0 ? pinY : club.baseDistance;
+                if (t === "Target Flag") { pinY = club.baseDistance; pinX = 0; pinZ = 0; }
+                else if (t === "Sand Bunker") { hd.hazards = [{ type: "Bunker", name: "Greenside Bunker", distance: Math.max(5, baseD - 20), offset: pinX, width: 7, depth: 7 }]; }
+                else if (t === "Single Tree") { hd.trees = [{ name: t, x: pinX, y: Math.max(5, baseD * 0.7), radius: 5, height: 40 }]; }
+                else if (t === "Tree Wall") { hd.trees = [{ name: t, x: pinX, y: Math.max(5, baseD * 0.7), radius: 7.5, height: 40 }]; }
+                else if (t === "Tree Cluster") { hd.trees = [{ name: t, x: pinX, y: Math.max(5, baseD * 0.7), radius: 15, height: 40 }]; }
+                window.announce(`${t} spawned.`); window.updateDashboard(); return;
+            }
+            if (e.code === 'Backspace' || e.code === 'Delete') {
+                e.preventDefault();
+                let t = holoTypes[window.holoFocusIndex];
+                if (t === "Target Flag") { pinY = 0; pinX = 0; pinZ = 0; }
+                else if (t === "Sand Bunker") { hd.hazards = []; }
+                else { hd.trees = []; }
+                window.announce(`${t} removed.`); window.updateDashboard(); return;
+            }
+            if (e.code === 'BracketLeft' || e.code === 'BracketRight' || e.code === 'Minus' || e.code === 'Equal') {
+                let t = holoTypes[window.holoFocusIndex];
+                let isSp = t === "Target Flag" ? pinY > 0 : (t === "Sand Bunker" ? hd.hazards.length > 0 : hd.trees.length > 0 && hd.trees[0].name === t);
+                if (!isSp) return;
+                
+                e.preventDefault();
+                let isX = (e.code === 'BracketLeft' || e.code === 'BracketRight');
+                let dir = (e.code === 'BracketLeft' || e.code === 'Minus') ? -1 : 1;
+                
+                if (e.shiftKey && !isX) {
+                    // Z-Axis Adjustments
+                    if (t === "Target Flag") { pinZ += (dir * 5); window.announce(`Flag Elevation: ${pinZ > 0 ? '+'+pinZ : pinZ} yards.`); }
+                    else if (t === "Sand Bunker") { window.announce("Bunker depth cannot be adjusted."); }
+                    else { hd.trees[0].height += (dir * 10); window.announce(`${t} height: ${hd.trees[0].height} feet.`); }
+                } else {
+                    // X/Y Adjustments
+                    let inc = t === "Sand Bunker" ? 5 : 10;
+                    if (t === "Target Flag") { if (isX) pinX += (dir * inc); else pinY = Math.max(10, pinY + (dir * inc)); }
+                    else if (t === "Sand Bunker") { if (isX) hd.hazards[0].offset += (dir * inc); else hd.hazards[0].distance = Math.max(5, hd.hazards[0].distance + (dir * inc)); }
+                    else { if (isX) hd.trees[0].x += (dir * inc); else hd.trees[0].y = Math.max(5, hd.trees[0].y + (dir * inc)); }
+                    
+                    let objX = t === "Target Flag" ? pinX : (t === "Sand Bunker" ? hd.hazards[0].offset : hd.trees[0].x);
+                    let objY = t === "Target Flag" ? pinY : (t === "Sand Bunker" ? hd.hazards[0].distance : hd.trees[0].y);
+                    let msgX = objX === 0 ? "Center" : `${Math.abs(objX)}y ${objX < 0 ? 'Left' : 'Right'}`;
+                    window.announce(`${t} moved to ${objY} yards, ${msgX}.${checkCollisions()}`);
+                }
+                window.updateDashboard(); return;
             }
         }
         if (e.code === 'Semicolon' && !e.shiftKey) {
@@ -737,9 +719,6 @@ window.addEventListener('keydown', (e) => {
             window.updateDashboard();
             return;
         }
-        if (e.code === 'KeyR') {
-            e.preventDefault(); confirmingRange = true; window.announce("Go to Driving Range? Press Y or Enter to confirm."); return;
-        }
         if (e.code === 'KeyU' && gameMode === 'course') {
             e.preventDefault();
             if (!window.confirmingUnplayable) {
@@ -764,7 +743,6 @@ window.addEventListener('keydown', (e) => {
             if (e.shiftKey) targetHole += 9;
 
             gameMode = 'course'; 
-            confirmingRange = false;
             if (typeof isPutting !== 'undefined') isPutting = false;
 
             strokes = 0; holeTelemetry = [];
@@ -1133,7 +1111,7 @@ window.addEventListener('keydown', (e) => {
                     window.playGolfSound(sfx);
                 }
 
-                if (gameMode === 'range') { pinY = club.baseDistance; pinX = 0; }
+                if (gameMode === 'range' && pinY > 0) { pinY = club.baseDistance; } // Preserves custom offsets
                 if (typeof window.autoSetFocus === 'function') window.autoSetFocus(true);
                 const setupReport = getSetupReport();
                 window.announce(setupReport); document.getElementById('visual-output').innerText = setupReport;
@@ -1151,7 +1129,7 @@ window.addEventListener('keydown', (e) => {
                     window.playGolfSound(sfx);
                 }
 
-                if (gameMode === 'range') { pinY = club.baseDistance; pinX = 0; }
+                if (gameMode === 'range' && pinY > 0) { pinY = club.baseDistance; } // Preserves custom offsets
                 if (typeof window.autoSetFocus === 'function') window.autoSetFocus(true);
                 const setupReport = getSetupReport();
                 window.announce(setupReport); document.getElementById('visual-output').innerText = setupReport;
@@ -1419,14 +1397,15 @@ window.getKeyDescription = function(code, shift, ctrl) {
         'KeyM': shift ? "Takes a Snowman (Max score of 8) and ends the hole." : "Uses a Mulligan to erase the last shot.",
         'KeyN': shift ? "Copies the Post-Round Summary to your clipboard." : "Swaps control to the Next Player.",
         'KeyG': "Takes a Gimme and finishes the hole (Only available on the putting green).",
-        'KeyY': shift ? "Cycles equipped golf ball brand." : "Toggles the Synth Tree on the driving range.",
+        'KeyY': shift ? "Cycles equipped golf ball brand." : "Unassigned key.",
         'KeyX': "Announces the active club and expected 100 percent distance.",
         'KeyS': shift ? "Cycles swing styles backward." : "Cycles swing styles forward.",
         'KeyV': "Toggles choked down grip for increased control.",
         'Tab': "Provides a quick summary of hole, stroke, distance, and lie.",
         'KeyT': "Provides a full distance and targeting report.",
         'KeyW': shift ? "Cycles wind conditions in practice modes." : "Reads the current wind speed and direction.",
-        'KeyL': shift ? "On range, cycles target terrain. In clubhouse, loads Sim Roster." : "Announces current lie.",
+        'KeyL': shift ? "On the Holo Range, cycles target terrain. In clubhouse, loads Sim Roster." : "Announces current lie.",
+        'KeyO': gameMode === 'range' ? "Holo Range: Cycles the Object Manager." : "Unassigned key.",
         'KeyA': shift ? "Cycles the Caddy skill level." : "Asks the Oracle Caddy for a strategic shot blueprint.",
         'KeyF': "Reads the fairway description.",
         'KeyH': "Opens the navigable Hazard and Tree list.",
@@ -1437,6 +1416,12 @@ window.getKeyDescription = function(code, shift, ctrl) {
         'KeyE': shift ? "Opens the full scorecard." : "Announces your quick score summary.",
         'KeyP': "Cycles through the Multiplayer Game Pacing modes. Inside Scorecard, swaps players.",
         'KeyQ': "Opens the Quit and Save menu.",
+        'BracketLeft': gameMode === 'range' ? "Holo Range: Moves active object Left." : "Unassigned key.",
+        'BracketRight': gameMode === 'range' ? "Holo Range: Moves active object Right." : "Unassigned key.",
+        'Minus': gameMode === 'range' ? (shift ? "Holo Range: Lowers Elevation/Height." : "Holo Range: Moves active object Closer.") : "Unassigned key.",
+        'Equal': gameMode === 'range' ? (shift ? "Holo Range: Raises Elevation/Height." : "Holo Range: Moves active object Further.") : "Unassigned key.",
+        'Backspace': gameMode === 'range' ? "Holo Range: De-spawns the active object." : "Unassigned key.",
+        'Delete': gameMode === 'range' ? "Holo Range: De-spawns the active object." : "Unassigned key.",
         'Enter': ctrl ? "Fast-forwards through Clubhouse setup menus." : "Confirms selections and targets.",
         'F1': "Toggles Dev Power.",
         'F2': "Toggles Dev Hinge.",

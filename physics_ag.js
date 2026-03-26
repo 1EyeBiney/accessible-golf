@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v5.1.2)
+// physics_ag.js - Math, Wind, and Shot Calculation (v5.1.8)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -1456,7 +1456,7 @@ window.getCaddyAdvice = function() {
     if (typeof caddyLevel !== 'undefined' && caddyLevel < 3) return "I can only read advanced telemetry at Level 3. Press Shift + A to upgrade me.";
 
     // --- PART 1: THE PUTTING ORACLE ---
-    if (gameMode === 'putting' || (gameMode === 'course' && currentLie === "Green")) {
+    if (gameMode === 'putting' || ((gameMode === 'course' || gameMode === 'range') && currentLie === "Green")) {
         let distToPin = calculateDistanceToPin();
         const holeData = courses[currentCourseIndex].holes[hole - 1];
         let activeContours = [];
@@ -1538,7 +1538,7 @@ window.getCaddyAdvice = function() {
     }
 
     // --- PART 2: THE FAIRWAY ORACLE ---
-    if (gameMode !== 'course') return "Oracle mode is available on the course only.";
+    if (gameMode !== 'course' && gameMode !== 'range') return "Oracle mode is available on the course and Holo Range only.";
     
     const holeData = courses[currentCourseIndex].holes[hole - 1];
     let targetPoint = { x: pinX, y: pinY, label: "Pin" };
@@ -1641,7 +1641,7 @@ window.getCaddyAdvice = function() {
 
 // v4.47.0 Silent Oracle for AI Brain
 window.getOracleBlueprint = function() {
-    if (isPutting || (gameMode === 'course' && currentLie === "Green")) {
+    if (isPutting || ((gameMode === 'course' || gameMode === 'range') && currentLie === "Green")) {
         let distToPin = calculateDistanceToPin();
         const holeData = courses[currentCourseIndex].holes[hole - 1];
         let activeContours = [];
@@ -1807,6 +1807,17 @@ window.getOracleBlueprint = function() {
                             }
                         });
                     }
+
+                    // --- v5.1.8 AI Personality Math ---
+                    let pName = players[currentPlayerIndex].name;
+                    if (pName === "Fairway Fred") {
+                        if (club.name === "Driver" || club.name === "3 Wood") adjustedMiss += 30;
+                        else if (club.name.includes("Iron")) adjustedMiss -= 15;
+                    } else if (pName === "Dusty Bunkers") {
+                        if (requiredPower < 95) adjustedMiss += 25;
+                        if (requiredPower >= 105 && requiredPower <= 110) adjustedMiss -= 20;
+                    }
+                    // ----------------------------------
 
                     if (!best || adjustedMiss < best.adjustedMiss || (adjustedMiss === best.adjustedMiss && Math.abs(aimDeg) < Math.abs(best.aimDeg))) {
                         best = { clubIndex: i, stanceIndex: simStance, styleIndex: sIdx, power: requiredPower, aimDeg, miss, adjustedMiss };

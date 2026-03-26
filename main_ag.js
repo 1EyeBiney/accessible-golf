@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.1.4)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.1.8)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -44,6 +44,22 @@ let clubhouseIndex = 0;
 let isPutting = false, puttState = 0, puttTargetDist = 0;
 let viewingHazards = false, hazardIndex = 0;
 let viewingHelp = false, helpIndex = 0;
+window.helpState = 'master'; 
+window.hasHeardHoloOrientation = false;
+window.holoFocusIndex = 0; // 0:Flag, 1:Tree, 2:Wall, 3:Cluster, 4:Bunker
+window.holoOrientationText = "Welcome to the Holo Range. Press Question Mark to view the Holo Range editor controls, and F12 to access the keyboard explorer. Use O to cycle through objects, pressing Enter to spawn and Delete or Backspace to remove. Also, use A for caddy advice.";
+
+window.holoHelpData = [
+    { text: "Holo Range Editor: Heading Level 2.", heading: true },
+    { text: "O: Cycles the Object Manager between Target Flag, Trees, and Bunkers.", heading: false },
+    { text: "Enter: Spawns the currently selected object.", heading: false },
+    { text: "Backspace or Delete: Removes the currently selected object.", heading: false },
+    { text: "Bracket Keys: Moves the object Left or Right.", heading: false },
+    { text: "Dash and Equals: Moves the object Closer or Further.", heading: false },
+    { text: "Shift + Dash or Equals: Adjusts the Elevation or Height of the object.", heading: false },
+    { text: "Shift + Z: Opens the Pin Finder to target specific landing squares around your custom setup.", heading: false },
+    { text: "A: Asks the Oracle Caddy for advice on how to navigate your custom setup.", heading: false }
+];
 let rangeLie = 'Fairway', confirmingRange = false, confirmingQuit = false;
 let rangeTargetLie = 'Fairway';
 let synthTreeActive = false;
@@ -956,7 +972,8 @@ window.saveGame = function() {
         currentClubIndex, shotStyleIndex,
         roundData, puttsThisHole, currentHoleStats, roundHighlights,
         players, currentPlayerIndex, activePlayerCount,
-        wizardWind, wizardStimp, wizardRough, wizardMulligans, wizardGimmes, wizardMaxScore
+        wizardWind, wizardStimp, wizardRough, wizardMulligans, wizardGimmes, wizardMaxScore,
+        hasHeardHoloOrientation: window.hasHeardHoloOrientation,
     };
     try { localStorage.setItem('ag_save_state', JSON.stringify(state)); } catch(e) {}
 };
@@ -992,6 +1009,7 @@ window.loadGame = function() {
         wizardMulligans = state.wizardMulligans !== undefined ? state.wizardMulligans : 1;
         wizardGimmes = state.wizardGimmes !== undefined ? state.wizardGimmes : 1;
         wizardMaxScore = state.wizardMaxScore !== undefined ? state.wizardMaxScore : 2;
+        window.hasHeardHoloOrientation = state.hasHeardHoloOrientation || false;
 
         club = clubs[currentClubIndex];
         return true;
@@ -1080,20 +1098,43 @@ window.buildClubhouseMenu = function() {
             clubhouseState = 'practice'; clubhouseIndex = 0;
             window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
+        clubhouseMenu.push({ text: "Help & Master Keybindings", action: () => {
+            const ev = new KeyboardEvent('keydown', { key: '?', code: 'Slash' });
+            window.dispatchEvent(ev);
+        }});
     }
     else if (clubhouseState === 'practice') {
-        clubhouseMenu.push({ text: "Driving Range", action: () => {
-            gameMode = 'range'; strokes = 0; holeTelemetry = []; ballX = 0; ballY = 0; pinX = 0; pinY = club.baseDistance; rangeLie = 'Fairway'; isHoleComplete = false; swingState = 0;
-            window.announce("Welcome to the Driving Range. Target set to " + pinY + " yards.");
-            document.getElementById('visual-output').innerText = "Driving Range Active.";
+        clubhouseMenu.push({ text: "The Holo Range", action: () => {
+            gameMode = 'range'; strokes = 0; holeTelemetry = []; 
+            let holoCourseIdx = courses.findIndex(c => c.name === "Holo Range Simulator");
+            if (holoCourseIdx === -1) {
+                courses.push({ name: "Holo Range Simulator", holes: [{ number: 1, par: 4, distance: 600, pinX: 0, pinY: club.baseDistance, pinZ: 0, trees: [], hazards: [] }] });
+                holoCourseIdx = courses.length - 1;
+            }
+            currentCourseIndex = holoCourseIdx; hole = 1;
+            ballX = 0; ballY = 0; pinX = 0; pinY = club.baseDistance; pinZ = 0; rangeLie = 'Fairway'; isHoleComplete = false; swingState = 0;
+            window.holoFocusIndex = 0;
+            
+            let msg = `Target set to ${pinY} yards. ${window.holoOrientationText}`;
+            setTimeout(() => { window.announce(msg); }, 1000);
+            document.getElementById('visual-output').innerText = "Holo Range Active.";
+            
             clubhouseState = 'root';
         }});
-        clubhouseMenu.push({ text: "Chipping Green", action: () => {
-            gameMode = 'chipping'; strokes = 0; holeTelemetry = []; isHoleComplete = false; swingState = 0;
-            ballX = 0; ballY = 0; pinX = 0; pinY = typeof chippingRange !== 'undefined' && chippingRange === 'short' ? Math.floor(Math.random() * 16) + 5 : Math.floor(Math.random() * 61) + 20;
+        clubhouseMenu.push({ text: "Pitching & Long Chipping Green", action: () => {
+            gameMode = 'chipping'; chippingRange = 'long'; strokes = 0; holeTelemetry = []; isHoleComplete = false; swingState = 0;
+            ballX = 0; ballY = 0; pinX = 0; pinY = Math.floor(Math.random() * 61) + 20;
             let targetDist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 20;
-            window.announce(`Welcome to the Chipping Green. Target is ${targetDist} yards.`);
-            document.getElementById('visual-output').innerText = `Chipping Green. Target: ${targetDist} yards.`;
+            window.announce(`Pitching Green. Target is ${targetDist} yards.`);
+            document.getElementById('visual-output').innerText = `Pitching Green. Target: ${targetDist} yards.`;
+            clubhouseState = 'root';
+        }});
+        clubhouseMenu.push({ text: "Short Chipping Green", action: () => {
+            gameMode = 'chipping'; chippingRange = 'short'; strokes = 0; holeTelemetry = []; isHoleComplete = false; swingState = 0;
+            ballX = 0; ballY = 0; pinX = 0; pinY = Math.floor(Math.random() * 16) + 5;
+            let targetDist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 10;
+            window.announce(`Short Chipping Green. Target is ${targetDist} yards.`);
+            document.getElementById('visual-output').innerText = `Short Chipping Green. Target: ${targetDist} yards.`;
             clubhouseState = 'root';
         }});
         clubhouseMenu.push({ text: "Putting Green", action: () => {
@@ -1102,6 +1143,18 @@ window.buildClubhouseMenu = function() {
             if (typeof window.initPutting === 'function') window.initPutting();
             clubhouseState = 'root';
         }});
+        clubhouseMenu.push({ text: "Back (Escape)", action: () => {
+            clubhouseState = 'root'; clubhouseIndex = 0;
+            window.buildClubhouseMenu(); window.announceClubhouse(true);
+        }});
+    }
+    else if (clubhouseState === 'course_quick') {
+        courses.forEach((c, idx) => {
+            clubhouseMenu.push({ text: c.name, action: () => {
+                wizardCourse = idx; clubhouseState = 'settings'; clubhouseIndex = 0;
+                window.buildClubhouseMenu(); window.announceClubhouse(true);
+            }});
+        });
         clubhouseMenu.push({ text: "Back (Escape)", action: () => {
             clubhouseState = 'root'; clubhouseIndex = 0;
             window.buildClubhouseMenu(); window.announceClubhouse(true);
@@ -1516,9 +1569,11 @@ window.drawMeter = function() {
 window.renderHelpMenu = function() {
     const panel = document.getElementById('help-panel');
     if (!panel) return;
-    panel.innerHTML = '<h2 style="color: #2196F3; margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px;">Master Keybindings</h2>';
+    panel.innerHTML = '<h2 style="color: #2196F3; margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px;">Help & Keybindings</h2>';
     
-    helpMenuText.forEach((item, i) => {
+    window.currentActiveHelp = gameMode === 'range' ? window.holoHelpData.concat(helpMenuText) : helpMenuText;
+    
+    window.currentActiveHelp.forEach((item, i) => {
         let el = document.createElement('div');
         el.id = `help-line-${i}`;
         el.style.padding = '8px 12px';
@@ -1527,14 +1582,10 @@ window.renderHelpMenu = function() {
         el.style.transition = 'background-color 0.2s, color 0.2s';
         
         if (item.heading) {
-            el.style.fontWeight = 'bold';
-            el.style.color = '#2196F3';
-            el.style.marginTop = '15px';
-            el.style.fontSize = '1.1em';
+            el.style.fontWeight = 'bold'; el.style.color = '#2196F3'; el.style.marginTop = '15px'; el.style.fontSize = '1.1em';
             el.innerText = item.text.replace(/: Heading Level [0-9]\./g, '');
         } else {
-            el.style.color = '#ccc';
-            el.innerText = item.text;
+            el.style.color = '#ccc'; el.innerText = item.text;
         }
         panel.appendChild(el);
     });
@@ -1542,26 +1593,26 @@ window.renderHelpMenu = function() {
 };
 
 window.updateHelpHighlight = function() {
-    helpMenuText.forEach((_, i) => {
+    if (!window.currentActiveHelp) return;
+    window.currentActiveHelp.forEach((_, i) => {
         let el = document.getElementById(`help-line-${i}`);
         if (el) {
             if (i === helpIndex) {
-                el.style.backgroundColor = '#2196F3';
-                el.style.color = '#fff';
-                // Scroll into view safely
+                el.style.backgroundColor = '#2196F3'; el.style.color = '#fff';
                 let panel = document.getElementById('help-panel');
                 let offset = el.offsetTop - panel.offsetTop - (panel.clientHeight / 2) + (el.clientHeight / 2);
                 panel.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
             } else {
                 el.style.backgroundColor = 'transparent';
-                el.style.color = helpMenuText[i].heading ? '#2196F3' : '#ccc';
+                el.style.color = window.currentActiveHelp[i].heading ? '#2196F3' : '#ccc';
             }
         }
     });
 };
 
 window.announceHelp = function() {
-    const line = helpMenuText[helpIndex];
+    if (!window.currentActiveHelp) return;
+    const line = window.currentActiveHelp[helpIndex];
     window.announce(line.text);
     document.getElementById('visual-output').innerText = line.text;
     window.updateHelpHighlight();
