@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.5.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.5.1)
 
 window.confirmingUnplayable = false;
 
@@ -162,6 +162,7 @@ window.addEventListener('keydown', (e) => {
                 let stimpVal = typeof window.stimpSpeed !== 'undefined' ? window.stimpSpeed : 10;
                 
                 allLogs += `# MATCH SETTINGS\n`;
+                allLogs += `**Engine Version:** v5.5.1\n`;
                 allLogs += `**Course:** ${courseName}\n`;
                 allLogs += `**Wind:** ${windName}\n`;
                 allLogs += `**Green Stimp:** ${stimpVal}\n`;

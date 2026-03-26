@@ -398,6 +398,9 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Spatial Controls:** Brackets move objects laterally. Dash/Equals move objects longitudinally. `Shift + Dash/Equals` adjusts `pinZ` elevation for flags, or physical `height` for trees.
 - **Smart Help System:** `?` acts progressively. If pressed in a practice area, it overrides to `helpState = 'area'` and plays contextual orientation logic. Pressing `?` again unlocks the `helpState = 'master'` keybindings matrix.
 
+### 95. v5.5.1 Engine Addendum (Telemetry Versioning)
+- **Metadata Expansion:** The Markdown Telemetry Dump (`Shift + C`) now includes a `**Engine Version:**` field in the match header. This allows for automated parsing and filtering of simulation data based on the specific version of the AI and physics engine used during the round.
+
 ### 94. v5.5.0 Engine Addendum (Quick Telemetry & UI Audio)
 - **Quick Telemetry (`Shift + ArrowUp`):** Parses the `holeTelemetry` array for the most recent `**Execution:**` string, cleans the math formatting (e.g., changing `-` to `minus` and `%` to `percent`), and sends it to the ARIA announcer. This gives players instant P/H/I and Spin readouts on the practice range.
 - **Invisible UI Audio:** Added `ui_nav_03` to `Shift + E` (Scorecard) and `ui_nav_06` to `Shift + C` (Clipboard Export) to provide confirming audio feedback for non-visual actions.
