@@ -1,7 +1,7 @@
 # --- Media & Large Binaries (Expanded) ---
 # Audio formats
 *.mp3
-!audio/*.mp3
+!audio/**/*.mp3
 *.wav
 *.m4a
 *.flac
