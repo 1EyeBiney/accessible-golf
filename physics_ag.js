@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v5.9.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v5.10.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -1845,7 +1845,7 @@ window.getOracleBlueprint = function() {
                         });
                     }
 
-                    // --- v5.1.8 AI Personality Math ---
+                    // --- v5.10.0 AI Personality Math ---
                     let pName = players[currentPlayerIndex].name;
                     if (pName === "Fairway Fred") {
                         if (club.name === "Driver" || club.name === "3 Wood") adjustedMiss += 30;
@@ -1853,6 +1853,16 @@ window.getOracleBlueprint = function() {
                     } else if (pName === "Dusty Bunkers") {
                         if (requiredPower < 95) adjustedMiss += 25;
                         if (requiredPower >= 105 && requiredPower <= 110) adjustedMiss -= 20;
+                    } else if (pName === "Bot Golden Bear") {
+                        // The Tactician: Massively penalizes shots that carry over hazards
+                        if (miss > 0) adjustedMiss += 50; 
+                    } else if (pName === "Bot Strickler") {
+                        // The Wedge Wizard: Pin-seeking magnetism with short clubs
+                        if (club.name === "9 Iron" || club.name.includes("Wedge")) adjustedMiss -= 40; 
+                    } else if (pName === "Bot Lefty") {
+                        // Phil the Thrill: Ignores hazard danger on long shots, favors flops (Pitch) around greens
+                        if (club.name.includes("Wood") && requiredPower > 90) adjustedMiss -= (miss * 0.75); 
+                        if (requiredPower < 60 && sIdx === 1) adjustedMiss -= 35; 
                     }
                     // ----------------------------------
 

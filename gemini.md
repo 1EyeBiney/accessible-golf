@@ -454,3 +454,9 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Clubhouse UX:** Added "Help & Master Keybindings" to the root Clubhouse menu. Pressing `?` triggers the `ui_nav_06` chime.
 - **Global Quick Load:** `Shift + L` in the Clubhouse forces `wizardSize = 4`, loads Moe/Shawn/Ted/Fred, and skips to `clubhouseState = 'course_quick'`, focusing the cursor on `wizardCourse`.
 - **Contextual Explorer:** `F12` `getKeyDescription` logic now checks `gameMode === 'range'` before announcing Holo Range specific bindings like `O` or the Brackets.
+
+### 100. v5.10.0 Engine Addendum (Tour Pro Personalities)
+- **Legendary AI injected:**
+  - **Bot Golden Bear:** Focus 4 (Accuracy), +15ms iBias (Fade). Oracle strongly avoids hazards (`miss > 0 -> +50 penalty`).
+  - **Bot Strickler:** Focus 2 (Touch), 0ms Biases. Oracle mathematically hunts pins with wedges (`-40 adjustedMiss bonus`).
+  - **Bot Lefty:** Focus 5 (Recovery), -25ms iBias (Hook/Cut), +10ms hBias. Oracle aggressively ignores 75% of hazard penalties when swinging woods, and favors Pitch (flop) shot styles around the green.

@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.9.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.10.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -1303,6 +1303,18 @@ window.buildClubhouseMenu = function() {
         }});
         clubhouseMenu.push({ text: "Bot Woods", action: () => {
             wizardRoster[wizardSlot] = { name: "Bot Woods", isBot: true, skill: 3, iBias: 0, hBias: 0, focus: 1, ball: 0 };
+            clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
+        }});
+        clubhouseMenu.push({ text: "Bot Golden Bear", action: () => {
+            wizardRoster[wizardSlot] = { name: "Bot Golden Bear", isBot: true, skill: 3, iBias: 15, hBias: 0, focus: 4, ball: 0 };
+            clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
+        }});
+        clubhouseMenu.push({ text: "Bot Strickler", action: () => {
+            wizardRoster[wizardSlot] = { name: "Bot Strickler", isBot: true, skill: 3, iBias: 0, hBias: 0, focus: 2, ball: 0 };
+            clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
+        }});
+        clubhouseMenu.push({ text: "Bot Lefty", action: () => {
+            wizardRoster[wizardSlot] = { name: "Bot Lefty", isBot: true, skill: 3, iBias: -25, hBias: 10, focus: 5, ball: 0 };
             clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
         clubhouseMenu.push({ text: "Back (Escape)", action: () => {
