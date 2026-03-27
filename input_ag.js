@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.5.1)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.11.0)
 
 window.confirmingUnplayable = false;
 
@@ -364,6 +364,23 @@ window.addEventListener('keydown', (e) => {
                 if (typeof window.playGolfSound === 'function') window.playGolfSound('menu_01');
                 forwardAction();
             }
+            return;
+        }
+
+        // v5.11.0 Tour Pro Foursome Quick-Load
+        if (e.code === 'KeyK' && shift && gameMode === 'clubhouse') {
+            e.preventDefault();
+            wizardSize = 4;
+            wizardRoster = [
+                { name: "Bot Woods", isBot: true, skill: 3, iBias: 0, hBias: 0, focus: 1, ball: 0 },
+                { name: "Bot Golden Bear", isBot: true, skill: 3, iBias: 15, hBias: 0, focus: 4, ball: 0 },
+                { name: "Bot Lefty", isBot: true, skill: 3, iBias: -25, hBias: 10, focus: 5, ball: 0 },
+                { name: "Bot Strickler", isBot: true, skill: 3, iBias: 0, hBias: 0, focus: 2, ball: 0 }
+            ];
+            clubhouseState = 'course_quick';
+            window.buildClubhouseMenu();
+            window.announce("Tour Pro Foursome loaded. Select a course.");
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_03');
             return;
         }
 
@@ -1473,6 +1490,7 @@ window.getKeyDescription = function(code, shift, ctrl) {
         'Tab': "Provides a quick summary of hole, stroke, distance, and lie.",
         'KeyT': "Provides a full distance and targeting report.",
         'KeyW': shift ? "Cycles wind conditions in practice modes." : "Reads the current wind speed and direction.",
+        'KeyK': shift ? "Quick-loads the Tour Pro Foursome." : "Unassigned key.",
         'KeyL': shift ? "On the Holo Range, cycles target terrain. In clubhouse, loads Sim Roster." : "Announces current lie.",
         'KeyO': gameMode === 'range' ? "Holo Range: Cycles the Object Manager." : "Unassigned key.",
         'KeyA': shift ? "Cycles the Caddy skill level." : "Asks the Oracle Caddy for a strategic shot blueprint.",

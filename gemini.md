@@ -460,3 +460,6 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
   - **Bot Golden Bear:** Focus 4 (Accuracy), +15ms iBias (Fade). Oracle strongly avoids hazards (`miss > 0 -> +50 penalty`).
   - **Bot Strickler:** Focus 2 (Touch), 0ms Biases. Oracle mathematically hunts pins with wedges (`-40 adjustedMiss bonus`).
   - **Bot Lefty:** Focus 5 (Recovery), -25ms iBias (Hook/Cut), +10ms hBias. Oracle aggressively ignores 75% of hazard penalties when swinging woods, and favors Pitch (flop) shot styles around the green.
+
+### 101. v5.11.0 Engine Addendum (Tour Pro Foursome Macro)
+- **Clubhouse Macros:** Added `Shift + K` as a parallel to `Shift + L`. This macro instantly sets `wizardSize = 4`, injects Woods, Golden Bear, Lefty, and Strickler into the `wizardRoster`, and advances the `clubhouseState` directly to `'course_quick'`.
