@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.20.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.21.1)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -209,7 +209,7 @@ window.advanceTurn = function(isPuttingTransition = false) {
         let allDone = players.every(p => p.isHoleComplete);
         if (allDone) {
             let compMsg = `All players have finished Hole ${hole}. Press Enter to proceed to the next hole.`;
-            if (hole >= courses[currentCourseIndex].holes.length) {
+            if (hole >= window.currentCourse.holes.length) {
                 gameMode = 'post_round';
                 compMsg = "Round Complete! All players have finished. Press Shift + E to view telemetry.";
                 window.isQuickSim = false; // Safety stop
@@ -485,7 +485,7 @@ window.loadActivePlayer = function(index) {
     devImpact = p.devImpact !== undefined ? p.devImpact : false;
     
     let distToPin = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 10;
-    const holeData = typeof courses !== 'undefined' ? courses[currentCourseIndex].holes[hole - 1] : null;
+    const holeData = typeof courses !== 'undefined' ? window.currentCourse.holes[hole - 1] : null;
     const greenSize = holeData && holeData.greenRadius ? holeData.greenRadius : 20;
     
     if (distToPin <= greenSize) {
@@ -553,7 +553,7 @@ function loadHole(holeNumber) {
         if (typeof holeTelemetry !== 'undefined' && holeTelemetry.length > 0 && typeof roundData !== 'undefined') {
             let record = roundData.find(r => r.hole === hole);
             if (record) {
-                const hd = courses[currentCourseIndex].holes[hole - 1];
+                const hd = window.currentCourse.holes[hole - 1];
                 const header = `## HOLE ${hole} (${hd.distance}y, Par ${par})\n**Pin:** ${hd.pinLocation}\n\n`;
                 record.telemetryLog = header + holeTelemetry.join('\n\n');
             }
@@ -569,7 +569,7 @@ function loadHole(holeNumber) {
             window.playEcho('sine', 600, 800, 0.2, 0.3, 0.2);
         }
 
-        const course = courses[currentCourseIndex];
+        const course = window.currentCourse;
         if (holeNumber > course.holes.length) holeNumber = 1; 
         const holeData = course.holes[holeNumber - 1];
 
@@ -654,7 +654,7 @@ function loadHole(holeNumber) {
             if (isSim) {
                 stateTimeouts.push(setTimeout(() => { if (typeof window.takeAITurn === 'function') window.takeAITurn(true); }, 10));
             } else {
-                let hd = typeof courses !== 'undefined' ? courses[currentCourseIndex].holes[hole - 1] : null;
+                let hd = typeof courses !== 'undefined' ? window.currentCourse.holes[hole - 1] : null;
                 let holeTextLength = 100 + (hd && hd.fairwayDescription ? hd.fairwayDescription.length : 0);
                 let baseDelay = 3500;
                 if (pacingModeIndex === 0) baseDelay += (holeTextLength * 20);
@@ -675,7 +675,7 @@ function loadHole(holeNumber) {
 }
 
 function getSightReport() {
-    const currentHole = courses[currentCourseIndex].holes[hole - 1];
+    const currentHole = window.currentCourse.holes[hole - 1];
     let warnings = [];
     const targetAngleRad = Math.atan2(targetX - ballX, targetY - ballY);
     const userAimRad = targetAngleRad + (aimAngle * (Math.PI / 180));
@@ -703,7 +703,7 @@ function getSightReport() {
 
 window.updateTargetZone = function() {
     if (gameMode !== 'course' && gameMode !== 'range') return;
-    const holeData = courses[currentCourseIndex].holes[hole - 1];
+    const holeData = window.currentCourse.holes[hole - 1];
     let validTargets = [];
     if (holeData.zones) validTargets = holeData.zones.filter(z => z.y > ballY + 15);
     validTargets.push({ name: "The Pin", x: holeData.pinX, y: holeData.pinY });
@@ -729,7 +729,7 @@ window.announceGridPosition = function(initElevation = "") {
     // v4.81.0 Predictive Topography (Rotated Effect Translator)
     let effectStr = "Plays flat";
     if (gameMode === 'course') {
-        const holeData = courses[currentCourseIndex].holes[hole - 1];
+        const holeData = window.currentCourse.holes[hole - 1];
         if (holeData.greenType && typeof greenDictionary !== 'undefined') {
             let activeContours = greenDictionary[holeData.greenType] || [];
             let zone = activeContours.find(z => distToPin <= z.startY && distToPin > z.endY);
@@ -946,7 +946,7 @@ window.announceScorecardCell = function(isInit = false, isPageFlip = false) {
     let msg = "";
     if (isInit) {
         let pName = (typeof players !== 'undefined' && players.length > 0 && typeof scorecardPlayerIndex !== 'undefined') ? players[scorecardPlayerIndex].name : "Player";
-        let courseName = courses[currentCourseIndex].name;
+        let courseName = window.currentCourse.name;
         msg = `${pName}'s Scorecard. ${courseName}. Page ${scorecardPage + 1}. Use Spacebar to flip pages, P to swap players, Arrow Keys to navigate, Escape to close. `;
         msg += `Row 1, Column 1. ${val}.`;
     } else if (isPageFlip) {
@@ -998,7 +998,7 @@ window.generateNarrativeSummary = function() {
     let relStr = rel === 0 ? "Even Par" : rel > 0 ? `+${rel}` : `${Math.abs(rel)} Under Par`;
 
     let text = `⛳ Accessible Golf Round Summary ⛳\n`;
-    text += `Course: ${courses[currentCourseIndex].name}\n`;
+    text += `Course: ${window.currentCourse.name}\n`;
     text += `Score: ${relStr} (${totalStrokes})\n\n`;
     text += `🏆 Highlights of the Round:\n`;
 
@@ -1871,5 +1871,5 @@ window.generateTelemetryDump = function() {
     let p = players[currentPlayerIndex];
     let dump = `# MATCH SETTINGS\n`;
     dump += `**Engine Version:** v5.5.1\n`;
-    dump += `**Course:** ${courses[currentCourseIndex].name}\n`;
+    dump += `**Course:** ${window.currentCourse.name}\n`;
 };

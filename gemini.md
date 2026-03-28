@@ -480,3 +480,9 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 
 ### 110. v5.20.0 Engine Addendum (Data Unification Phase 1)
 - **Dynamic Course Mapping:** Replaced the static, lightweight `window.courseData` array with a dynamic bridge function. It maps over the heavy `courses` array from `data_ag.js` and appends the required UI properties (`id` and `desc`). This safely feeds the rich physics data (`zones`, `hazards`, `greenRadius`) directly into the UI state without breaking legacy variable paths.
+
+### 111. v5.21.0 Engine Addendum (Data Unification Phase 2)
+- **The Variable Switch:** Completely excised `courses[currentCourseIndex]` from `main_ag.js` and `physics_ag.js`. The engine now runs 100% on the `window.currentCourse` object. Because Phase 1 successfully bridged the physics data into this object, the transition causes zero data starvation for the AI.
+
+### 112. v5.21.1 Engine Addendum (Architecture Patch)
+- **Telemetry & Putting Hotfix:** Cleaned up the final two legacy `courses[currentCourseIndex]` references missed during the v5.21.0 transition. The engine memory map is now completely unified under `window.currentCourse`.

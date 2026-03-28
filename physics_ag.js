@@ -1,4 +1,4 @@
-// physics_ag.js - Math, Wind, and Shot Calculation (v5.10.0)
+// physics_ag.js - Math, Wind, and Shot Calculation (v5.21.1)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -143,7 +143,7 @@ function calculateShot(autoMiss = false) {
 
         // 2. Silently run the Green Reading algorithm
         let distToPin = calculateDistanceToPin();
-        const holeData = courses[currentCourseIndex].holes[hole - 1];
+        const holeData = window.currentCourse.holes[hole - 1];
         let netElevYards = 0; let netBreakYards = 0;
 
         if (holeData && holeData.greenType && typeof greenDictionary !== 'undefined') {
@@ -233,7 +233,7 @@ function calculateShot(autoMiss = false) {
         // v4.4.0 Gravity Engine (Step Simulation)
         let activeContours = [];
         if (gameMode === 'course') {
-            const holeData = courses[currentCourseIndex].holes[hole - 1];
+            const holeData = window.currentCourse.holes[hole - 1];
             if (holeData.greenType && typeof greenDictionary !== 'undefined') {
                 activeContours = greenDictionary[holeData.greenType] || [];
             }
@@ -383,7 +383,7 @@ function calculateShot(autoMiss = false) {
                     if (roundHighlights.putts.length > 2) roundHighlights.putts.pop();
 
                     roundData.push({
-                        hole: hole, par: par, distance: courses[currentCourseIndex].holes[hole - 1].distance,
+                    hole: hole, par: par, distance: window.currentCourse.holes[hole - 1].distance,
                         strokes: strokes, putts: puttsThisHole, fir: currentHoleStats.fir, gir: currentHoleStats.gir,
                         driveDistance: currentHoleStats.driveDistance, puttDistance: puttTargetDist,
                         approachStart: currentHoleStats.approachStart, approachProx: currentHoleStats.approachProx, // v4.30.1 Save to array
@@ -510,7 +510,7 @@ function calculateShot(autoMiss = false) {
     let pressureDispersion = 1 + (powerOvercharge * 0.04); 
     const hingeAcc = Math.max(10, 100 - (Math.abs(hingeDiff) / ((typeof isChokedDown !== 'undefined' && isChokedDown ? 4.8 : 4) * diffScale.hingeMod)));
     
-    const activeFairwayWidth = gameMode === 'course' ? courses[currentCourseIndex].holes[hole - 1].fairwayWidth : fairwayWidth;
+    const activeFairwayWidth = gameMode === 'course' ? window.currentCourse.holes[hole - 1].fairwayWidth : fairwayWidth;
     const isStartingInRough = gameMode === 'range' ? (rangeLie === 'Rough') : (currentLie === 'Light Rough' || currentLie === 'Sand');
     
     let lieMod = 1.0, lieDispersionMod = 1.0, lieForgivenessMod = 1.0;
@@ -767,7 +767,7 @@ function calculateShot(autoMiss = false) {
         let distToPinAtLand = Math.sqrt(Math.pow(pinX - topoLandX, 2) + Math.pow(pinY - topoLandY, 2));
 
         if (gameMode === 'course') {
-            const holeData = courses[currentCourseIndex].holes[hole - 1];
+            const holeData = window.currentCourse.holes[hole - 1];
             if (distToPinAtLand <= (holeData.greenRadius || 20) && holeData.greenType && typeof greenDictionary !== 'undefined') {
                 let activeContours = greenDictionary[holeData.greenType] || [];
                 let zone = activeContours.find(z => distToPinAtLand <= z.startY && distToPinAtLand > z.endY);
@@ -835,7 +835,7 @@ function calculateShot(autoMiss = false) {
     const shapeLabel = sideSpinRPM < -2500 ? "snap hook" : sideSpinRPM < -1000 ? "hook" : sideSpinRPM < -250 ? "draw" : sideSpinRPM > 2500 ? "banana slice" : sideSpinRPM > 1000 ? "slice" : sideSpinRPM > 250 ? "fade" : "straight shot";
     const shotShapeNarrative = `A ${trajectoryLabel} ${shapeLabel}`;
 
-    const currentHole = courses[currentCourseIndex].holes[hole - 1];
+    const currentHole = window.currentCourse.holes[hole - 1];
     let treeCollisionReport = "";
     let flightPathNarrative = "";
     
@@ -964,7 +964,7 @@ function calculateShot(autoMiss = false) {
     }
 
     let distanceToPin = calculateDistanceToPin();
-    const holeData = courses[currentCourseIndex].holes[hole - 1];
+    const holeData = window.currentCourse.holes[hole - 1];
     
     // Dynamic Approach & Apron
     let currentFW = activeFairwayWidth;
@@ -1427,7 +1427,7 @@ window.autoEquipBestClub = function() {
 window.getTerrainAt = function(x, y) {
     if (gameMode !== 'course') return typeof rangeTargetLie !== 'undefined' ? rangeTargetLie : "Fairway";
 
-    const holeData = courses[currentCourseIndex].holes[hole - 1];
+    const holeData = window.currentCourse.holes[hole - 1];
     let distToPin = Math.sqrt(Math.pow(x - pinX, 2) + Math.pow(y - pinY, 2));
     const greenSize = holeData.greenRadius || 20;
 
@@ -1461,7 +1461,7 @@ window.getTerrainAt = function(x, y) {
 // v4.37.1 Landing Zone Oracle
 window.getLandingZoneEffect = function(x, y) {
     if (gameMode !== 'course') return "";
-    const holeData = courses[currentCourseIndex].holes[hole - 1];
+    const holeData = window.currentCourse.holes[hole - 1];
     if (!holeData || !holeData.greenType || typeof greenDictionary === 'undefined') return "";
 
     // Calculate distance from the targeted coordinates to the pin
@@ -1495,7 +1495,7 @@ window.getCaddyAdvice = function() {
     // --- PART 1: THE PUTTING ORACLE ---
     if (gameMode === 'putting' || ((gameMode === 'course' || gameMode === 'range') && currentLie === "Green")) {
         let distToPin = calculateDistanceToPin();
-        const holeData = courses[currentCourseIndex].holes[hole - 1];
+        const holeData = window.currentCourse.holes[hole - 1];
         let activeContours = [];
         if (gameMode === 'course' && holeData.greenType && typeof greenDictionary !== 'undefined') {
             activeContours = greenDictionary[holeData.greenType] || [];
@@ -1577,7 +1577,7 @@ window.getCaddyAdvice = function() {
     // --- PART 2: THE FAIRWAY ORACLE ---
     if (gameMode !== 'course' && gameMode !== 'range') return "Oracle mode is available on the course and Holo Range only.";
     
-    const holeData = courses[currentCourseIndex].holes[hole - 1];
+    const holeData = window.currentCourse.holes[hole - 1];
     let targetPoint = { x: pinX, y: pinY, label: "Pin" };
 
     if (activeTargetType === 'grid') {
@@ -1680,7 +1680,7 @@ window.getCaddyAdvice = function() {
 window.getOracleBlueprint = function() {
     if (isPutting || ((gameMode === 'course' || gameMode === 'range') && currentLie === "Green")) {
         let distToPin = calculateDistanceToPin();
-        const holeData = courses[currentCourseIndex].holes[hole - 1];
+        const holeData = window.currentCourse.holes[hole - 1];
         let activeContours = [];
         if (gameMode === 'course' && holeData.greenType && typeof greenDictionary !== 'undefined') {
             activeContours = greenDictionary[holeData.greenType] || [];
@@ -1749,7 +1749,7 @@ window.getOracleBlueprint = function() {
         }
         return { aimDeg: bestAim, pace: bestPace };
     } else {
-        const holeData = courses[currentCourseIndex].holes[hole - 1];
+        const holeData = window.currentCourse.holes[hole - 1];
         let targetPoint = { x: pinX, y: pinY };
         if (activeTargetType === 'grid') targetPoint = { x: pinX + gridX, y: pinY + gridY };
         else if (activeTargetType === 'zone') {
