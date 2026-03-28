@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.11.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.15.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -17,6 +17,78 @@ let lockedImpactTime = 0;
 let windX = 0, windY = 0, windLevelIndex = 0; // v4.13.0 Calm Default
 let aimAngle = 0, stanceIndex = 2, stanceAlignment = 0, isChokedDown = false;
 let hole = 1, par = 4, strokes = 0;
+    // v5.14.0 Course Profiles Architecture
+    window.courseData = [
+        {
+            id: 'holo_links',
+            name: "Holo Links",
+            desc: "A pristine 18-hole digital championship layout. Fairways, bunkers, and perfect greens.",
+            holes: [
+                { par: 4, dist: 410, hazards: ['sand'] }, { par: 5, dist: 550, hazards: ['sand', 'water'] },
+                { par: 3, dist: 180, hazards: ['sand'] }, { par: 4, dist: 380, hazards: [] },
+                { par: 4, dist: 430, hazards: ['water'] }, { par: 3, dist: 210, hazards: ['sand'] },
+                { par: 5, dist: 520, hazards: ['sand'] }, { par: 4, dist: 400, hazards: ['sand'] },
+                { par: 4, dist: 440, hazards: ['sand', 'water'] },
+                { par: 4, dist: 390, hazards: ['sand'] }, { par: 5, dist: 560, hazards: ['water'] },
+                { par: 3, dist: 160, hazards: ['sand'] }, { par: 4, dist: 420, hazards: [] },
+                { par: 4, dist: 450, hazards: ['sand'] }, { par: 3, dist: 190, hazards: ['sand', 'water'] },
+                { par: 5, dist: 530, hazards: ['sand'] }, { par: 4, dist: 370, hazards: ['water'] },
+                { par: 4, dist: 460, hazards: ['sand', 'water'] }
+            ]
+        },
+        {
+            id: 'texas_scrapyard',
+            name: "Texas Scrapyard",
+            desc: "A rugged, industrial course built in an abandoned lot. Beware of sharp metal, hardpan dirt, and shifting winds.",
+            holes: [
+                { par: 4, dist: 420, hazards: ['scrap'] }, { par: 5, dist: 580, hazards: ['scrap', 'dirt'] },
+                { par: 3, dist: 170, hazards: ['scrap'] }, { par: 4, dist: 390, hazards: ['dirt'] },
+                { par: 4, dist: 450, hazards: ['scrap', 'water'] }, { par: 3, dist: 220, hazards: ['scrap'] },
+                { par: 5, dist: 600, hazards: ['dirt'] }, { par: 4, dist: 410, hazards: ['scrap'] },
+                { par: 4, dist: 480, hazards: ['scrap', 'dirt', 'water'] },
+                { par: 4, dist: 400, hazards: ['scrap'] }, { par: 5, dist: 590, hazards: ['water', 'dirt'] },
+                { par: 3, dist: 190, hazards: ['scrap'] }, { par: 4, dist: 430, hazards: ['dirt'] },
+                { par: 4, dist: 470, hazards: ['scrap'] }, { par: 3, dist: 150, hazards: ['scrap', 'water'] },
+                { par: 5, dist: 540, hazards: ['scrap', 'dirt'] }, { par: 4, dist: 380, hazards: ['water'] },
+                { par: 4, dist: 490, hazards: ['scrap', 'dirt', 'water'] }
+            ]
+        },
+        {
+            id: 'pebble_beach',
+            name: "Pebble Beach",
+            desc: "The legendary coastal track. Punishing ocean winds, deep bunkers, and terrifying cliffside drops.",
+            holes: [
+                { par: 4, dist: 380, hazards: ['sand'] }, { par: 5, dist: 511, hazards: ['sand'] },
+                { par: 4, dist: 390, hazards: ['sand'] }, { par: 4, dist: 331, hazards: ['ocean', 'sand'] },
+                { par: 3, dist: 192, hazards: ['ocean'] }, { par: 5, dist: 523, hazards: ['ocean', 'sand', 'cliff'] },
+                { par: 3, dist: 106, hazards: ['ocean', 'sand'] }, { par: 4, dist: 428, hazards: ['ocean', 'cliff'] },
+                { par: 4, dist: 481, hazards: ['ocean', 'sand'] },
+                { par: 4, dist: 446, hazards: ['ocean', 'sand'] }, { par: 4, dist: 380, hazards: ['sand'] },
+                { par: 3, dist: 202, hazards: ['sand'] }, { par: 4, dist: 403, hazards: ['sand'] },
+                { par: 5, dist: 573, hazards: ['sand'] }, { par: 4, dist: 397, hazards: ['sand'] },
+                { par: 4, dist: 403, hazards: ['sand'] }, { par: 3, dist: 178, hazards: ['ocean', 'sand'] },
+                { par: 5, dist: 543, hazards: ['ocean', 'sand', 'cliff'] }
+            ]
+        },
+        {
+            id: 'pasture',
+            name: "The Pasture",
+            desc: "A chaotic 18-hole farm course. Watch out for grazing cows, manure, and rogue chickens.",
+            holes: [
+                { par: 4, dist: 380, hazards: ['cows'] }, { par: 5, dist: 510, hazards: ['cows', 'manure'] },
+                { par: 3, dist: 150, hazards: ['chickens'] }, { par: 4, dist: 360, hazards: ['manure'] },
+                { par: 4, dist: 410, hazards: ['cows'] }, { par: 3, dist: 190, hazards: ['goats'] },
+                { par: 5, dist: 500, hazards: ['cows', 'manure'] }, { par: 4, dist: 390, hazards: ['manure'] },
+                { par: 4, dist: 420, hazards: ['cows', 'water'] },
+                { par: 4, dist: 400, hazards: ['cows'] }, { par: 5, dist: 540, hazards: ['manure', 'cows'] },
+                { par: 3, dist: 170, hazards: ['chickens'] }, { par: 4, dist: 370, hazards: ['manure'] },
+                { par: 4, dist: 430, hazards: ['goats', 'sand'] }, { par: 3, dist: 200, hazards: ['cows'] },
+                { par: 5, dist: 550, hazards: ['manure', 'cows'] }, { par: 4, dist: 350, hazards: ['chickens'] },
+                { par: 4, dist: 450, hazards: ['cows', 'manure', 'water'] }
+            ]
+        }
+    ];
+    window.currentCourse = window.courseData[0]; // Defaults to Holo Links
 let ballX = 0, ballY = 0, pinX = 0, pinY = 420, pinZ = 0;
 let ballZ = 0, targetZ = 0;
 let lieTilt = 0; // Positive = Ball above feet (Hook), Negative = Ball below feet (Slice)
@@ -1202,9 +1274,11 @@ window.buildClubhouseMenu = function() {
         }});
     }
     else if (clubhouseState === 'course_quick') {
-        courses.forEach((c, idx) => {
+        window.courseData.forEach((c, idx) => {
             clubhouseMenu.push({ text: c.name, action: () => {
-                wizardCourse = idx; clubhouseState = 'settings'; clubhouseIndex = 0;
+                wizardCourse = idx; 
+                window.currentCourse = window.courseData[idx]; // v5.15.0 Lock in the active course data
+                clubhouseState = 'settings'; clubhouseIndex = 0;
                 window.buildClubhouseMenu(); window.announceClubhouse(true);
             }});
         });
@@ -1214,9 +1288,11 @@ window.buildClubhouseMenu = function() {
         }});
     }
     else if (clubhouseState === 'course') {
-        courses.forEach((c, idx) => {
+        window.courseData.forEach((c, idx) => {
             clubhouseMenu.push({ text: c.name, action: () => {
-                wizardCourse = idx; clubhouseState = 'size'; clubhouseIndex = 0;
+                wizardCourse = idx; 
+                window.currentCourse = window.courseData[idx]; // v5.15.0 Lock in the active course data
+                clubhouseState = 'size'; clubhouseIndex = 0;
                 window.buildClubhouseMenu(); window.announceClubhouse(true);
             }});
         });

@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.11.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.13.0)
 
 window.confirmingUnplayable = false;
 
@@ -367,8 +367,8 @@ window.addEventListener('keydown', (e) => {
             return;
         }
 
-        // v5.11.0 Tour Pro Foursome Quick-Load
-        if (e.code === 'KeyK' && shift && gameMode === 'clubhouse') {
+        // v5.13.0 Tour Pro Foursome Quick-Load Fix
+        if (e.code === 'KeyK' && e.shiftKey && gameMode === 'clubhouse') {
             e.preventDefault();
             wizardSize = 4;
             wizardRoster = [
@@ -378,9 +378,11 @@ window.addEventListener('keydown', (e) => {
                 { name: "Bot Strickler", isBot: true, skill: 3, iBias: 0, hBias: 0, focus: 2, ball: 0 }
             ];
             clubhouseState = 'course_quick';
-            window.buildClubhouseMenu();
+            clubhouseIndex = wizardCourse;
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_02');
             window.announce("Tour Pro Foursome loaded. Select a course.");
-            if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_03');
+            window.buildClubhouseMenu(); 
+            window.announceClubhouse(false);
             return;
         }
 

@@ -463,3 +463,17 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 
 ### 101. v5.11.0 Engine Addendum (Tour Pro Foursome Macro)
 - **Clubhouse Macros:** Added `Shift + K` as a parallel to `Shift + L`. This macro instantly sets `wizardSize = 4`, injects Woods, Golden Bear, Lefty, and Strickler into the `wizardRoster`, and advances the `clubhouseState` directly to `'course_quick'`.
+
+### 102. v5.12.0 Engine Addendum (Foursome Macro Hotfix)
+- **UI Refresh Restoration:** Patched the `Shift + K` macro in `input_ag.js`. The macro now correctly defines `clubhouseIndex` and calls `window.announceClubhouse(false);` after generating the roster array, ensuring the screen reader and visual DOM immediately update to display the Course Selection menu, matching the behavior of `Shift + L`.
+
+### 103. v5.13.0 Engine Addendum (Macro Variable Hotfix)
+- **Event Listener Correction:** Patched `input_ag.js` to change the `Shift + K` conditional from `shift` to `e.shiftKey`, resolving a fatal `ReferenceError` that prevented the macro from firing on the Clubhouse menu.
+
+### 104. v5.14.0 Engine Addendum (Course Architecture)
+- **Course Profiles:** Injected `window.courseData` into `main_ag.js`. This transitions the engine away from generic math loops by providing explicit 18-hole maps for Holo Links, Texas Scrapyard, Pebble Beach, and The Pasture.
+- **Hazard Arrays:** Each hole object contains a `hazards` array. Future RNG logic will check `currentCourse.holes[hole - 1].hazards.includes('cows')` (or 'scrap', or 'ocean') to determine which specific environmental penalties and sound profiles are allowed to trigger on that hole.
+
+### 105. v5.15.0 Engine Addendum (Course Selection UI)
+- **Menu Wiring:** Updated `window.buildClubhouseMenu` so that the `'course'` and `'course_quick'` menu states dynamically map over `window.courseData` instead of the legacy array.
+- **State Locking:** The selection actions now immediately set `window.currentCourse = window.courseData[idx];`, ensuring the engine physically transitions to the correct hazard maps and hole distances upon starting a round.
