@@ -477,3 +477,6 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 ### 105. v5.15.0 Engine Addendum (Course Selection UI)
 - **Menu Wiring:** Updated `window.buildClubhouseMenu` so that the `'course'` and `'course_quick'` menu states dynamically map over `window.courseData` instead of the legacy array.
 - **State Locking:** The selection actions now immediately set `window.currentCourse = window.courseData[idx];`, ensuring the engine physically transitions to the correct hazard maps and hole distances upon starting a round.
+
+### 110. v5.20.0 Engine Addendum (Data Unification Phase 1)
+- **Dynamic Course Mapping:** Replaced the static, lightweight `window.courseData` array with a dynamic bridge function. It maps over the heavy `courses` array from `data_ag.js` and appends the required UI properties (`id` and `desc`). This safely feeds the rich physics data (`zones`, `hazards`, `greenRadius`) directly into the UI state without breaking legacy variable paths.
