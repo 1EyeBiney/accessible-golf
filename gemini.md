@@ -452,6 +452,22 @@ Course Data Architecture: Core game data (clubs, wind, green contours) lives in 
 - **4F Roster Alignment:** The `Shift + L` Quick Load now constructs a perfectly linear skill progression for telemetry testing: Shawn (0), Dusty (1), Fred (2), and Ted (3).
 - **Help & UI Polish:** Set the `?` menu to open with `ui_nav_03` (to pair with `Escape`'s `ui_nav_04`). The Holo Range now always plays its contextual `?`, `F12`, and `O` tool instructions upon entry.
 
+### 100. v5.30.0 Engine Addendum (Modular Architecture Refactor)
+- **Module Split:** Decomposed the monolithic `main_ag.js` into discrete, responsibility-scoped modules: `ui_ag.js` (Dashboard, Scorecard, Clubhouse Menu, Help UI, Swing Meter), `input_ag.js` (all `keydown` / `keyup` event listeners), `physics_core.js` (shot calculation math), and `physics_collisions.js` (AABB hazard resolution). `main_ag.js` retains global state variable declarations, `initGame`, `loadHole`, `advanceTurn`, and the audio/bot orchestration layer.
+- **Global Exposure:** All functions called cross-module are explicitly assigned to `window` (e.g., `window.buildClubhouseMenu`, `window.updateDashboard`, `window.announceClubhouse`). Module-local variables promoted to `window` where required for cross-file reads.
+- **Load Order Constraint:** `index.html` must load modules in dependency order: `data_ag.js` → courses → `audio_ag.js` → `golf_audio_bank.js` → `physics_ag.js` → `ui_ag.js` → `input_ag.js` → `main_ag.js` (last, as it calls functions defined in all other modules).
+
+### 101. v5.31.0 Engine Addendum (Clubhouse Menu Recovery)
+- **Global Menu Bridge:** `window.buildClubhouseMenu` now assigns `window.menuOptions = clubhouseMenu` and `window.menuIndex = clubhouseIndex` at the end of every build, exposing the live menu array and cursor position globally so `input_ag.js` can read them without a direct scope dependency on `ui_ag.js` locals.
+- **Navigation Announce Fix:** `window.announceClubhouse` re-syncs `window.menuOptions` and `window.menuIndex` on every call, ensuring Arrow-key navigation reads from the authoritative window globals. The announced text is drawn from `window.menuOptions[window.menuIndex].text`.
+- **Confirm Function:** Added `window.confirmClubhouseSelection()` to `ui_ag.js`. It executes `window.menuOptions[window.menuIndex].action()`, providing a clean, globally-callable confirm entry point.
+- **Enter Key Fix:** The plain `Enter` branch of the Clubhouse interceptor in `input_ag.js` now calls `window.confirmClubhouseSelection()` rather than directly indexing the module-local `clubhouseMenu` array.
+- **Critical Load-Order Fix:** `ui_ag.js` was absent from `index.html`'s `<script>` list, meaning `window.buildClubhouseMenu` and all menu render functions were silently undefined at runtime. The script tag was added.
+
+### 102. v5.31.1 Engine Addendum (Architecture Sync & Load-Order Optimization)
+- **Script Load Order Enforced:** Corrected the `<script>` tag sequence in `index.html` to match the v5.30.0 dependency contract: `data_ag.js` → courses → `audio_ag.js` → `golf_audio_bank.js` → `physics_ag.js` → `ui_ag.js` → `input_ag.js` → `main_ag.js`. Previously, `main_ag.js` was inserted before `physics_ag.js`, `ui_ag.js`, and `input_ag.js`, causing race conditions where `initGame` could execute before the UI render and physics functions it depends on were defined.
+- **Version Sync:** Updated `<title>`, version `<div>`, and `input_ag.js` header comment to `v5.31.1` for cross-file consistency.
+
 ### 86. v5.1.7 Engine Addendum (Dynamic Help & Foursome Quick Load)
 - **Help Injection:** `helpMenuText` is now dynamically merged with `window.holoHelpData` via `window.currentActiveHelp` if `gameMode === 'range'`. This consolidates the contextual area help and the master keybindings into a single, navigable ARIA list.
 - **Clubhouse UX:** Added "Help & Master Keybindings" to the root Clubhouse menu. Pressing `?` triggers the `ui_nav_06` chime.
