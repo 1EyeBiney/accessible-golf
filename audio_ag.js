@@ -288,3 +288,23 @@ window.playBotWoodsSignature = function(type = 1) {
     }
     window._createAudioSegment(t2, snarlDur, waveType, snarlFreqs, [{t: 0, f: 30}, {t: 1, f: 12}], [{t: 0, f: 800}, {t: 1, f: 150}]);
 };
+
+// v5.22.0 Ambient Audio System
+window.bgMusic = new Audio();
+window.bgAmbient = new Audio();
+window.bgMusic.loop = true;
+window.bgAmbient.loop = true;
+window.bgMusic.volume = 0.3;
+window.bgAmbient.volume = 0.3;
+
+window.playEnvironment = function(musicSrc, ambientSrc) {
+    if (musicSrc) {
+        window.bgMusic.src = musicSrc;
+        window.bgMusic.play().catch(e => console.warn("Audio block:", e));
+    } else { window.bgMusic.pause(); }
+    
+    if (ambientSrc) {
+        window.bgAmbient.src = ambientSrc;
+        window.bgAmbient.play().catch(e => console.warn("Audio block:", e));
+    } else { window.bgAmbient.pause(); }
+};

@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.21.1)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.22.2)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -17,16 +17,22 @@ let lockedImpactTime = 0;
 let windX = 0, windY = 0, windLevelIndex = 0; // v4.13.0 Calm Default
 let aimAngle = 0, stanceIndex = 2, stanceAlignment = 0, isChokedDown = false;
 let hole = 1, par = 4, strokes = 0;
-    // v5.20.0 Course Profiles Architecture (Data Unification Bridge)
-    window.courseData = typeof courses !== 'undefined' ? courses.map(c => {
-        let id = c.name.toLowerCase().replace(/ /g, '_');
-        let desc = "An 18-hole championship layout.";
-        if (c.name.includes("Holo")) desc = "A pristine 18-hole digital championship layout. Fairways, bunkers, and perfect greens.";
-        if (c.name.includes("Pebble")) desc = "A stunning coastal links course. Narrow fairways, severe elevation changes, and tiny greens.";
-        if (c.name.includes("Andrews")) desc = "The birthplace of golf. Wide fairways, massive double greens, and treacherous pot bunkers.";
-        if (c.name.includes("Pasture")) desc = "A chaotic farmland hazard course. Watch out for tractors, cows, and chickens!";
-        return { ...c, id, desc };
-    }) : [];
+let currentBgMusic = null;
+let currentBgAmbient = null;
+    // v5.22.2 Course Profiles Architecture (Dynamic Bridge Getter)
+    Object.defineProperty(window, 'courseData', {
+        get: function() {
+            return typeof courses !== 'undefined' ? courses.map(c => {
+                let id = c.name.toLowerCase().replace(/ /g, '_');
+                let desc = "An 18-hole championship layout.";
+                if (c.name.includes("Holo")) desc = "A pristine 18-hole digital championship layout. Fairways, bunkers, and perfect greens.";
+                if (c.name.includes("Pebble")) desc = "A stunning coastal links course. Narrow fairways, severe elevation changes, and tiny greens.";
+                if (c.name.includes("Andrews")) desc = "The birthplace of golf. Wide fairways, massive double greens, and treacherous pot bunkers.";
+                if (c.name.includes("Pasture")) desc = "A chaotic farmland hazard course. Watch out for tractors, cows, and chickens!";
+                return { ...c, id, desc };
+            }) : [];
+        }
+    });
     window.currentCourse = window.courseData[0]; // Defaults to Holo Links
 let ballX = 0, ballY = 0, pinX = 0, pinY = 420, pinZ = 0;
 let ballZ = 0, targetZ = 0;
@@ -573,11 +579,16 @@ function loadHole(holeNumber) {
         if (holeNumber > course.holes.length) holeNumber = 1; 
         const holeData = course.holes[holeNumber - 1];
 
+        // v5.22.0 Environmental Audio Trigger
+        if (typeof window.playEnvironment === 'function') {
+            window.playEnvironment(holeData.bgMusic, holeData.bgAmbient);
+        }
+
         if (!holeData.landingZones || holeData.landingZones.length === 0) {
             holeData.landingZones = [{ name: "Green Approach", x: holeData.pinX, y: holeData.pinY - 15 }];
         }
         
-        hole = holeData.number;
+        hole = holeData.number || holeNumber;
         par = holeData.par;
         pinX = holeData.pinX;
         pinY = holeData.pinY;
@@ -1080,6 +1091,24 @@ window.loadGame = function() {
 
 window.clearSave = function() {
     try { localStorage.removeItem('ag_save_state'); } catch(e) {}
+};
+
+window.playEnvironment = function(musicSrc, ambientSrc) {
+    if (currentBgMusic) { currentBgMusic.pause(); currentBgMusic.src = ''; }
+    if (currentBgAmbient) { currentBgAmbient.pause(); currentBgAmbient.src = ''; }
+
+    if (musicSrc) {
+        currentBgMusic = new Audio(musicSrc);
+        currentBgMusic.loop = true;
+        currentBgMusic.volume = 0.3;
+        currentBgMusic.play().catch(e => console.warn("Music play prevented:", e));
+    }
+    if (ambientSrc) {
+        currentBgAmbient = new Audio(ambientSrc);
+        currentBgAmbient.loop = true;
+        currentBgAmbient.volume = 1.0;
+        currentBgAmbient.play().catch(e => console.warn("Ambient play prevented:", e));
+    }
 };
 
 // v4.6.0 Spatial Audio Metronome

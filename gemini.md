@@ -413,6 +413,9 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 - **Tone Duration:** Execution feedback tones for Hinge and Impact have been extended to 0.5s.
 - **Scorecard Failsafe:** Added a validation check to `renderScorecard` to ensure an ARIA announcement triggers even if the UI element fails to populate, preventing user disorientation.
 
+### Course Data Architecture
+Course Data Architecture: Core game data (clubs, wind, green contours) lives in `data_ag.js`. `data_ag.js` initializes the global registry with `window.courses = window.courses || [];`. Individual courses are stored as modular files in the `courses/` directory (`course_holodeck.js`, `course_scrapyard.js`, `course_pebble.js`, `course_pasture.js`), each calling `window.courses.push({...})` to register themselves. `index.html` must load `data_ag.js` first, then each course file, then the engine scripts. HTML must be updated when a new course is added.
+
 ### 95. v5.5.1 Engine Addendum (Telemetry Versioning)
 - **Metadata Expansion:** The Markdown Telemetry Dump (`Shift + C`) now includes a `**Engine Version:**` field in the match header. This allows for automated parsing and filtering of simulation data based on the specific version of the AI and physics engine used during the round.
 
@@ -486,3 +489,16 @@ Do not alter these frequencies or wave types. Base gain is boosted by ~1.4x-1.45
 
 ### 112. v5.21.1 Engine Addendum (Architecture Patch)
 - **Telemetry & Putting Hotfix:** Cleaned up the final two legacy `courses[currentCourseIndex]` references missed during the v5.21.0 transition. The engine memory map is now completely unified under `window.currentCourse`.
+
+### 113. v5.22.0 Engine Addendum (The Pasture & Audio)
+- **Farm Course Restoration:** Re-added The Pasture array to `data_ag.js` containing specific lore names, hazard arrays (cows, tractors), and audio paths.
+- **Audio Automation:** Re-established the HTML5 audio controllers in `audio_ag.js` and wired them into the `loadHole` sequence to automatically transition background noise based on the active course data.
+
+### 114. v5.22.1 Engine Addendum (The Pasture Data Patch)
+- **Array Formatting:** Expanded the 18-hole array for The Pasture in `data_ag.js` to fix a truncation error that was deleting the `zones` property and crashing the AI bot initialization.
+
+### 115. v5.22.2 Engine Addendum (Race Condition Hotfix)
+- **Dynamic Bridge Getter:** Converted `window.courseData` into an `Object.defineProperty` getter. This guarantees the UI always pulls the fully initialized `courses` array from `data_ag.js`, preventing the `zones` undefined crash caused by script load order racing.
+
+### 116. v5.22.3 Engine Addendum (Data Truncation Fix)
+- **Programmatic Array Generation:** Replaced the manually expanded array for The Pasture with a compact `Array.from()` generator to bypass IDE truncation limits, restoring the integrity of `data_ag.js`.
