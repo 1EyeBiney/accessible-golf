@@ -427,10 +427,10 @@ window.addEventListener('keydown', (e) => {
                 clubhouseMenu[clubhouseIndex].action();
             } else {
                 // v5.2.0 Mute standard click if it's the Help button
-                if (!clubhouseMenu[clubhouseIndex].text.includes("Help") && typeof window.playGolfSound === 'function') {
+                if (window.menuOptions && !window.menuOptions[window.menuIndex].text.includes("Help") && typeof window.playGolfSound === 'function') {
                     window.playGolfSound('ui_nav_01');
                 }
-                clubhouseMenu[clubhouseIndex].action();
+                if (typeof window.confirmClubhouseSelection === 'function') window.confirmClubhouseSelection();
             }
             return;
         } else if (e.code === 'Escape') {
