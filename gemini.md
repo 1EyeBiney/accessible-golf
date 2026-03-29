@@ -468,6 +468,11 @@ Course Data Architecture: Core game data (clubs, wind, green contours) lives in 
 - **Script Load Order Enforced:** Corrected the `<script>` tag sequence in `index.html` to match the v5.30.0 dependency contract: `data_ag.js` → courses → `audio_ag.js` → `golf_audio_bank.js` → `physics_ag.js` → `ui_ag.js` → `input_ag.js` → `main_ag.js`. Previously, `main_ag.js` was inserted before `physics_ag.js`, `ui_ag.js`, and `input_ag.js`, causing race conditions where `initGame` could execute before the UI render and physics functions it depends on were defined.
 - **Version Sync:** Updated `<title>`, version `<div>`, and `input_ag.js` header comment to `v5.31.1` for cross-file consistency.
 
+### 103. v5.31.2 Engine Addendum (Modular Script Alignment)
+- **Script Block Replaced:** `index.html` now references the fully modular audio and physics files. `audio_ag.js` and `physics_ag.js` (the legacy monoliths) are removed from the `<script>` list. They are replaced by `audio_core.js` (environmental synth engine and ARIA announcer) and the split physics pair `physics_core.js` (base math, wind, shot calculation) + `physics_collisions.js` (terrain queries, AABB hazard resolution, lie penalties).
+- **Final Load Order:** `data_ag.js` → courses → `audio_core.js` → `golf_audio_bank.js` → `physics_core.js` → `physics_collisions.js` → `ui_ag.js` → `input_ag.js` → `main_ag.js`. This ensures all window-globals (e.g. `window.getTerrainAt`, `window.calculateShot`, `window.playGolfSound`) are defined before `main_ag.js`'s `initGame` references them.
+- **Header Version Sync:** Updated header comments in `physics_core.js`, `physics_collisions.js`, `audio_core.js`, `ui_ag.js`, and `input_ag.js` to `v5.31.2`.
+
 ### 86. v5.1.7 Engine Addendum (Dynamic Help & Foursome Quick Load)
 - **Help Injection:** `helpMenuText` is now dynamically merged with `window.holoHelpData` via `window.currentActiveHelp` if `gameMode === 'range'`. This consolidates the contextual area help and the master keybindings into a single, navigable ARIA list.
 - **Clubhouse UX:** Added "Help & Master Keybindings" to the root Clubhouse menu. Pressing `?` triggers the `ui_nav_06` chime.

@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.30.0)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.31.2)
 
 // --- TERRAIN QUERIES ---
 
