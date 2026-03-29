@@ -473,6 +473,18 @@ Course Data Architecture: Core game data (clubs, wind, green contours) lives in 
 - **Final Load Order:** `data_ag.js` → courses → `audio_core.js` → `golf_audio_bank.js` → `physics_core.js` → `physics_collisions.js` → `ui_ag.js` → `input_ag.js` → `main_ag.js`. This ensures all window-globals (e.g. `window.getTerrainAt`, `window.calculateShot`, `window.playGolfSound`) are defined before `main_ag.js`'s `initGame` references them.
 - **Header Version Sync:** Updated header comments in `physics_core.js`, `physics_collisions.js`, `audio_core.js`, `ui_ag.js`, and `input_ag.js` to `v5.31.2`.
 
+### 104. v5.31.3 Engine Addendum (The Pasture Audio Synchronization)
+- **Two-Track Environmental System Verified:** `window.playEnvironment(musicSrc, ambientSrc)` in `audio_core.js` correctly manages two independent `Audio` objects — `currentBgMusic` and `currentBgAmbient` — each looping independently and stopped/replaced atomically on every hole load.
+- **Volume Leveling:** Music layer (`currentBgMusic.volume`) is set to `0.3` (30%) to sit under dialogue and swing audio. Ambient layer (`currentBgAmbient.volume`) is set to `1.0` (100%) for full environmental presence.
+- **Pasture Asset Map Confirmed:** `course_pasture.js` holes 1-3 carry the correct `bgMusic` / `bgAmbient` pairs: Hole 1 (`mu_pasture1.mp3` / `am_farm1.mp3`), Hole 2 (`mu_pasture2.mp3` / `am_cow1.mp3`), Hole 3 (`mu_pasture3.mp3` / `am_coop1.mp3`).
+- **Header Sync:** `audio_core.js` and `course_pasture.js` bumped to `v5.31.3`.
+
+### 105. v5.31.4 Engine Addendum (Audio Path Correction — The Pasture)
+- **Root Cause:** Holes 1–3 in `course_pasture.js` referenced `assets/audio/` as the audio root. This path was never committed to the repository; git history contains no `assets/audio/` directory at any point.
+- **Corrected Path:** All `bgMusic` and `bgAmbient` values for Holes 1–3 updated to `audio/courses/pasture/`, aligning with the existing project `audio/` root and establishing a per-course subfolder convention. Paths: `audio/courses/pasture/mu_pasture1.mp3`, `audio/courses/pasture/am_farm1.mp3`, `audio/courses/pasture/mu_pasture2.mp3`, `audio/courses/pasture/am_cow1.mp3`, `audio/courses/pasture/mu_pasture3.mp3`, `audio/courses/pasture/am_coop1.mp3`.
+- **Asset Status:** Physical `.mp3` files are not yet present; the corrected paths define the canonical target location for when the files are sourced and committed. `window.playEnvironment` silently catches play errors (`console.warn`) so the game boots cleanly without them.
+- **Header Sync:** `course_pasture.js` bumped to `v5.31.4`.
+
 ### 86. v5.1.7 Engine Addendum (Dynamic Help & Foursome Quick Load)
 - **Help Injection:** `helpMenuText` is now dynamically merged with `window.holoHelpData` via `window.currentActiveHelp` if `gameMode === 'range'`. This consolidates the contextual area help and the master keybindings into a single, navigable ARIA list.
 - **Clubhouse UX:** Added "Help & Master Keybindings" to the root Clubhouse menu. Pressing `?` triggers the `ui_nav_06` chime.
