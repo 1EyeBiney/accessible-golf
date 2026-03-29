@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.31.3)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.33.1)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -310,14 +310,26 @@ window.playEnvironment = function(musicSrc, ambientSrc) {
     if (musicSrc) {
         currentBgMusic = new Audio(musicSrc);
         currentBgMusic.loop = true;
-        currentBgMusic.volume = 0.3;
+        currentBgMusic.volume = window.musicVolumeLevels[window.musicVolumeIndex];
         currentBgMusic.play().catch(e => console.warn("Music play prevented:", e));
     }
     if (ambientSrc) {
         currentBgAmbient = new Audio(ambientSrc);
         currentBgAmbient.loop = true;
-        currentBgAmbient.volume = 1.0;
+        currentBgAmbient.volume = window.ambientVolumeLevels[window.ambientVolumeIndex];
         currentBgAmbient.play().catch(e => console.warn("Ambient play prevented:", e));
+    }
+};
+
+window.updateMusicVolume = function() {
+    if (currentBgMusic) {
+        currentBgMusic.volume = window.musicVolumeLevels[window.musicVolumeIndex];
+    }
+};
+
+window.updateAmbientVolume = function() {
+    if (currentBgAmbient) {
+        currentBgAmbient.volume = window.ambientVolumeLevels[window.ambientVolumeIndex];
     }
 };
 

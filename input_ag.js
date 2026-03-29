@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.31.2)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.33.1)
 
 window.confirmingUnplayable = false;
 
@@ -1224,13 +1224,32 @@ window.addEventListener('keydown', (e) => {
             }
             window.updateDashboard();
         }
+        if (e.code === 'KeyB' && e.shiftKey) {
+            e.preventDefault();
+            window.ambientVolumeIndex = (window.ambientVolumeIndex + 1) % window.ambientVolumeLevels.length;
+            window.updateAmbientVolume();
+            const ambPct = Math.round(window.ambientVolumeLevels[window.ambientVolumeIndex] * 100);
+            const ambMsg = "Ambient volume set to " + ambPct + " percent.";
+            document.getElementById('visual-output').innerText = ambMsg;
+            window.announce(ambMsg);
+            return;
+        }
         if (e.code === 'KeyV') {
             e.preventDefault();
-            isChokedDown = !isChokedDown;
-            const gripMsg = isChokedDown ? "Choked down grip. Distance capped at 90 percent. Control increased." : "Full grip. 100 percent distance.";
-            document.getElementById('visual-output').innerText = gripMsg;
-            window.announce(gripMsg);
-            window.updateDashboard();
+            if (e.shiftKey) {
+                window.musicVolumeIndex = (window.musicVolumeIndex + 1) % window.musicVolumeLevels.length;
+                window.updateMusicVolume();
+                const volPct = Math.round(window.musicVolumeLevels[window.musicVolumeIndex] * 100);
+                const volMsg = "Music volume set to " + volPct + " percent.";
+                document.getElementById('visual-output').innerText = volMsg;
+                window.announce(volMsg);
+            } else {
+                isChokedDown = !isChokedDown;
+                const gripMsg = isChokedDown ? "Choked down grip. Distance capped at 90 percent. Control increased." : "Full grip. 100 percent distance.";
+                document.getElementById('visual-output').innerText = gripMsg;
+                window.announce(gripMsg);
+                window.updateDashboard();
+            }
             return;
         }
         if (e.code === 'KeyX') {
@@ -1488,7 +1507,7 @@ window.getKeyDescription = function(code, shift, ctrl) {
         'KeyY': shift ? "Cycles equipped golf ball brand." : "Unassigned key.",
         'KeyX': "Announces the active club and expected 100 percent distance.",
         'KeyS': shift ? "Cycles swing styles backward." : "Cycles swing styles forward.",
-        'KeyV': "Toggles choked down grip for increased control.",
+        'KeyV': shift ? "Cycles the background music volume (0% to 40%)." : "Toggles choked down grip for increased control.",
         'Tab': "Provides a quick summary of hole, stroke, distance, and lie.",
         'KeyT': "Provides a full distance and targeting report.",
         'KeyW': shift ? "Cycles wind conditions in practice modes." : "Reads the current wind speed and direction.",
@@ -1500,7 +1519,7 @@ window.getKeyDescription = function(code, shift, ctrl) {
         'KeyH': "Opens the navigable Hazard and Tree list.",
         'Semicolon': shift ? "Reads your quick timing and spin diagnostics." : "Cycles global green speed (Stimp).",
         'KeyC': shift ? "Copies the raw telemetry data to your clipboard." : "Announces your current club.",
-        'KeyB': "Reads the green elevation and break when putting.",
+        'KeyB': shift ? "Cycles the ambient background volume (0% to 100%)." : "Reads the green elevation and break when putting.",
         'KeyU': "Takes an unplayable lie penalty and drops the ball in the fairway.",
         'KeyE': shift ? "Opens the full scorecard." : "Announces your quick score summary.",
         'KeyP': "Cycles through the Multiplayer Game Pacing modes. Inside Scorecard, swaps players.",

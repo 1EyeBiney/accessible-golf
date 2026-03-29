@@ -535,3 +535,18 @@ Course Data Architecture: Core game data (clubs, wind, green contours) lives in 
 
 ### 116. v5.22.3 Engine Addendum (Data Truncation Fix)
 - **Programmatic Array Generation:** Replaced the manually expanded array for The Pasture with a compact `Array.from()` generator to bypass IDE truncation limits, restoring the integrity of `data_ag.js`.
+
+### v5.33.0 Engine Addendum (Global Music Volume Control)
+- **Volume State Variables:** Injected `window.musicVolumeLevels = [0.0, 0.1, 0.2, 0.3, 0.4]` and `window.musicVolumeIndex = 2` into `main_ag.js`. The engine defaults to 20% music volume on boot.
+- **Dynamic Volume Assignment:** `window.playEnvironment` in `audio_core.js` now assigns `currentBgMusic.volume` from the live `window.musicVolumeLevels[window.musicVolumeIndex]` array instead of a hardcoded `0.3`, ensuring the active index is respected on every hole load.
+- **Live Update Function:** Added `window.updateMusicVolume()` to `audio_core.js`. It directly mutates the `volume` property of the currently playing `currentBgMusic` object, changing audio level instantly without restarting the track.
+- **Shift + V Binding:** Modified the `KeyV` listener in `input_ag.js`. If `Shift` is held, the engine cycles `window.musicVolumeIndex` through the array (wrapping via modulo), calls `window.updateMusicVolume()`, and announces "Music volume set to [X] percent." If no modifier is held, the standard choked-down grip toggle executes unchanged.
+- **Keyboard Explorer Updated:** `window.getKeyDescription` for `KeyV` now returns a shift-conditional string: `"Cycles the background music volume (0% to 40%)."` for Shift, and `"Toggles choked down grip for increased control."` for the base key.
+
+### v5.33.1 Engine Addendum (5% Music Increment & Global Ambient Volume Control)
+- **Music Array Expansion:** `window.musicVolumeLevels` updated to `[0.0, 0.05, 0.1, 0.2, 0.3, 0.4]`, inserting a 5% option for fine-grained control. `window.musicVolumeIndex` corrected to `3` so the default remains 20% (0.2).
+- **Ambient State Variables:** Injected `window.ambientVolumeLevels = [0.0, 0.25, 0.5, 0.75, 1.0]` and `window.ambientVolumeIndex = 4` into `main_ag.js`. The ambient layer defaults to 100% on boot.
+- **Dynamic Ambient Assignment:** `window.playEnvironment` in `audio_core.js` now assigns `currentBgAmbient.volume` from `window.ambientVolumeLevels[window.ambientVolumeIndex]` instead of a hardcoded `1.0`.
+- **Live Update Function:** Added `window.updateAmbientVolume()` to `audio_core.js` directly below `window.updateMusicVolume`. It mutates `currentBgAmbient.volume` in real-time without restarting the track.
+- **Shift + B Binding:** Added a new `KeyB && e.shiftKey` listener inside the `swingState === 0` block in `input_ag.js`, placed immediately above the `KeyV` handler. It cycles `window.ambientVolumeIndex` through the array, calls `window.updateAmbientVolume()`, and announces "Ambient volume set to [X] percent." A hard `return` prevents bleed-through to the unmodified putting `KeyB` (Green Reading) handler below.
+- **Keyboard Explorer Updated:** `window.getKeyDescription` for `KeyB` now returns a shift-conditional string: `"Cycles the ambient background volume (0% to 100%)."` for Shift, and `"Reads the green elevation and break when putting."` for the base key.

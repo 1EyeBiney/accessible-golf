@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.22.2)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.33.1)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -19,6 +19,10 @@ let aimAngle = 0, stanceIndex = 2, stanceAlignment = 0, isChokedDown = false;
 let hole = 1, par = 4, strokes = 0;
 let currentBgMusic = null;
 let currentBgAmbient = null;
+window.musicVolumeLevels = [0.0, 0.05, 0.1, 0.2, 0.3, 0.4];
+window.musicVolumeIndex = 3; // Defaults to 20%
+window.ambientVolumeLevels = [0.0, 0.25, 0.5, 0.75, 1.0];
+window.ambientVolumeIndex = 4; // Defaults to 100%
     // v5.22.2 Course Profiles Architecture (Dynamic Bridge Getter)
     Object.defineProperty(window, 'courseData', {
         get: function() {
