@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.38.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.40.2)
 
 window.confirmingUnplayable = false;
 
@@ -787,18 +787,17 @@ window.addEventListener('keydown', (e) => {
         if (e.code === 'KeyC') {
             e.preventDefault();
             if (e.shiftKey) {
-                let exportData = holeTelemetry.length > 0 ? holeTelemetry.join('\n\n') : lastShotReport;
-                if (gameMode === 'course') {
-                    const holeData = courses[currentCourseIndex].holes[hole - 1];
-                    const header = `## HOLE ${hole} (${holeData.distance}y, Par ${par})\n**Pin:** ${holeData.pinLocation}\n\n`;
-                    exportData = header + exportData;
+                let caddyPanel = document.getElementById('caddy-panel-text');
+                let report = caddyPanel && caddyPanel.innerText ? caddyPanel.innerText : (typeof lastTimingReport !== 'undefined' ? lastTimingReport : "");
+                if (report) {
+                    navigator.clipboard.writeText(report).then(() => {
+                        window.announce("Caddy shot report copied to clipboard.");
+                    }).catch(err => {
+                        window.announce("Failed to copy shot report.");
+                    });
+                } else {
+                    window.announce("No shot report available to copy.");
                 }
-                navigator.clipboard.writeText(exportData).then(() => {
-                    if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_06');
-                    window.announce("Telemetry copied to clipboard.");
-                    const msg = `Copied ${holeTelemetry.length} shots to clipboard.`;
-                    document.getElementById('visual-output').innerText = msg;
-                });
             } else {
                 document.getElementById('visual-output').innerText = lastShotReport; window.announce(lastShotReport);
             }

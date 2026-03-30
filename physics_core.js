@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.40.0)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.40.2)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -116,7 +116,7 @@ function getSetupReport() {
     } else if (gameMode === 'course' && currentLie === 'Mud') {
         const minTotal = Math.round(baseTotal * 0.50);
         const maxTotal = Math.round(baseTotal * 0.70);
-        return `${club.name}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. Buried in thick mud. Style: ${style.name}. Focus: ${focusName}.`;
+        return `${club.name}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. Buried in thick mud. Massive dispersion. Style: ${style.name}. Focus: ${focusName}.`;
     } else {
         return `${club.name}. ${gripReport}100% power hits ${Math.round(baseTotal)} yards. Style: ${style.name}. Focus: ${focusName}.`;
     }
@@ -1372,6 +1372,15 @@ window.getCaddyAdvice = function() {
     let elevationDiff = (typeof targetZ !== 'undefined' && typeof ballZ !== 'undefined') ? (targetZ - ballZ) : 0; // v5.1.2
 
     const style = shotStyles[0]; // Oracle simulates standard full swings
+    // v5.40.2 Mud early-return
+    if (currentLie === 'Mud') {
+        let dynamicLoft = Math.max(0, club.loft + style.loftMod + ((2 - stanceIndex) * 5));
+        let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
+        let baseCarry = club.baseDistance * style.distMod * loftDistMod;
+        let minC = Math.round(baseCarry * 0.50);
+        let maxC = Math.round(baseCarry * 0.70);
+        return `Buried in thick mud. 100% power carries ${minC} to ${maxC} yards and stops dead. Massive dispersion expected.`;
+    }
     let lieMultiplier = 1.0;
     if (currentLie === 'Sand') lieMultiplier = 0.70;
     else if (currentLie === 'Pine Needles') lieMultiplier = 0.90;
