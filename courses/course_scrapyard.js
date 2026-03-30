@@ -1,4 +1,5 @@
-   zones: [{ name: "Fairway Center", x: 0, y: 260 }, { name: "Fairway Upwindow.courses = window.courses || [];
+// course_scrapyard.js - The Texas Scrapyard Course Data (v5.34.6)
+window.courses = window.courses || [];
 window.courses.push({
    name: "The Texas Scrapyard",
    holes: [

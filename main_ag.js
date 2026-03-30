@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.34.4)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.34.6)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -34,6 +34,7 @@ window.ambientVolumeIndex = 4; // Defaults to 100%
                 if (c.name.includes("Pebble")) desc = "A stunning coastal links course. Narrow fairways, severe elevation changes, and tiny greens.";
                 if (c.name.includes("Andrews")) desc = "The birthplace of golf. Wide fairways, massive double greens, and treacherous pot bunkers.";
                 if (c.name.includes("Pasture")) desc = "A chaotic farmland hazard course. Watch out for tractors, cows, and chickens!";
+                if (c.name.includes("Scrapyard")) desc = "A rugged, post-apocalyptic course built through a Texas junk yard. Tight fairways and severe metallic hazards.";
                 return { ...c, id, desc };
             }) : [];
         }
