@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.36.1)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.38.0)
 
 // --- TERRAIN QUERIES ---
 
@@ -297,7 +297,7 @@ window.resolveHazardLie = function(ctx) {
 
     // v5.34.5 Clifford's Tractor Reward (First Shot Fairway - Delayed & Audio Fixed)
     let p = players && players[currentPlayerIndex] ? players[currentPlayerIndex] : { currentLie: 'Tee' };
-    if (hole === 1 && currentLie === "Fairway" && p.currentLie === "Tee") {
+    if (window.currentCourse.name === "The Pasture" && hole === 1 && currentLie === "Fairway" && p.currentLie === "Tee") {
         strokes = 0; // Free Shot
         let bounceAngle = Math.random() * Math.PI;
         ballX += Math.cos(bounceAngle) * 15;
@@ -342,7 +342,7 @@ window.resolveHazardLie = function(ctx) {
     }
 
     // v5.35.0 The Bovine Bounce (Hole 2 Pinball Mechanics)
-    if (hole === 2 && currentLie !== "Green" && totalDistance > 50 && !inWater) {
+    if (window.currentCourse.name === "The Pasture" && hole === 2 && currentLie !== "Green" && totalDistance > 50 && !inWater) {
         // Random 360-degree bounce, 5 to 18 yards
         let bounceDist = 5 + (Math.random() * 13);
         let bounceAngle = Math.random() * Math.PI * 2;
@@ -405,7 +405,7 @@ window.resolveHazardLie = function(ctx) {
     }
 
     // v5.36.0 Foul Plate Roosters (Hole 3 Hazard & Bonus Loot)
-    if (hole === 3 && currentLie !== "Green" && strokes <= 2 && totalDistance > 50 && !inWater) {
+    if (window.currentCourse.name === "The Pasture" && hole === 3 && currentLie !== "Green" && strokes <= 2 && totalDistance > 50 && !inWater) {
         // Micro-bounce, 3 to 6 yards
         let bounceDist = 3 + (Math.random() * 3);
         let bounceAngle = Math.random() * Math.PI * 2;

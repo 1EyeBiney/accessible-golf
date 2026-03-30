@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.37.0)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.38.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -1300,20 +1300,22 @@ window.getCaddyAdvice = function() {
         }
 
         if (bestAim !== null && bestPace !== null) {
-            let aimStr = bestAim === 0 ? "straight" : `${Math.abs(bestAim)} degrees ${bestAim < 0 ? 'Left' : 'Right'}`;
+            let absAim = Math.abs(bestAim);
+            let aimText = absAim < 0.1 ? "aim straight" : `aim ${absAim.toFixed(1)} degrees ${bestAim < 0 ? 'Left' : 'Right'}`;
             let isShort = distToPin <= 5.0;
             let unit = isShort ? "feet" : "yards";
             let paceDisplay = isShort ? `${Math.round(bestPace * 3)}` : `${bestPace}`;
             let distDisplay = isShort ? `${Math.round(distToPin * 3)}` : `${Math.round(distToPin)}`;
-            return `[Oracle Putting]: ${distDisplay} ${unit}. To sink it with perfect timing, aim ${aimStr} and hit it with ${paceDisplay} ${unit} of pace.`;
+            return `[Oracle Putting]: ${distDisplay} ${unit}. To sink it with perfect timing, ${aimText} and hit it with ${paceDisplay} ${unit} of pace.`;
         } else {
             let safeAim = bestMissAim || 0;
             let safePace = bestMissPace || distToPin;
-            let aimStr = safeAim === 0 ? "straight" : `${Math.abs(safeAim)} degrees ${safeAim < 0 ? 'Left' : 'Right'}`;
+            let absAim = Math.abs(safeAim);
+            let aimText = absAim < 0.1 ? "aim straight" : `aim ${absAim.toFixed(1)} degrees ${safeAim < 0 ? 'Left' : 'Right'}`;
             let isShort = distToPin <= 5.0;
             let unit = isShort ? "feet" : "yards";
             let paceDisplay = isShort ? `${Math.round(safePace * 3)}` : `${safePace.toFixed(1)}`;
-            return `[Oracle Putting]: Cannot find a guaranteed make. Best lag option: aim ${aimStr} and hit it with ${paceDisplay} ${unit} of pace.`;
+            return `[Oracle Putting]: Cannot find a guaranteed make. Best lag option: ${aimText} and hit it with ${paceDisplay} ${unit} of pace.`;
         }
     }
 

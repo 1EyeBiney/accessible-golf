@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.33.1)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.38.0)
 
 window.confirmingUnplayable = false;
 
@@ -22,7 +22,7 @@ window.addEventListener('keydown', (e) => {
                 if (typeof holeTelemetry !== 'undefined' && holeTelemetry.length > window.preShotState.telemetryLength) holeTelemetry.pop();
 
                 let p = players[currentPlayerIndex];
-                if (wizardMulligans === 1) p.mulligansUsed = (p.mulligansUsed || 0) + 1;
+                if (window.usingEarnedMulligan) { p.earnedMulligans--; window.usingEarnedMulligan = false; window.announce("Free Chicken Mulligan applied! You have " + p.earnedMulligans + " remaining."); } else if (wizardMulligans === 1) { p.mulligansUsed = (p.mulligansUsed || 0) + 1; }
 
                 let remainStr = wizardMulligans === 1 ? ` You have ${3 - p.mulligansUsed} left.` : " Unlimited remaining.";
                 let msg = `Mulligan taken. Stroke erased and ball returned to previous position.${remainStr} ${Math.round(calculateDistanceToPin())} yards to pin.`;
@@ -30,9 +30,17 @@ window.addEventListener('keydown', (e) => {
                 window.updateDashboard();
             } else if (window.confirmingGimme) {
                 window.confirmingGimme = false;
-                strokes++; puttsThisHole++; isHoleComplete = true;
-                let msg = `Gimme taken. 1 stroke added. Hole complete.`;
-                window.announce(msg); document.getElementById('visual-output').innerText = msg;
+                let p = players[currentPlayerIndex];
+                if (window.usingEarnedGimme) {
+                    p.earnedGimmes--; window.usingEarnedGimme = false;
+                    window.announce("Free Chicken Gimme applied! You have " + p.earnedGimmes + " remaining.");
+                    strokes++; puttsThisHole++; isHoleComplete = true;
+                } else {
+                    if (wizardGimmes === 1) { p.gimmesUsed = (p.gimmesUsed || 0) + 1; }
+                    strokes++; puttsThisHole++; isHoleComplete = true;
+                    let msg = `Gimme taken. 1 stroke added. Hole complete.`;
+                    window.announce(msg); document.getElementById('visual-output').innerText = msg;
+                }
             } else if (window.confirmingSnowman) {
                 window.confirmingSnowman = false;
                 strokes = 8; isHoleComplete = true;
@@ -565,15 +573,17 @@ window.addEventListener('keydown', (e) => {
             e.preventDefault();
             if (gameMode !== 'course') return;
 
+            let p = players[currentPlayerIndex];
             if (e.shiftKey) {
                 if (wizardMaxScore !== 2) { window.announce("Snowman rule is not active in match settings."); return; }
                 window.confirmingSnowman = true;
                 window.announce("Take a Snowman? Your score will be 8 and the hole will end. Press Y to confirm.");
             } else {
+                if (p.earnedMulligans && p.earnedMulligans > 0) { window.usingEarnedMulligan = true; window.confirmingMulligan = true; window.announce("You have a Free Chicken Mulligan! Press Y or Enter to use it."); return; }
+                else { window.usingEarnedMulligan = false; }
                 if (wizardMulligans === 0) { window.announce("Mulligans are disabled in match settings."); return; }
                 if (!window.preShotState || window.preShotState.strokes === strokes) { window.announce("You have not taken a shot yet."); return; }
 
-                let p = players[currentPlayerIndex];
                 let used = p.mulligansUsed || 0;
                 if (wizardMulligans === 1 && used >= 3) { window.announce("You have used all 3 Mulligans for this round."); return; }
 
@@ -588,6 +598,9 @@ window.addEventListener('keydown', (e) => {
         if (e.code === 'KeyG') {
             e.preventDefault();
             if (gameMode !== 'course') return;
+            let p = players[currentPlayerIndex];
+            if (p.earnedGimmes && p.earnedGimmes > 0 && isPutting) { window.usingEarnedGimme = true; window.confirmingGimme = true; window.announce("You have a Free Chicken Gimme! Press Y or Enter to use it."); return; }
+            else { window.usingEarnedGimme = false; }
             if (wizardGimmes === 0) { window.announce("Gimmes are disabled in match settings."); return; }
             if (!isPutting) { window.announce("You must be on the putting green to take a Gimme."); return; }
 
