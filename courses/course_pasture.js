@@ -1,4 +1,4 @@
-// course_pasture.js - The Pasture Course Data (v5.36.1)
+// course_pasture.js - The Pasture Course Data (v5.40.0)
 window.courses = window.courses || [];
 window.courses.push({
     name: "The Pasture",
@@ -29,6 +29,19 @@ window.courses.push({
               { type: "Chicken Flock" }
           ],
           zones: [{x:0, y:250, w:40, h:40}, {x:10, y:410, w:30, h:30}], bgMusic: 'audio/courses/pasture/mu_pasture3.mp3', bgAmbient: 'audio/courses/pasture/am_coop1.mp3', loreName: "Foul Plate" },
-        ...Array.from({length: 15}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
+        {
+            par: 3, distance: 165, greenRadius: 35, pinX: 0, pinY: 165, greenType: "The Pig Tiers",
+            loreName: "Floyd's Mud Bowl",
+            description: "Welcome to Floyd's Mud Bowl. A 165-yard Par 3 featuring a massive, severely contoured three-tier green. Missing the putting surface means landing in the deep wallow of Clifford's prize-winning boar, Floyd. Mud is a devastating new terrain: the ball sinks deep, killing all roll, drastically slashing your swing's sweet spot, and massively increasing shot dispersion. You'll have to chop it out and pray!",
+            fairwayDescription: "There is no fairway. It is a forced carry to the giant green, which is completely surrounded by Floyd's thick mud wallow.",
+            bgMusic: 'audio/courses/pasture/mu_pasture4.mp3',
+            bgAmbient: 'audio/courses/pasture/am_farm1_pig.mp3',
+            bgAmbientPostGreen: 'audio/courses/pasture/am_farm1.mp3',
+            hazards: [
+                { type: "Floyd the Boar (Spectating)", distance: 205, depth: 10, offset: -20, width: 15 }
+            ],
+            zones: [{x:0, y:165, w:70, h:70}]
+        },
+        ...Array.from({length: 14}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
     ]
 });

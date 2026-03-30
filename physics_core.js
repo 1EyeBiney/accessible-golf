@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.38.0)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.40.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -113,6 +113,10 @@ function getSetupReport() {
         const minTotal = Math.round(baseTotal * 0.85);
         const maxTotal = Math.round(baseTotal * 0.95);
         return `${club.name}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. In the rough. Style: ${style.name}. Focus: ${focusName}.`;
+    } else if (gameMode === 'course' && currentLie === 'Mud') {
+        const minTotal = Math.round(baseTotal * 0.50);
+        const maxTotal = Math.round(baseTotal * 0.70);
+        return `${club.name}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. Buried in thick mud. Style: ${style.name}. Focus: ${focusName}.`;
     } else {
         return `${club.name}. ${gripReport}100% power hits ${Math.round(baseTotal)} yards. Style: ${style.name}. Focus: ${focusName}.`;
     }
@@ -540,6 +544,11 @@ function calculateShot(autoMiss = false) {
         // v4.87.0 Pine Straw Lie Penalty
         lieMod = 0.85 + (Math.random() * 0.10);
         lieForgivenessMod = 0.7;
+    } else if (currentLie === 'Mud') {
+        lieMod = 0.5 + (Math.random() * 0.2); // 50% to 70% distance
+        lieDispersionMod = 4.0; // Massive scatter
+        lieForgivenessMod = 0.4; // Tiny sweet spot
+        backspinRPM = Math.round(backspinRPM * 0.1); // Kills spin
     }
 
     // v4.42.0 Risk/Reward Focus Scaling (Fairway)
@@ -948,6 +957,7 @@ function calculateShot(autoMiss = false) {
 
         // v4.32.0 Theatrical Roll & Dramatic Pause (Reduced to 1000ms)
         let isWater = currentLie.toLowerCase().includes("water");
+        let isMud = currentLie === "Mud";
         let rollTimeSecs = Math.max(0, Math.abs(rollDistance) / 10);
         let caddyDelayMs = 500;
 
@@ -956,13 +966,33 @@ function calculateShot(autoMiss = false) {
             caddyDelayMs = 1000;
         }
 
-        if (isWater) {
-            rollTimeSecs = 0; // Kills the roll timer for water shots
-            bounceSequenceMs = 400; // Gives the splash exactly 400ms to play before Caddy talks
-            
-            // v4.29.0 Heavy Splash Audio
-            if (!quick && typeof window.playGolfSound === 'function') window.playGolfSound('hazard_05');
-            else if (!quick && typeof window.playSplash === 'function') window.playSplash(0.5);
+        if (isWater || isMud) {
+            rollTimeSecs = 0;
+            bounceSequenceMs = 400;
+            if (!quick) {
+                if (isWater) {
+                    if (typeof window.playGolfSound === 'function') window.playGolfSound('hazard_05');
+                    else if (typeof window.playSplash === 'function') window.playSplash(0.5);
+                } else if (isMud) {
+                    window.mudSounds = window.mudSounds || ['mud_rock_small1', 'mud_rock_small2', 'mud_rock_small3', 'mud_rock_small4', 'mud_rock_small5', 'mud_rock_small6'];
+                    window.mudSounds.sort(() => Math.random() - 0.5);
+                    let mudFile = window.mudSounds.pop() || 'mud_rock_small1';
+                    if (window.mudSounds.length === 0) window.mudSounds = ['mud_rock_small1', 'mud_rock_small2', 'mud_rock_small3', 'mud_rock_small4', 'mud_rock_small5', 'mud_rock_small6'];
+
+                    if (typeof audioCtx !== 'undefined' && audioCtx) {
+                        let mudAudio = new Audio('audio/courses/pasture/' + mudFile + '.mp3');
+                        mudAudio.volume = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+                        let source = audioCtx.createMediaElementSource(mudAudio);
+                        let panner = audioCtx.createStereoPanner();
+                        panner.pan.value = endPan;
+                        source.connect(panner);
+                        panner.connect(audioCtx.destination);
+                        mudAudio.play().catch(e=>{});
+                    } else {
+                        new Audio('audio/courses/pasture/' + mudFile + '.mp3').play().catch(e=>{});
+                    }
+                }
+            }
         } else {
             // Only bounce and roll if NOT in water
             if (!quick) bounceOffsets.forEach((bounceOffsetMs, bounceIndex) => {

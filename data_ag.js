@@ -1,4 +1,4 @@
-﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v5.22.3)
+﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v5.40.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -62,7 +62,12 @@ const greenDictionary = {
         { startY: 25, endY: 10, slopeX: -0.5, slopeY: 0.1 },
         { startY: 10, endY: 0, slopeX: 0.5, slopeY: 0.1 }
     ],
-    "The Shelf": [{ startY: 40, endY: 0, slopeX: 0.8, slopeY: -0.1 }] // Severe lateral break towards water
+    "The Shelf": [{ startY: 40, endY: 0, slopeX: 0.8, slopeY: -0.1 }], // Severe lateral break towards water
+    "The Pig Tiers": [
+        { startY: 45, endY: 25, slopeX: 0.8, slopeY: 0.6 },
+        { startY: 25, endY: 10, slopeX: -0.9, slopeY: 0.3 },
+        { startY: 10, endY: 0, slopeX: 0.6, slopeY: -0.2 }
+    ]
 };
 
 // --- v2.30.0 Course Data with Hazards ---

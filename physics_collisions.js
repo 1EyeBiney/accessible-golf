@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.38.0)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.40.0)
 
 // --- TERRAIN QUERIES ---
 
@@ -33,6 +33,9 @@ window.getTerrainAt = function(x, y) {
                 terrain = h.type === "Bunker" ? "Sand" : h.type;
             }
         });
+    }
+    if (window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 4 && terrain !== "Green" && terrain !== "Tee") {
+        terrain = "Mud";
     }
     return terrain;
 };
@@ -293,6 +296,11 @@ window.resolveHazardLie = function(ctx) {
         ballX = 0; 
     } else if (gameMode === 'course' && distanceToPin <= greenSize) {
         currentLie = "Green";
+    }
+    if (currentLie === "Mud") {
+        rollStopTriggered = true;
+        rollDistance = 0;
+        totalDistance = carryDistance;
     }
 
     // v5.34.5 Clifford's Tractor Reward (First Shot Fairway - Delayed & Audio Fixed)

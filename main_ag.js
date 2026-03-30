@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.37.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.40.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -246,6 +246,20 @@ window.advanceTurn = function(isPuttingTransition = false) {
                 currentBgAmbient.loop = true;
                 currentBgAmbient.volume = window.ambientVolumeLevels[window.ambientVolumeIndex];
                 currentBgAmbient.play().catch(e => {});
+            }
+        }
+
+        // v5.40.0 Post-Green Ambient Hot-Swap
+        const _holeDataForAmbient = window.currentCourse.holes[hole - 1];
+        let allOnGreen = players.every(p => p.currentLie === 'Green' || p.currentLie === 'Hole' || p.isHoleComplete);
+        if (_holeDataForAmbient && _holeDataForAmbient.bgAmbientPostGreen && allOnGreen) {
+            let targetSrc = _holeDataForAmbient.bgAmbientPostGreen.split('/').pop();
+            if (currentBgAmbient && !currentBgAmbient.src.includes(targetSrc)) {
+                currentBgAmbient.pause();
+                currentBgAmbient = new Audio(_holeDataForAmbient.bgAmbientPostGreen);
+                currentBgAmbient.loop = true;
+                currentBgAmbient.volume = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+                currentBgAmbient.play().catch(e => console.warn("Ambient swap blocked", e));
             }
         }
 
