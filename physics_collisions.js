@@ -37,6 +37,9 @@ window.getTerrainAt = function(x, y) {
     if (window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 4 && terrain !== "Green" && terrain !== "Tee") {
         terrain = "Mud";
     }
+    if (window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 5 && (terrain === "Rough" || terrain === "Light Rough")) {
+        terrain = "Packed Earth";
+    }
     return terrain;
 };
 
@@ -418,8 +421,8 @@ window.resolveHazardLie = function(ctx) {
         }
     }
 
-    // v5.36.0 Foul Plate Roosters (Hole 3 Hazard & Bonus Loot)
-    if (window.currentCourse.name === "The Pasture" && hole === 3 && currentLie !== "Green" && strokes <= 2 && totalDistance > 50 && !inWater) {
+    // v5.36.0 Foul Plate Roosters (Hole 3 Hazard & Bonus Loot) — v5.41.0 expanded to Hole 5
+    if (window.currentCourse.name === "The Pasture" && (hole === 3 || hole === 5) && currentLie !== "Green" && strokes <= 2 && totalDistance > 50 && !inWater) {
         // Micro-bounce, 3 to 6 yards
         let bounceDist = 3 + (Math.random() * 3);
         let bounceAngle = Math.random() * Math.PI * 2;
@@ -513,6 +516,11 @@ window.resolveHazardLie = function(ctx) {
         } else {
             p.consecutiveHazards = 0;
         }
+    }
+
+    if (currentLie === "Packed Earth") {
+        rollDistance = Math.round(rollDistance * 1.5);
+        totalDistance = carryDistance + rollDistance;
     }
 
     return { currentLie, inWater, rollStopTriggered, ballX, ballY, rollDistance, totalDistance, strokes, flightPathNarrative };

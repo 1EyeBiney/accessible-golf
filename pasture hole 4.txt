@@ -1,0 +1,15 @@
+let's work on hole 4, I'd like it to have the following features:
+This is the pig hole and I've got the sound of a solo pig grunting and rooting around in the mud and walking around. I've got it sounding like it is down the hole so he could be surrounding the hole.
+I'd like this to be a par 3 with mud surrounding the green, and make the green larger than normal, maybe 35 yards or whatever is about 45 yards bigger than our usual size. I'd like the green to be severely three tiered so that putts can have 2 distinct changes indirection, like we do on the practice putting green where I can have putts that go both directions and the oracle caddy acknowledges it and I want to be able to hear the putt move across the screen. If the tee shot misses the green, I want to introduce a new terrain: mud and we can go into detail about the physics of the ball from that lie but it's in mud, so should react accordingly with having to dig it out, and mud on the ball and such. balls out of mud should have a very large dispersion circle as you just can't control them well.
+I have the sound of the pig far off by the hole but I think I want to do like we did on hole 1, where once all shots are on the green, then we switch to the standard ambient background sound file. Here are the 2 names of the ambient background files:
+am_farm1_pig.mp3
+am_farm1.mp3
+
+If the ball does not land on the green, I want a grab bag of 6 sound cues to play that sound like a ball landing in mud:
+mud_rock_small1.mp3
+through
+mud_rock_small6.mp3
+The music background for this hole is:
+mu_pasture4.mp3
+
+if you have any questions, ask for clarification, otherwise, use version 5.40.0, files changed, changelog entry, GCA prompt

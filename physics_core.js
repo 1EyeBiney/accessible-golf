@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.40.2)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.41.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -117,6 +117,10 @@ function getSetupReport() {
         const minTotal = Math.round(baseTotal * 0.50);
         const maxTotal = Math.round(baseTotal * 0.70);
         return `${club.name}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. Buried in thick mud. Massive dispersion. Style: ${style.name}. Focus: ${focusName}.`;
+    } else if (gameMode === 'course' && currentLie === 'Packed Earth') {
+        const minTotal = Math.round(baseTotal * 0.95);
+        const maxTotal = Math.round(baseTotal * 1.00);
+        return `${club.name}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. Hard, packed dirt. Style: ${style.name}. Focus: ${focusName}.`;
     } else {
         return `${club.name}. ${gripReport}100% power hits ${Math.round(baseTotal)} yards. Style: ${style.name}. Focus: ${focusName}.`;
     }
@@ -549,6 +553,9 @@ function calculateShot(autoMiss = false) {
         lieDispersionMod = 4.0; // Massive scatter
         lieForgivenessMod = 0.4; // Tiny sweet spot
         backspinRPM = Math.round(backspinRPM * 0.1); // Kills spin
+    } else if (currentLie === 'Packed Earth') {
+        lieMod = 0.95 + (Math.random() * 0.05); // 95% to 100% distance
+        lieForgivenessMod = 0.85; // Tight lie, smaller sweet spot
     }
 
     // v4.42.0 Risk/Reward Focus Scaling (Fairway)
@@ -1384,6 +1391,7 @@ window.getCaddyAdvice = function() {
     let lieMultiplier = 1.0;
     if (currentLie === 'Sand') lieMultiplier = 0.70;
     else if (currentLie === 'Pine Needles') lieMultiplier = 0.90;
+    else if (currentLie === 'Packed Earth') lieMultiplier = 0.95;
     else if (currentLie.includes('Rough')) {
         let rIndex = typeof roughConditionIndex !== 'undefined' ? roughConditionIndex : 1;
         lieMultiplier = (typeof roughConditions !== 'undefined' && roughConditions[rIndex]) ? (roughConditions[rIndex].penalty + 0.025) : 0.875;
@@ -1560,6 +1568,7 @@ window.getOracleBlueprint = function() {
         let lieMultiplier = 1.0;
         if (currentLie === 'Sand') lieMultiplier = 0.70;
         else if (currentLie === 'Pine Needles') lieMultiplier = 0.90;
+        else if (currentLie === 'Packed Earth') lieMultiplier = 0.95;
         else if (currentLie.includes('Rough')) {
             let rIndex = typeof roughConditionIndex !== 'undefined' ? roughConditionIndex : 1;
             lieMultiplier = (typeof roughConditions !== 'undefined' && roughConditions[rIndex]) ? (roughConditions[rIndex].penalty + 0.025) : 0.875;

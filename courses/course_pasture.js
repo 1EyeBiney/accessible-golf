@@ -1,4 +1,4 @@
-// course_pasture.js - The Pasture Course Data (v5.40.0)
+// course_pasture.js - The Pasture Course Data (v5.41.0)
 window.courses = window.courses || [];
 window.courses.push({
     name: "The Pasture",
@@ -42,6 +42,24 @@ window.courses.push({
             ],
             zones: [{x:0, y:165, w:70, h:70}]
         },
-        ...Array.from({length: 14}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
+        {
+            par: 4, distance: 460, greenRadius: 18, pinX: 15, pinY: 460, greenType: "Turtleback",
+            loreName: "The Pecking Order",
+            description: "Welcome to the scratching yard. This 460-yard Par 4 bends sharply around Clifford's massive chicken coop. The rough here has been scratched down to bare, packed earth by the roaming flock. Play safe to the wide left fairway, or try to cut the corner over the coop—just be prepared for some wicked bounces on the hard dirt.",
+            fairwayDescription: "A dogleg right that hinges around a 40-foot coop. The surrounding packed earth gives massive roll-outs, so account for the extra skip when approaching the crowned green.",
+            bgMusic: 'audio/courses/pasture/mu_pasture5.mp3',
+            bgAmbient: 'audio/courses/pasture/am_coop1.mp3',
+            trees: [
+                { name: "The Chicken Coop", x: 25, y: 260, radius: 15, height: 40 }
+            ],
+            hazards: [
+                { type: "Bunker", distance: 440, depth: 15, offset: 15, width: 20 },
+                { type: "Chicken Flock" },
+                { type: "Free-Range Flock (Spectating)", distance: 480, offset: -45 }
+            ],
+            landingZones: [{ name: "Safe Left Fairway", x: -15, y: 260 }, { name: "Aggressive Corner Cut", x: 15, y: 310 }],
+            zones: [{x:-15, y:260, w:30, h:30}, {x:15, y:310, w:30, h:30}]
+        },
+        ...Array.from({length: 13}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
     ]
 });
