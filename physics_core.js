@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.31.2)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.37.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -1258,8 +1258,8 @@ window.getCaddyAdvice = function() {
         let slopeDampener = (distToPin <= 3.0) ? 0.1 : (distToPin <= 6.0) ? 0.35 : 1.0;
         let baseHeading = Math.atan2(pinX - ballX, pinY - ballY);
 
-        for (let p = Math.max(0.5, distToPin * 0.5); p <= distToPin * 2.5; p += 0.25) {
-            for (let a = -45; a <= 45; a += 1) {
+        for (let p = Math.max(0.33, distToPin * 0.5); p <= distToPin * 3.0; p += 0.33) {
+            for (let a = -45; a <= 45; a += 0.2) {
                 let simX = ballX, simY = ballY;
                 let effectivePace = p * ((typeof window.stimpSpeed !== 'undefined' ? window.stimpSpeed : 10) / 10);
                 let speedRemaining = effectivePace; let distTraveled = 0;
@@ -1340,7 +1340,13 @@ window.getCaddyAdvice = function() {
     let elevationDiff = (typeof targetZ !== 'undefined' && typeof ballZ !== 'undefined') ? (targetZ - ballZ) : 0; // v5.1.2
 
     const style = shotStyles[0]; // Oracle simulates standard full swings
-    let lieMultiplier = currentLie === 'Sand' ? 0.70 : (currentLie === 'Light Rough' || currentLie === 'Rough') ? 0.90 : 1.0;
+    let lieMultiplier = 1.0;
+    if (currentLie === 'Sand') lieMultiplier = 0.70;
+    else if (currentLie === 'Pine Needles') lieMultiplier = 0.90;
+    else if (currentLie.includes('Rough')) {
+        let rIndex = typeof roughConditionIndex !== 'undefined' ? roughConditionIndex : 1;
+        lieMultiplier = (typeof roughConditions !== 'undefined' && roughConditions[rIndex]) ? (roughConditions[rIndex].penalty + 0.025) : 0.875;
+    }
 
     const simulatedClubs = [];
     for (let i = 0; i < 14; i++) simulatedClubs.push(clubs[i % clubs.length]);
@@ -1373,8 +1379,8 @@ window.getCaddyAdvice = function() {
 
             let landX = Math.sin(heading) * effectiveCarry + Math.cos(heading) * windCross;
             let landY = Math.cos(heading) * effectiveCarry - Math.sin(heading) * windCross;
-            let finalX = ballX + landX + (Math.sin(heading) * rollDist * 0.8);
-            let finalY = ballY + landY + (Math.cos(heading) * rollDist * 0.8);
+            let finalX = ballX + landX + (Math.sin(heading) * rollDist);
+            let finalY = ballY + landY + (Math.cos(heading) * rollDist);
 
             let miss = Math.sqrt(Math.pow(targetPoint.x - finalX, 2) + Math.pow(targetPoint.y - finalY, 2));
 
@@ -1442,8 +1448,8 @@ window.getOracleBlueprint = function() {
         let slopeDampener = (distToPin <= 3.0) ? 0.1 : (distToPin <= 6.0) ? 0.35 : 1.0;
         let baseHeading = Math.atan2(pinX - ballX, pinY - ballY);
 
-        for (let p = Math.max(0.5, distToPin * 0.5); p <= distToPin * 2.5; p += 0.25) {
-            for (let a = -45; a <= 45; a += 1) {
+        for (let p = Math.max(0.33, distToPin * 0.5); p <= distToPin * 3.0; p += 0.33) {
+            for (let a = -45; a <= 45; a += 0.2) {
                 let simX = ballX, simY = ballY;
                 let effectivePace = p * ((typeof window.stimpSpeed !== 'undefined' ? window.stimpSpeed : 10) / 10);
                 let speedRemaining = effectivePace; let distTraveled = 0;
@@ -1510,7 +1516,13 @@ window.getOracleBlueprint = function() {
         let effectiveDist = distToTarget + elevationDiff;
         // GCA: Use effectiveDist (not raw geometry alone) for club reach logic.
         let allowedStyles = effectiveDist <= 100 ? [0, 1, 2, 3, 4] : [0];
-        let lieMultiplier = currentLie === 'Sand' ? 0.70 : (currentLie === 'Light Rough' || currentLie === 'Rough') ? 0.90 : 1.0;
+        let lieMultiplier = 1.0;
+        if (currentLie === 'Sand') lieMultiplier = 0.70;
+        else if (currentLie === 'Pine Needles') lieMultiplier = 0.90;
+        else if (currentLie.includes('Rough')) {
+            let rIndex = typeof roughConditionIndex !== 'undefined' ? roughConditionIndex : 1;
+            lieMultiplier = (typeof roughConditions !== 'undefined' && roughConditions[rIndex]) ? (roughConditions[rIndex].penalty + 0.025) : 0.875;
+        }
         let best = null;
 
         for (let sIdx of allowedStyles) {
@@ -1552,8 +1564,8 @@ window.getOracleBlueprint = function() {
                     
                     let landX = Math.sin(heading) * effectiveCarry + Math.cos(heading) * windCross;
                     let landY = Math.cos(heading) * effectiveCarry - Math.sin(heading) * windCross;
-                    let finalX = ballX + landX + (Math.sin(heading) * rollDist * 0.8);
-                    let finalY = ballY + landY + (Math.cos(heading) * rollDist * 0.8);
+                    let finalX = ballX + landX + (Math.sin(heading) * rollDist);
+                    let finalY = ballY + landY + (Math.cos(heading) * rollDist);
 
                     let miss = Math.sqrt(Math.pow(targetPoint.x - finalX, 2) + Math.pow(targetPoint.y - finalY, 2));
 

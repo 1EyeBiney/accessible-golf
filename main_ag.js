@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.34.6)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.37.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -359,16 +359,17 @@ window.takeAITurn = function(isSim = false) {
     let blueprint = rawBlueprint || { aimDeg: 0, pace: typeof puttTargetDist !== 'undefined' ? puttTargetDist : 10, clubIndex: currentClubIndex, stanceIndex: 2, styleIndex: 0, power: 100 };
     
     if (isPutting) {
-        // v4.48.1 AI Target Cursor & Zero-Power Fix
+        // v5.37.0 AI Target Cursor & Zero-Power Fix
         let actualDist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 10;
-        puttTargetDist = Math.max(1/3, Math.round(actualDist * 3) / 3); // Snap cursor to exact feet (min 1 foot)
-        p.puttTargetDist = puttTargetDist;
-        
         aimAngle = blueprint.aimDeg !== null ? blueprint.aimDeg : 0;
         let pace = blueprint.pace !== null ? blueprint.pace : actualDist;
         
-        // Calculate power with a stable floor/cap to avoid zero loops and wild overshoots
-        p.botPower = Math.max(5, Math.min(110, Math.round((pace / puttTargetDist) * 100))); 
+        // Dynamically adjust the cursor to the required pace instead of aiming at the hole
+        puttTargetDist = Math.max(1/3, Math.round(pace * 3) / 3); 
+        p.puttTargetDist = puttTargetDist;
+        
+        // Take a smooth 100% swing at the newly adjusted target
+        p.botPower = 100; 
     } else {
         currentClubIndex = blueprint.clubIndex !== undefined && blueprint.clubIndex !== null ? blueprint.clubIndex : 0;
         if (typeof clubs !== 'undefined' && clubs[currentClubIndex]) { club = clubs[currentClubIndex]; }
