@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.34.5)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.35.0)
 
 // --- TERRAIN QUERIES ---
 
@@ -333,6 +333,69 @@ window.resolveHazardLie = function(ctx) {
         }, delayMs);
 
         // Safely push to global timeouts to prevent state bleed
+        if (typeof window.stateTimeouts !== 'undefined') {
+            window.stateTimeouts.push(timeoutId);
+        } else if (stateTimeouts) {
+            stateTimeouts.push(timeoutId);
+        }
+    }
+
+    // v5.35.0 The Bovine Bounce (Hole 2 Pinball Mechanics)
+    if (hole === 2 && currentLie !== "Green" && totalDistance > 50 && !inWater) {
+        // Random 360-degree bounce, 5 to 18 yards
+        let bounceDist = 5 + (Math.random() * 13);
+        let bounceAngle = Math.random() * Math.PI * 2;
+        
+        ballX += Math.cos(bounceAngle) * bounceDist;
+        ballY += Math.sin(bounceAngle) * bounceDist;
+        
+        // Re-evaluate lie after the bounce
+        currentLie = typeof window.getTerrainAt === 'function' ? window.getTerrainAt(ballX, ballY) : "Fairway";
+        rollStopTriggered = true;
+        
+        let bounceMsg = `MOO! Your ball struck a cow and ricocheted ${Math.round(bounceDist)} yards.`;
+        flightPathNarrative = flightPathNarrative ? flightPathNarrative + ' ' + bounceMsg : bounceMsg;
+
+        let delayMs = (hangTimeSecs || 4.5) * 1000;
+        
+        // Calculate stereo pan based on lateral landing position (Assuming 25y is hard pan)
+        let panValue = Math.max(-1, Math.min(1, ballX / 25));
+
+        let timeoutId = setTimeout(() => {
+            // Grab Bag Logic for Cow Audio
+            window.cowSounds = window.cowSounds || ['cow1', 'cow2', 'cow3', 'cow4', 'cow5', 'cow6'];
+            window.cowSounds.sort(() => Math.random() - 0.5); 
+            
+            let cowFile = window.cowSounds.pop() || 'cow1';
+            if (window.cowSounds.length === 0) {
+                window.cowSounds = ['cow1', 'cow2', 'cow3', 'cow4', 'cow5', 'cow6'];
+            }
+            
+            if (typeof audioCtx !== 'undefined' && audioCtx) {
+                let audioEl = new Audio('audio/courses/pasture/' + cowFile + '.mp3');
+                audioEl.volume = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+                
+                // Route through spatial panner
+                let source = audioCtx.createMediaElementSource(audioEl);
+                let panner = audioCtx.createStereoPanner();
+                panner.pan.value = panValue;
+                source.connect(panner);
+                panner.connect(audioCtx.destination);
+                
+                audioEl.play().catch(e => {});
+            } else {
+                // Fallback if audioCtx is suspended
+                let audioEl = new Audio('audio/courses/pasture/' + cowFile + '.mp3');
+                audioEl.play().catch(e => {});
+            }
+            
+            // Soft thud for body impact
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('bunker_04');
+            
+            window.announce(bounceMsg);
+            if (document.getElementById('visual-output')) document.getElementById('visual-output').innerText = bounceMsg;
+        }, delayMs);
+
         if (typeof window.stateTimeouts !== 'undefined') {
             window.stateTimeouts.push(timeoutId);
         } else if (stateTimeouts) {
