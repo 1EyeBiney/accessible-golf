@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.33.1)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.34.4)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.stimpSpeed = 10;
@@ -23,6 +23,7 @@ window.musicVolumeLevels = [0.0, 0.05, 0.1, 0.2, 0.3, 0.4];
 window.musicVolumeIndex = 3; // Defaults to 20%
 window.ambientVolumeLevels = [0.0, 0.25, 0.5, 0.75, 1.0];
 window.ambientVolumeIndex = 4; // Defaults to 100%
+
     // v5.22.2 Course Profiles Architecture (Dynamic Bridge Getter)
     Object.defineProperty(window, 'courseData', {
         get: function() {
@@ -233,6 +234,18 @@ window.advanceTurn = function(isPuttingTransition = false) {
                 loadHole(hole + 1);
             }
             return;
+        }
+
+        // v5.34.3 Tractor Ambient Hot-Swap
+        if (hole === 1 && players.every(p => p.currentLie !== 'Tee')) {
+            const holeData = window.currentCourse.holes[0];
+            if (holeData.bgAmbientPostTee && currentBgAmbient && !currentBgAmbient.src.includes(holeData.bgAmbientPostTee)) {
+                currentBgAmbient.pause();
+                currentBgAmbient = new Audio(holeData.bgAmbientPostTee);
+                currentBgAmbient.loop = true;
+                currentBgAmbient.volume = window.ambientVolumeLevels[window.ambientVolumeIndex];
+                currentBgAmbient.play().catch(e => {});
+            }
         }
 
         let furthestDist = -1;

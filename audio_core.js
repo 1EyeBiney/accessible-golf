@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.33.1)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.34.3)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -516,3 +516,4 @@ window.trigger3DFlight = function(hangTimeSecs, dynamicLoft, startPan, endPan, b
     }
     flightLoop();
 };
+

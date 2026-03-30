@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.31.2)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.34.5)
 
 // --- TERRAIN QUERIES ---
 
@@ -24,6 +24,7 @@ window.getTerrainAt = function(x, y) {
 
     if (holeData.hazards) {
         holeData.hazards.forEach(h => {
+            if (!h.offset || !h.width || !h.distance || !h.depth) return; // Skip flag-only hazard objects
             const hLeft = h.offset - (h.width / 2);
             const hRight = h.offset + (h.width / 2);
             const hStart = h.distance;
@@ -213,7 +214,8 @@ window.resolveHazardLie = function(ctx) {
         gameMode, rangeTargetLie, ballX, ballY, moveX, moveY,
         carryDistance, totalDistance, rollDistance, flightPathNarrative,
         holeData, activeFairwayWidth, distanceToPin, strokes,
-        players, currentPlayerIndex, isBotTurn
+        players, currentPlayerIndex, isBotTurn,
+        hangTimeSecs, stateTimeouts
     } = ctx;
 
     // Dynamic Approach & Apron
@@ -239,6 +241,8 @@ window.resolveHazardLie = function(ctx) {
             const carryX = (ballX - moveX) + (moveX * (carryDistance / totalDistance));
 
             holeData.hazards.forEach(h => {
+                if (!h.offset || !h.width || !h.distance || !h.depth) return; // Skip flag-only hazard objects
+
                 const hLeft = h.offset - (h.width / 2);
                 const hRight = h.offset + (h.width / 2);
                 const hStart = h.distance;
@@ -289,6 +293,51 @@ window.resolveHazardLie = function(ctx) {
         ballX = 0; 
     } else if (gameMode === 'course' && distanceToPin <= greenSize) {
         currentLie = "Green";
+    }
+
+    // v5.34.5 Clifford's Tractor Reward (First Shot Fairway - Delayed & Audio Fixed)
+    if (hole === 1 && currentLie === "Fairway" && strokes === 1) {
+        strokes = 0; // Free Shot
+        let bounceAngle = Math.random() * Math.PI;
+        ballX += Math.cos(bounceAngle) * 15;
+        ballY -= (Math.sin(bounceAngle) * 15) + 5;
+        currentLie = "Fairway";
+        rollStopTriggered = true;
+        
+        let bounceMsg = "CLANG! You hit Clifford's tractor! Your stroke is refunded and the ball bounced backward.";
+        flightPathNarrative = flightPathNarrative ? flightPathNarrative + ' ' + bounceMsg : bounceMsg;
+
+        // Robust fallback if hangTimeSecs isn't passed from physics_core
+        let delayMs = (hangTimeSecs || 4.5) * 1000; 
+
+        let timeoutId = setTimeout(() => {
+            // Grab Bag Logic for Voice Lines
+            window.cliffExclaims = window.cliffExclaims || ['cliff_exclaim1', 'cliff_exclaim2', 'cliff_exclaim3', 'cliff_exclaim4'];
+            window.cliffExclaims.sort(() => Math.random() - 0.5); // Shuffle
+            
+            let exclaimFile = window.cliffExclaims.pop() || 'cliff_exclaim1';
+            
+            // Refill array if empty for the next player
+            if (window.cliffExclaims.length === 0) {
+                window.cliffExclaims = ['cliff_exclaim1', 'cliff_exclaim2', 'cliff_exclaim3', 'cliff_exclaim4'];
+            }
+            
+            let audioEl = new Audio('audio/courses/pasture/' + exclaimFile + '.mp3');
+            audioEl.volume = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+            audioEl.play().catch(e => console.warn("Tractor audio blocked", e));
+
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('bunker_33');
+            
+            window.announce(bounceMsg);
+            if (document.getElementById('visual-output')) document.getElementById('visual-output').innerText = bounceMsg;
+        }, delayMs);
+
+        // Safely push to global timeouts to prevent state bleed
+        if (typeof window.stateTimeouts !== 'undefined') {
+            window.stateTimeouts.push(timeoutId);
+        } else if (stateTimeouts) {
+            stateTimeouts.push(timeoutId);
+        }
     }
 
     // v5.0.7 Bot Infinite Hazard Loop Failsafe
