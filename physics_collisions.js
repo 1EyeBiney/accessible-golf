@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.40.0)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.40.1)
 
 // --- TERRAIN QUERIES ---
 
@@ -297,6 +297,12 @@ window.resolveHazardLie = function(ctx) {
     } else if (gameMode === 'course' && distanceToPin <= greenSize) {
         currentLie = "Green";
     }
+
+    // v5.40.1 Floyd's Mud Override
+    if (window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 4 && currentLie !== "Green" && !inWater) {
+        currentLie = "Mud";
+    }
+
     if (currentLie === "Mud") {
         rollStopTriggered = true;
         rollDistance = 0;
