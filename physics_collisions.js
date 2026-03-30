@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.35.0)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.36.1)
 
 // --- TERRAIN QUERIES ---
 
@@ -296,7 +296,8 @@ window.resolveHazardLie = function(ctx) {
     }
 
     // v5.34.5 Clifford's Tractor Reward (First Shot Fairway - Delayed & Audio Fixed)
-    if (hole === 1 && currentLie === "Fairway" && strokes === 1) {
+    let p = players && players[currentPlayerIndex] ? players[currentPlayerIndex] : { currentLie: 'Tee' };
+    if (hole === 1 && currentLie === "Fairway" && p.currentLie === "Tee") {
         strokes = 0; // Free Shot
         let bounceAngle = Math.random() * Math.PI;
         ballX += Math.cos(bounceAngle) * 15;
@@ -392,6 +393,84 @@ window.resolveHazardLie = function(ctx) {
             // Soft thud for body impact
             if (typeof window.playGolfSound === 'function') window.playGolfSound('bunker_04');
             
+            window.announce(bounceMsg);
+            if (document.getElementById('visual-output')) document.getElementById('visual-output').innerText = bounceMsg;
+        }, delayMs);
+
+        if (typeof window.stateTimeouts !== 'undefined') {
+            window.stateTimeouts.push(timeoutId);
+        } else if (stateTimeouts) {
+            stateTimeouts.push(timeoutId);
+        }
+    }
+
+    // v5.36.0 Foul Plate Roosters (Hole 3 Hazard & Bonus Loot)
+    if (hole === 3 && currentLie !== "Green" && strokes <= 2 && totalDistance > 50 && !inWater) {
+        // Micro-bounce, 3 to 6 yards
+        let bounceDist = 3 + (Math.random() * 3);
+        let bounceAngle = Math.random() * Math.PI * 2;
+        
+        ballX += Math.cos(bounceAngle) * bounceDist;
+        ballY += Math.sin(bounceAngle) * bounceDist;
+        
+        currentLie = typeof window.getTerrainAt === 'function' ? window.getTerrainAt(ballX, ballY) : "Fairway";
+        rollStopTriggered = true;
+        
+        // Randomly award a Mulligan or Gimme
+        let rewardType = Math.random() < 0.5 ? "Mulligan" : "Gimme";
+        if (typeof players !== 'undefined' && players[currentPlayerIndex]) {
+            let p = players[currentPlayerIndex];
+            if (rewardType === "Mulligan") p.earnedMulligans = (p.earnedMulligans || 0) + 1;
+            else p.earnedGimmes = (p.earnedGimmes || 0) + 1;
+        }
+        
+        let bounceMsg = `BRAWK! You beaned a rooster! It dropped a free ${rewardType}! The ball settled ${Math.round(bounceDist)} yards away.`;
+        flightPathNarrative = flightPathNarrative ? flightPathNarrative + ' ' + bounceMsg : bounceMsg;
+
+        let delayMs = (hangTimeSecs || 4.5) * 1000;
+        let panValue = Math.max(-1, Math.min(1, ballX / 25));
+
+        let timeoutId = setTimeout(() => {
+            // Grab Bag Logic for Rooster Audio
+            window.roosterSounds = window.roosterSounds || ['rooster1', 'rooster2', 'rooster3', 'rooster4', 'rooster5', 'rooster6'];
+            window.roosterSounds.sort(() => Math.random() - 0.5); 
+            
+            let roosterFile = window.roosterSounds.pop() || 'rooster1';
+            if (window.roosterSounds.length === 0) {
+                window.roosterSounds = ['rooster1', 'rooster2', 'rooster3', 'rooster4', 'rooster5', 'rooster6'];
+            }
+            
+            if (typeof audioCtx !== 'undefined' && audioCtx) {
+                let vol = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+                
+                // Play Rooster Sound
+                let audioEl = new Audio('audio/courses/pasture/' + roosterFile + '.mp3');
+                audioEl.volume = vol;
+                let source = audioCtx.createMediaElementSource(audioEl);
+                let panner = audioCtx.createStereoPanner();
+                panner.pan.value = panValue;
+                source.connect(panner);
+                panner.connect(audioCtx.destination);
+                audioEl.play().catch(e => {});
+
+                // Play Bonus Sound 800ms later
+                setTimeout(() => {
+                    let audioBonus = new Audio('audio/courses/pasture/freechicken.mp3');
+                    audioBonus.volume = vol;
+                    let bonusSource = audioCtx.createMediaElementSource(audioBonus);
+                    let bonusPanner = audioCtx.createStereoPanner();
+                    bonusPanner.pan.value = panValue;
+                    bonusSource.connect(bonusPanner);
+                    bonusPanner.connect(audioCtx.destination);
+                    audioBonus.play().catch(e => {});
+                }, 800);
+
+            } else {
+                new Audio('audio/courses/pasture/' + roosterFile + '.mp3').play().catch(e => {});
+                setTimeout(() => { new Audio('audio/courses/pasture/freechicken.mp3').play().catch(e => {}); }, 800);
+            }
+            
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('bunker_04');
             window.announce(bounceMsg);
             if (document.getElementById('visual-output')) document.getElementById('visual-output').innerText = bounceMsg;
         }, delayMs);
