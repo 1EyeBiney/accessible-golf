@@ -1,4 +1,4 @@
-// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v5.45.0)
+// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v5.48.1)
 
 // v4.10.0 Scorecard System
 
@@ -426,24 +426,24 @@ window.buildClubhouseMenu = function() {
             wizardRoster[wizardSlot] = { name: "Tour-Pro Ted", isBot: true, skill: 3, iBias: 0, hBias: 0, focus: 3, ball: 0 };
             clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
-        clubhouseMenu.push({ text: "Bot Woods", action: () => {
-            wizardRoster[wizardSlot] = { name: "Bot Woods", isBot: true, skill: 3, iBias: 0, hBias: 0, focus: 1, ball: 0 };
+        clubhouseMenu.push({ text: "Bot Rory (The Bomber)", action: () => {
+            wizardRoster[wizardSlot] = { name: "Bot Rory", isBot: true, skill: 3, iBias: -15, hBias: 12, focus: 1, ball: 0 };
             clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
-        clubhouseMenu.push({ text: "Bot Golden Bear", action: () => {
+        clubhouseMenu.push({ text: "Bot Golden Bear (The Tactician)", action: () => {
             wizardRoster[wizardSlot] = { name: "Bot Golden Bear", isBot: true, skill: 3, iBias: 15, hBias: 0, focus: 4, ball: 0 };
             clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
-        clubhouseMenu.push({ text: "Bot Strickler", action: () => {
-            wizardRoster[wizardSlot] = { name: "Bot Strickler", isBot: true, skill: 3, iBias: 0, hBias: 0, focus: 2, ball: 0 };
-            clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
-        }});
-        clubhouseMenu.push({ text: "Bot Lefty", action: () => {
+        clubhouseMenu.push({ text: "Bot Lefty (The Thrill)", action: () => {
             wizardRoster[wizardSlot] = { name: "Bot Lefty", isBot: true, skill: 3, iBias: -25, hBias: 10, focus: 5, ball: 0 };
             clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
-        clubhouseMenu.push({ text: "Back (Escape)", action: () => {
-            clubhouseState = 'roster_type'; clubhouseIndex = 2; window.buildClubhouseMenu(); window.announceClubhouse(true);
+        clubhouseMenu.push({ text: "Bot Seve (The Magician)", action: () => {
+            wizardRoster[wizardSlot] = { name: "Bot Seve", isBot: true, skill: 3, iBias: -10, hBias: 0, focus: 5, ball: 0 };
+            clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
+        }});
+        clubhouseMenu.push({ text: "Go Back", action: () => {
+            clubhouseState = 'roster_type'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
     }
     else if (clubhouseState === 'settings') {
