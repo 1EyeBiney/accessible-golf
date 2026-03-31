@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.45.0)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.46.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -822,9 +822,9 @@ function calculateShot(autoMiss = false) {
     lastTimingReport = `[${pName}] Timing Check. Power ${finalPower} percent. Hinge ${Math.abs(hingeDiff)}ms ${hingeWord}. Impact ${Math.abs(impactDiff)}ms ${impactWord}. Side Spin: ${Math.abs(sideSpinRPM)} RPM ${sideSpinShape}. Backspin: ${backspinRPM} RPM, ${deltaStr}.\n[Oracle Says: ${advice}]`;
 
     let chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
-    let loftDistMod = 1 + ((stanceIndex - 2) * 0.03);
+    let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
 
-    let potentialDist = club.baseDistance * (finalPower / 100) * (1 + (hingeTimeBack / 2000 * 0.15)) * currentStyle.distMod * lieMod * loftDistMod * chokeMod;
+    let potentialDist = club.baseDistance * (finalPower / 100) * currentStyle.distMod * lieMod * loftDistMod * chokeMod;
     let totalDistance = Math.round(potentialDist * dampening * hingeDistanceMod); // v4.88.0 hingeDistanceMod replaces hinge exponential
 
     let activeRollMod = currentStyle.rollMod;
@@ -1073,7 +1073,7 @@ function calculateShot(autoMiss = false) {
     if (gameMode === 'course' && window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 6 && typeof totalDistance !== 'undefined' && totalDistance > 25 && currentLie !== "Green" && !quick) {
         let gustNum = Math.floor(Math.random() * 6) + 1;
         let gustAudio = new Audio(`audio/swings/wind_gust${gustNum}.mp3`);
-        gustAudio.volume = (typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0) * 0.8;
+        gustAudio.volume = (typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0);
         stateTimeouts.push(setTimeout(() => {
             gustAudio.play().catch(e => console.warn("Gust audio missing:", e));
         }, 600));
