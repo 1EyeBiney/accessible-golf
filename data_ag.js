@@ -1,4 +1,4 @@
-﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v5.41.0)
+﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v5.43.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -76,6 +76,11 @@ window.greenDictionary["Turtleback"] = [
     { startY: 25, endY: 15, slopeX: 0.0, slopeY: -0.4 },
     { startY: 15, endY: 8,  slopeX: 0.0, slopeY: 0.0  },
     { startY: 8,  endY: 0,  slopeX: 0.0, slopeY: 0.5  }
+];
+window.greenDictionary["The Egg"] = [
+    { startY: 35, endY: 25, slopeX: 0.0, slopeY: -0.6 }, // Massive false front
+    { startY: 25, endY: 10, slopeX: 0.2, slopeY: 0.1 },  // Left-to-right feed
+    { startY: 10, endY: 0, slopeX: -0.3, slopeY: 0.2 }   // Narrow back, right-to-left
 ];
 
 // --- v2.30.0 Course Data with Hazards ---

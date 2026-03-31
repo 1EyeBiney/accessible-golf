@@ -1,4 +1,4 @@
-// course_pasture.js - The Pasture Course Data (v5.42.2)
+// course_pasture.js - The Pasture Course Data (v5.43.0)
 window.courses = window.courses || [];
 window.courses.push({
     name: "The Pasture",
@@ -62,6 +62,21 @@ window.courses.push({
             landingZones: [{ name: "Safe Left Fairway", x: -15, y: 260 }, { name: "Aggressive Corner Cut", x: 15, y: 310 }],
             zones: [{x:-15, y:260, w:30, h:30}, {x:15, y:310, w:30, h:30}]
         },
-        ...Array.from({length: 13}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
+        {
+            number: 6, par: 4, distance: 380, greenRadius: 16, pinX: 0, pinY: 380, greenType: "The Egg",
+            fairwayWidth: 45, pinLocation: "Center",
+            loreName: "Clifford's Box Fan",
+            description: "Clifford's farmhouse A/C broke last week, so he hooked a V8 engine to the old windmill to cool his back porch. It now blasts a relentless 15mph gale straight down this 380-yard fairway. Keep your shots dead center, or the fan's outward draft will blow your ball into the next county. A massive catch-bunker awaits anything hit long over the egg-shaped green.",
+            fairwayDescription: "You are staring right down the barrel of the windmill. The wind is howling in your face. The green is wide in the front with a brutal false front, but narrows sharply in the back.",
+            bgMusic: 'audio/courses/pasture/mu_pasture6.mp3',
+            bgAmbient: 'audio/courses/pasture/am_farm1_windmill.mp3',
+            bgAmbientPostGreen: 'audio/courses/pasture/am_farm1.mp3',
+            hazards: [
+                { type: "Bunker", distance: 400, depth: 20, offset: 0, width: 60 }
+            ],
+            landingZones: [{ name: "Fight the Wind", x: 0, y: 220 }, { name: "Aggressive Approach", x: 0, y: 280 }],
+            zones: [{x:0, y:220, w:30, h:30}, {x:0, y:280, w:30, h:30}]
+        },
+        ...Array.from({length: 12}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
     ]
 });

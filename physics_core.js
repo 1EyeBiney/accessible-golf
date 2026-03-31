@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.42.2)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.43.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -98,6 +98,11 @@ function calculateDistanceToTarget() {
 }
 
 function generateWind() {
+    if (gameMode === 'course' && window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 6 && currentLie !== "Green" && currentLie !== "Hole") {
+        let dx = ballX - 0; let dy = ballY - 395; let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        windX = Math.round((dx / dist) * 15); windY = Math.round((dy / dist) * 15);
+        return;
+    }
     const level = windLevels[windLevelIndex];
     let magX = Math.floor(Math.random() * (level.max - level.min + 1)) + level.min;
     let magY = Math.floor(Math.random() * (level.max - level.min + 1)) + level.min;
@@ -106,6 +111,15 @@ function generateWind() {
 }
 
 function driftWind() {
+    if (gameMode === 'course' && window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 6 && currentLie !== "Green" && currentLie !== "Hole") {
+        let dx = ballX - 0;
+        let dy = ballY - 395; // Windmill parked 15 yards behind pin
+        let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        windX = Math.round((dx / dist) * 15);
+        windY = Math.round((dy / dist) * 15);
+        if (typeof window.updateDashboard === 'function') window.updateDashboard();
+        return;
+    }
     const level = windLevels[windLevelIndex];
     let driftX = Math.floor(Math.random() * (level.variance * 2 + 1)) - level.variance;
     let driftY = Math.floor(Math.random() * (level.variance * 2 + 1)) - level.variance;
@@ -717,6 +731,16 @@ function calculateShot(autoMiss = false) {
             blastAudio.volume = 0.9;
             blastAudio.play().catch(e => console.warn("Iron bullseye audio missing:", e));
         }
+    }
+
+    // v5.43.0 Hole 6 Wind Gust Audio
+    if (gameMode === 'course' && window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 6 && totalDistance > 25 && currentLie !== "Green" && !quick) {
+        let gustNum = Math.floor(Math.random() * 6) + 1;
+        let gustAudio = new Audio(`audio/swings/wind_gust${gustNum}.mp3`);
+        gustAudio.volume = (typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0) * 0.8;
+        stateTimeouts.push(setTimeout(() => {
+            gustAudio.play().catch(e => console.warn("Gust audio missing:", e));
+        }, 600)); // Play just after impact execution pings
     }
 
     // v5.6.0 Extended Feedback Tails
