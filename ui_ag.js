@@ -1,4 +1,4 @@
-// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v5.42.2)
+// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v5.45.0)
 
 // v4.10.0 Scorecard System
 
@@ -450,8 +450,8 @@ window.buildClubhouseMenu = function() {
         clubhouseMenu.push({ text: `Starting Wind: ${windLevels[wizardWind].name}`, action: () => {
             wizardWind = (wizardWind + 1) % windLevels.length; window.buildClubhouseMenu(); window.announceClubhouse(false);
         }});
-        clubhouseMenu.push({ text: `Green Stimp Speed: ${wizardStimp}`, action: () => {
-            wizardStimp = wizardStimp >= 14 ? 8 : wizardStimp + 1; window.buildClubhouseMenu(); window.announceClubhouse(false);
+        clubhouseMenu.push({ text: `Tournament Greens: ${wizardTournamentGreens ? "ON (Stimp 13)" : "OFF (Stimp 10)"}`, action: () => {
+            wizardTournamentGreens = !wizardTournamentGreens; window.buildClubhouseMenu(); window.announceClubhouse(false);
         }});
         clubhouseMenu.push({ text: `Rough Condition: ${roughConditions[wizardRough].name}`, action: () => {
             wizardRough = (wizardRough + 1) % roughConditions.length; window.buildClubhouseMenu(); window.announceClubhouse(false);
@@ -477,7 +477,7 @@ window.buildClubhouseMenu = function() {
             
             currentCourseIndex = wizardCourse;
             windLevelIndex = wizardWind; generateWind();
-            window.stimpSpeed = wizardStimp;
+            window.tournamentGreens = wizardTournamentGreens;
             roughConditionIndex = wizardRough; 
             pacingModeIndex = 0; // v4.90.0 Failsafe: Hardcode to Fast Pacing
             

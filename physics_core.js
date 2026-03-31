@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.44.2)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.45.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -278,13 +278,24 @@ function calculateShot(autoMiss = false) {
         let impactDiff = isBotTurn ? players[currentPlayerIndex].botImpact : (devImpact ? 0 : Math.round((performance.now() - impactStartTime) - dropDurationMs));
         let hingeDiff = isBotTurn ? players[currentPlayerIndex].botHinge : (devHinge ? 0 : Math.round(hingeTimeDown - hingeTimeBack));
         if (isBotTurn) finalPower = players[currentPlayerIndex].botPower;
-        
+
+        // v5.45.0 Tournament Greens Speed
+        let effectiveStimp = (typeof window.tournamentGreens !== 'undefined' && window.tournamentGreens) ? 13 : 10;
+        // v5.45.0 Bot Pace Scatter on Tournament Greens
+        if (isBotTurn && effectiveStimp === 13) {
+            let _botName = typeof players !== 'undefined' && players.length > 0 ? players[currentPlayerIndex].name : "";
+            if (_botName.includes("Bot")) {
+                let paceError = (Math.random() - 0.5) * 0.16;
+                finalPower = finalPower * (1 + paceError);
+            }
+        }
+
         // Touch Mechanic (Spacebar Hinge becomes Tempo)
         let accuracyScore = Math.max(10, 100 - (Math.abs(impactDiff) / 2.5));
 
         // v4.36.1 Linear Touch Magnetism (Putting)
         let startDistToPin = Math.sqrt(Math.pow(ballX - pinX, 2) + Math.pow(ballY - pinY, 2));
-        let slopeDampener = (startDistToPin <= 3.0) ? 0.1 : (startDistToPin <= 6.0) ? 0.35 : 1.0;
+        let slopeDampener = 1.0; // v5.45.0 - Uncapped break
 
         // v4.42.0 Difficulty Scaling & Risk/Reward Focus (Putting)
         let diffScale = typeof difficultyLevels !== 'undefined' ? difficultyLevels[difficultyIndex] : { impactMod: 1.0, hingeMod: 1.0, reflexBuffer: 105, dispersionMod: 1.0 };
@@ -302,8 +313,14 @@ function calculateShot(autoMiss = false) {
         }
 
         let tempoBonus = 1.0;
-        if (focusIndex === 2) { // Touch Focus
-            tempoBonus = Math.max(0.5, 1.0 + (1.5 * focusEffect)); // Max 2.5x, Min 0.5x
+        if (focusIndex === 2) { // v5.45.0 Touch Focus: 5-Tier Magnetism System
+            if (absHinge <= p50) {
+                tempoBonus = effectiveStimp === 13 ? 1.5 : 4.0;     // Tier 1: Perfect touch
+            } else if (absHinge <= p150) {
+                tempoBonus = effectiveStimp === 13 ? 1.0 : 2.0;     // Tier 2: Moderate touch
+            } else {
+                tempoBonus = 0.5;                                    // Tier 3: Bad touch
+            }
         }
 
         let baseHoleRadius = 0.15;
@@ -340,7 +357,7 @@ function calculateShot(autoMiss = false) {
 
         let distTraveled = 0;
         let simX = ballX, simY = ballY;
-        let stimpMod = (typeof window.stimpSpeed !== 'undefined' ? window.stimpSpeed : 10) / 10;
+        let stimpMod = effectiveStimp / 10;
         let speedRemaining = puttTargetDist * (finalPower / 100) * stimpMod;
         // v4.7.2 Apply the aim angle relative to the pin
         let currentHeading = baseHeading + (aimAngle * (Math.PI / 180));
@@ -862,6 +879,7 @@ function calculateShot(autoMiss = false) {
     const moveY = Math.cos(finalRad) * totalDistance - Math.sin(finalRad) * lateralTotal;
     const moveX = Math.sin(finalRad) * totalDistance + Math.cos(finalRad) * lateralTotal;
 
+    const shotOriginDistToPin = calculateDistanceToPin(); // v5.45.0 Chip-In Reference
     ballY += moveY;
     ballX += moveX;
 
@@ -992,8 +1010,11 @@ function calculateShot(autoMiss = false) {
         const finalRelX = ballX - pinX;
         const finalDistToPin = Math.sqrt(Math.pow(finalRelX, 2) + Math.pow(finalRelY, 2));
 
+        // v5.45.0 Tier 4: Chip-In Gravity Well / Touch Focus Hole-Out
         let touchBonus = 1.0;
-        if (focusIndex === 2) {
+        if (shotOriginDistToPin < 60 && accuracyScore >= 95 && Math.abs(hingeDiff) <= 15) {
+            touchBonus = 6.0; // Tier 4: Chip-in gravity well
+        } else if (focusIndex === 2) {
             touchBonus = Math.max(0.5, 1.0 + (2.0 * focusEffect)); // Max 3.0x, Min 0.5x
         }
 
@@ -1416,13 +1437,13 @@ window.getCaddyAdvice = function() {
         let tempoBonus = 1.0; // Standard hole size assumption
         let baseHoleRadius = 0.15;
         let activeHoleRadius = ((distToPin <= 2.0) ? (baseHoleRadius * 3.0) : baseHoleRadius) * tempoBonus;
-        let slopeDampener = (distToPin <= 3.0) ? 0.1 : (distToPin <= 6.0) ? 0.35 : 1.0;
+        let slopeDampener = 1.0; // Oracle mirrors v5.45.0 uncapped break
         let baseHeading = Math.atan2(pinX - ballX, pinY - ballY);
 
         for (let p = Math.max(0.33, distToPin * 0.5); p <= distToPin * 3.0; p += 0.33) {
             for (let a = -45; a <= 45; a += 0.2) {
                 let simX = ballX, simY = ballY;
-                let effectivePace = p * ((typeof window.stimpSpeed !== 'undefined' ? window.stimpSpeed : 10) / 10);
+                let effectivePace = p * (((typeof window.tournamentGreens !== 'undefined' && window.tournamentGreens) ? 13 : 10) / 10);
                 let speedRemaining = effectivePace; let distTraveled = 0;
                 let currentHeading = baseHeading + (a * (Math.PI / 180));
                 let madeIt = false;
@@ -1619,13 +1640,13 @@ window.getOracleBlueprint = function() {
         let bestMissDist = 9999; let bestMissAim = 0; let bestMissPace = distToPin;
         let baseHoleRadius = 0.15;
         let activeHoleRadius = ((distToPin <= 2.0) ? (baseHoleRadius * 3.0) : baseHoleRadius);
-        let slopeDampener = (distToPin <= 3.0) ? 0.1 : (distToPin <= 6.0) ? 0.35 : 1.0;
+        let slopeDampener = 1.0; // Oracle mirrors v5.45.0 uncapped break
         let baseHeading = Math.atan2(pinX - ballX, pinY - ballY);
 
         for (let p = Math.max(0.33, distToPin * 0.5); p <= distToPin * 3.0; p += 0.33) {
             for (let a = -45; a <= 45; a += 0.2) {
                 let simX = ballX, simY = ballY;
-                let effectivePace = p * ((typeof window.stimpSpeed !== 'undefined' ? window.stimpSpeed : 10) / 10);
+                let effectivePace = p * (((typeof window.tournamentGreens !== 'undefined' && window.tournamentGreens) ? 13 : 10) / 10);
                 let speedRemaining = effectivePace; let distTraveled = 0;
                 let currentHeading = baseHeading + (a * (Math.PI / 180));
                 let madeIt = false;

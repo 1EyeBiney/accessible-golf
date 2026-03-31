@@ -1,7 +1,7 @@
 // main_ag.js - Game State, Variables, and Swing Sequence (v5.40.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
-window.stimpSpeed = 10;
+window.tournamentGreens = false;
 let isPracticeSwing = false;
 let devPower = false, devHinge = false, devImpact = false;
 let pacingModeIndex = 0; // 0: Fast, 1: Medium, 2: Slow, 3: Manual
@@ -123,7 +123,7 @@ let wizardSize = 1;
 let wizardRoster = []; 
 let wizardSlot = 0;
 let wizardWind = 0;
-let wizardStimp = 10;
+let wizardTournamentGreens = false;
 let wizardRough = 1;
 let wizardMulligans = 1; // 0: Off, 1: 3 Per Round, 2: Unlimited
 let wizardGimmes = 1; // 0: Off, 1: Manual Only, 2: Auto <3ft, 3: Auto <6ft
@@ -817,7 +817,7 @@ window.saveGame = function() {
         currentClubIndex, shotStyleIndex,
         roundData, puttsThisHole, currentHoleStats, roundHighlights,
         players, currentPlayerIndex, activePlayerCount,
-        wizardWind, wizardStimp, wizardRough, wizardMulligans, wizardGimmes, wizardMaxScore,
+        wizardWind, wizardTournamentGreens, wizardRough, wizardMulligans, wizardGimmes, wizardMaxScore,
         hasHeardHoloOrientation: window.hasHeardHoloOrientation,
     };
     try { localStorage.setItem('ag_save_state', JSON.stringify(state)); } catch(e) {}
@@ -849,7 +849,7 @@ window.loadGame = function() {
         activePlayerCount = state.activePlayerCount || 2;
 
         wizardWind = state.wizardWind || 0;
-        wizardStimp = state.wizardStimp || 10;
+        wizardTournamentGreens = state.wizardTournamentGreens || false;
         wizardRough = state.wizardRough || 1;
         wizardMulligans = state.wizardMulligans !== undefined ? state.wizardMulligans : 1;
         wizardGimmes = state.wizardGimmes !== undefined ? state.wizardGimmes : 1;

@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.44.1)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.45.0)
 
 window.copyToClipboard = function(text, successMsg) {
     if (navigator.clipboard && window.isSecureContext) {
@@ -191,13 +191,13 @@ window.addEventListener('keydown', (e) => {
                 let courseName = (typeof courses !== 'undefined' && courses[currentCourseIndex]) ? courses[currentCourseIndex].name : "Unknown Course";
                 let windName = (typeof windLevels !== 'undefined' && windLevels[windLevelIndex]) ? windLevels[windLevelIndex].name : "Unknown Wind";
                 let roughName = (typeof roughConditions !== 'undefined' && roughConditions[roughConditionIndex]) ? roughConditions[roughConditionIndex].name : "Standard";
-                let stimpVal = typeof window.stimpSpeed !== 'undefined' ? window.stimpSpeed : 10;
+                let tgMode = typeof window.tournamentGreens !== 'undefined' && window.tournamentGreens;
                 
                 allLogs += `# MATCH SETTINGS\n`;
-                allLogs += `**Engine Version:** v5.5.1\n`;
+                allLogs += `**Engine Version:** v5.45.0\n`;
                 allLogs += `**Course:** ${courseName}\n`;
                 allLogs += `**Wind:** ${windName}\n`;
-                allLogs += `**Green Stimp:** ${stimpVal}\n`;
+                allLogs += `**Green Speed:** ${tgMode ? "Tournament (Stimp 13)" : "Standard (Stimp 10)"}\n`;
                 allLogs += `**Rough Condition:** ${roughName}\n\n=========================================\n\n`;
 
                 // v5.1.2 Scoreboard Header
@@ -791,13 +791,11 @@ window.addEventListener('keydown', (e) => {
         }
         if (e.code === 'Semicolon' && !e.shiftKey) {
             e.preventDefault();
-            if (typeof window.stimpSpeed === 'undefined') window.stimpSpeed = 10;
-            const stimps = [8, 9, 10, 11, 12, 13, 14];
-            let idx = stimps.indexOf(window.stimpSpeed);
-            window.stimpSpeed = stimps[(idx + 1) % stimps.length];
-            window.announce(`Green Speed Stimp set to ${window.stimpSpeed}`);
+            window.tournamentGreens = !(typeof window.tournamentGreens !== 'undefined' && window.tournamentGreens);
+            let tgState = window.tournamentGreens ? "ON (Stimp 13)" : "OFF (Stimp 10)";
+            window.announce(`Tournament Greens: ${tgState}`);
             let vis = document.getElementById('visual-output');
-            if (vis) vis.innerText = `Stimp: ${window.stimpSpeed}`;
+            if (vis) vis.innerText = `Trn Greens: ${window.tournamentGreens ? "ON" : "OFF"}`;
             return;
         }
         if (e.code === 'KeyC') {
@@ -1564,7 +1562,7 @@ window.getKeyDescription = function(code, shift, ctrl) {
         'KeyA': shift ? "Cycles the Caddy skill level." : "Asks the Oracle Caddy for a strategic shot blueprint.",
         'KeyF': "Reads the fairway description.",
         'KeyH': "Opens the navigable Hazard and Tree list.",
-        'Semicolon': shift ? "Reads your quick timing and spin diagnostics." : "Cycles global green speed (Stimp).",
+        'Semicolon': shift ? "Reads your quick timing and spin diagnostics." : "Toggles Tournament Greens mode (Stimp 13 ON / Stimp 10 OFF).",
         'KeyC': shift ? "Copies the raw telemetry data to your clipboard." : "Announces your current club.",
         'KeyB': shift ? "Cycles the ambient background volume (0% to 100%)." : "Reads the green elevation and break when putting.",
         'KeyU': "Takes an unplayable lie penalty and drops the ball in the fairway.",
