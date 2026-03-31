@@ -1,6 +1,16 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.43.0)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.43.1)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
+
+window.applyDivergentWind = function() {
+    if (typeof gameMode !== 'undefined' && gameMode === 'course' && window.currentCourse && window.currentCourse.name === "The Pasture" && typeof hole !== 'undefined' && hole === 6 && typeof currentLie !== 'undefined' && currentLie !== "Green" && currentLie !== "Hole") {
+        let dx = ballX - 0;
+        let dy = ballY - 395;
+        let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        windX = Math.round((dx / dist) * 15);
+        windY = Math.round((dy / dist) * 15);
+    }
+};
 
 window.setCaddyPanelText = function(msg) {
     const panel = document.getElementById('caddy-panel');
@@ -156,6 +166,7 @@ function getStanceReport() {
 }
 
 function getSetupReport() {
+    window.applyDivergentWind();
     const style = shotStyles[shotStyleIndex];
     const chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
 
@@ -198,6 +209,7 @@ function calculateZoneAccuracy(offsetMs, pressure) {
 }
 
 function calculateShot(autoMiss = false) {
+    window.applyDivergentWind();
     let quick = typeof window.isQuickSim !== 'undefined' && window.isQuickSim; // v4.86.0
     swingState = 5; 
 
@@ -733,16 +745,6 @@ function calculateShot(autoMiss = false) {
         }
     }
 
-    // v5.43.0 Hole 6 Wind Gust Audio
-    if (gameMode === 'course' && window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 6 && totalDistance > 25 && currentLie !== "Green" && !quick) {
-        let gustNum = Math.floor(Math.random() * 6) + 1;
-        let gustAudio = new Audio(`audio/swings/wind_gust${gustNum}.mp3`);
-        gustAudio.volume = (typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0) * 0.8;
-        stateTimeouts.push(setTimeout(() => {
-            gustAudio.play().catch(e => console.warn("Gust audio missing:", e));
-        }, 600)); // Play just after impact execution pings
-    }
-
     // v5.6.0 Extended Feedback Tails
     let impactPitch = Math.round(300 + (impactAcc * 6));
     let hingePitch = Math.round(300 + (hingeAcc * 6));
@@ -1033,6 +1035,16 @@ function calculateShot(autoMiss = false) {
 
     document.getElementById('visual-output').innerText = "Ball is in the air...";
     if (!quick) playNoise(hangTimeSecs + 0.3, 0.3, false);
+
+    // v5.43.1 Hole 6 Wind Gust Audio (safe: totalDistance fully resolved)
+    if (gameMode === 'course' && window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 6 && typeof totalDistance !== 'undefined' && totalDistance > 25 && currentLie !== "Green" && !quick) {
+        let gustNum = Math.floor(Math.random() * 6) + 1;
+        let gustAudio = new Audio(`audio/swings/wind_gust${gustNum}.mp3`);
+        gustAudio.volume = (typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0) * 0.8;
+        stateTimeouts.push(setTimeout(() => {
+            gustAudio.play().catch(e => console.warn("Gust audio missing:", e));
+        }, 600));
+    }
 
     // v4.31.3 Live 3D Audio Flight Injection
     // Calculate final lateral drift (35 yards offline = 100% hard pan into one ear)

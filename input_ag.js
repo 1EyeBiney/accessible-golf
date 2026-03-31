@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.42.2)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.43.1)
 
 window.confirmingUnplayable = false;
 
@@ -1162,6 +1162,7 @@ window.addEventListener('keydown', (e) => {
                 document.getElementById('visual-output').innerText = windMsg; window.announce(windMsg);
                 window.updateDashboard();
             } else {
+                if (typeof window.applyDivergentWind === 'function') window.applyDivergentWind();
                 const windReport = getWindReport();
                 document.getElementById('visual-output').innerText = windReport; window.announce(windReport);
             }
