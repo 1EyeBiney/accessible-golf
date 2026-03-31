@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.47.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.48.0)
 
 window.copyToClipboard = function(text, successMsg) {
     if (navigator.clipboard && window.isSecureContext) {
@@ -395,15 +395,15 @@ window.addEventListener('keydown', (e) => {
             return;
         }
 
-        // v5.13.0 Tour Pro Foursome Quick-Load Fix
+        // v5.48.0 Tour Pro Foursome Quick-Load
         if (e.code === 'KeyK' && e.shiftKey && gameMode === 'clubhouse') {
             e.preventDefault();
             wizardSize = 4;
             wizardRoster = [
-                { name: "Bot Woods", isBot: true, skill: 3, iBias: 0, hBias: 0, focus: 1, ball: 0 },
+                { name: "Bot Rory", isBot: true, skill: 3, iBias: -15, hBias: 12, focus: 1, ball: 0 },
                 { name: "Bot Golden Bear", isBot: true, skill: 3, iBias: 15, hBias: 0, focus: 4, ball: 0 },
                 { name: "Bot Lefty", isBot: true, skill: 3, iBias: -25, hBias: 10, focus: 5, ball: 0 },
-                { name: "Bot Strickler", isBot: true, skill: 3, iBias: 0, hBias: 0, focus: 2, ball: 0 }
+                { name: "Bot Seve", isBot: true, skill: 3, iBias: -10, hBias: 0, focus: 5, ball: 0 }
             ];
             clubhouseState = 'course_quick';
             clubhouseIndex = wizardCourse;
@@ -1245,7 +1245,7 @@ window.addEventListener('keydown', (e) => {
                 }
 
                 if (gameMode === 'range' && pinY > 0) { pinY = club.baseDistance; } // Preserves custom offsets
-                if (typeof window.autoSetFocus === 'function') window.autoSetFocus(true);
+                if (typeof window.autoSetFocus === 'function') window.autoSetFocus();
                 const setupReport = getSetupReport();
                 window.announce(setupReport); document.getElementById('visual-output').innerText = setupReport;
             }
@@ -1263,7 +1263,7 @@ window.addEventListener('keydown', (e) => {
                 }
 
                 if (gameMode === 'range' && pinY > 0) { pinY = club.baseDistance; } // Preserves custom offsets
-                if (typeof window.autoSetFocus === 'function') window.autoSetFocus(true);
+                if (typeof window.autoSetFocus === 'function') window.autoSetFocus();
                 const setupReport = getSetupReport();
                 window.announce(setupReport); document.getElementById('visual-output').innerText = setupReport;
             }

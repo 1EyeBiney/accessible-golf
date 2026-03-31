@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.47.0)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.48.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -391,6 +391,15 @@ function calculateShot(autoMiss = false) {
             simY += Math.cos(currentHeading) * stepDist;
             distTraveled += stepDist;
             speedRemaining -= (1.0 + (sy * 0.15));
+        }
+
+        // v5.47.2 End-of-Loop Blindspot Check
+        if (!madeIt) {
+            let finalDistToHole = Math.sqrt(Math.pow(pinX - simX, 2) + Math.pow(pinY - simY, 2));
+            if (finalDistToHole <= captureRadius && speedRemaining <= captureSpeedLimit) {
+                madeIt = true;
+                playbackArray.push({ x: simX, y: simY, speed: 0, madeIt: true });
+            }
         }
 
         ballX = simX; ballY = simY; // Lock final position immediately
@@ -1531,6 +1540,13 @@ window.getCaddyAdvice = function() {
                     speedRemaining -= (1.0 + (sy * 0.15));
                 }
 
+                if (!madeIt) {
+                    let finalDistToHole = Math.sqrt(Math.pow(pinX - simX, 2) + Math.pow(pinY - simY, 2));
+                    if (finalDistToHole <= activeHoleRadius && speedRemaining <= captureSpeedLimit) {
+                        madeIt = true;
+                    }
+                }
+
                 if (madeIt) {
                     if (bestPace === null || p < bestPace || (p === bestPace && Math.abs(a) < Math.abs(bestAim))) {
                         bestAim = a; bestPace = p;
@@ -1735,6 +1751,11 @@ window.getOracleBlueprint = function() {
                     distTraveled += stepDist;
                     speedRemaining -= (1.0 + (sy * 0.15));
                 }
+                if (!madeIt) {
+                    if (finalDistToHole <= activeHoleRadius && speedRemaining <= captureSpeedLimit) {
+                        madeIt = true;
+                    }
+                }
                 if (madeIt) {
                     if (bestPace === null || p < bestPace || (p === bestPace && Math.abs(a) < Math.abs(bestAim))) {
                         bestAim = a; bestPace = p;
@@ -1869,12 +1890,14 @@ window.getOracleBlueprint = function() {
                     } else if (pName === "Dusty Bunkers") {
                         if (requiredPower < 95) adjustedMiss += 25;
                         if (requiredPower >= 105 && requiredPower <= 110) adjustedMiss -= 20;
+                    } else if (pName === "Bot Rory") {
+                        if (club.name === "Driver") adjustedMiss -= 35;
+                        if (sIdx === 3) adjustedMiss += 20; // Penalize Flop shots
                     } else if (pName === "Bot Golden Bear") {
                         // The Tactician: Massively penalizes shots that carry over hazards
                         if (miss > 0) adjustedMiss += 50; 
-                    } else if (pName === "Bot Strickler") {
-                        // The Wedge Wizard: Pin-seeking magnetism with short clubs
-                        if (club.name === "9 Iron" || club.name.includes("Wedge")) adjustedMiss -= 40; 
+                    } else if (pName === "Bot Seve") {
+                        if (sIdx === 3 || sIdx === 1) adjustedMiss -= 40; // Massive bonus to Flop and Pitch creativity
                     } else if (pName === "Bot Lefty") {
                         // Phil the Thrill: Ignores hazard danger on long shots, favors flops (Pitch) around greens
                         if (club.name.includes("Wood") && requiredPower > 90) adjustedMiss -= (miss * 0.75); 

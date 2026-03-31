@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.34.3)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.48.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -274,31 +274,42 @@ window._createAudioSegment = function(startTime, duration, waveType, freqs, lfos
     noise.start(startTime); noise.stop(startTime + duration);
 };
 
-window.playBotWoodsSignature = function(type = 1) {
-    window.initAudio();
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-
-    const t0 = audioCtx.currentTime;
-    let barkDur = type === 3 ? 0.3 : 0.4;
-    let barkGap = type === 3 ? 0.05 : 0.1;
-    let snarlDur = 0.9;
-    let t1 = t0 + barkDur + barkGap; 
-    let t2 = t1 + barkDur + barkGap; 
-    let waveType = type === 5 ? 'square' : 'sawtooth';
-
-    window._createAudioSegment(t0, barkDur, waveType, [{t: 0, f: 150}, {t: 1, f: 60}], [{t: 0, f: 25}, {t: 1, f: 15}], [{t: 0, f: 600}, {t: 1, f: 200}]);
-    window._createAudioSegment(t1, barkDur, waveType, [{t: 0, f: 160}, {t: 1, f: 65}], [{t: 0, f: 25}, {t: 1, f: 15}], [{t: 0, f: 600}, {t: 1, f: 200}]);
-
-    let snarlFreqs;
-    switch(type) {
-        case 1: snarlFreqs = [{t: 0, f: 280}, {t: 1, f: 40}]; break; 
-        case 2: snarlFreqs = [{t: 0, f: 120}, {t: 0.2, f: 300}, {t: 1, f: 40}]; break; 
-        case 3: snarlFreqs = [{t: 0, f: 150}, {t: 0.15, f: 350}, {t: 1, f: 40}]; break; 
-        case 4: snarlFreqs = [{t: 0, f: 100}, {t: 0.4, f: 250}, {t: 1, f: 30}]; break; 
-        case 5: snarlFreqs = [{t: 0, f: 120}, {t: 0.2, f: 300}, {t: 1, f: 40}]; break; 
-        default: snarlFreqs = [{t: 0, f: 280}, {t: 1, f: 40}];
+window.playBotRorySignature = function() {
+    if (typeof audioCtx === 'undefined' || !audioCtx) return;
+    const t = audioCtx.currentTime;
+    const notes = [293.66, 329.63, 369.99, 293.66, 392.00, 369.99, 329.63, 293.66]; 
+    for (let i = 0; i < 16; i++) {
+        let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+        osc.type = i % 2 === 0 ? 'square' : 'sine'; osc.frequency.value = notes[i % 8];
+        osc.connect(gain); gain.connect(typeof masterGain !== 'undefined' ? masterGain : audioCtx.destination);
+        gain.gain.setValueAtTime(0, t + (i * 0.15));
+        gain.gain.linearRampToValueAtTime(0.1, t + (i * 0.15) + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + (i * 0.15) + 0.14);
+        osc.start(t + (i * 0.15)); osc.stop(t + (i * 0.15) + 0.15);
     }
-    window._createAudioSegment(t2, snarlDur, waveType, snarlFreqs, [{t: 0, f: 30}, {t: 1, f: 12}], [{t: 0, f: 800}, {t: 1, f: 150}]);
+};
+
+window.playBotSeveSignature = function() {
+    if (typeof audioCtx === 'undefined' || !audioCtx) return;
+    const t = audioCtx.currentTime;
+    const notes = [659.25, 587.33, 523.25, 493.88, 440.00, 415.30, 349.23, 329.63]; 
+    for (let i = 0; i < 8; i++) {
+        let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+        osc.type = 'triangle'; osc.frequency.value = notes[i];
+        osc.connect(gain); gain.connect(typeof masterGain !== 'undefined' ? masterGain : audioCtx.destination);
+        gain.gain.setValueAtTime(0, t + (i * 0.12));
+        gain.gain.linearRampToValueAtTime(0.15, t + (i * 0.12) + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + (i * 0.12) + 0.11);
+        osc.start(t + (i * 0.12)); osc.stop(t + (i * 0.12) + 0.12);
+    }
+    [329.63, 415.30, 493.88].forEach(freq => {
+        let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+        osc.type = 'triangle'; osc.frequency.value = freq;
+        osc.connect(gain); gain.connect(typeof masterGain !== 'undefined' ? masterGain : audioCtx.destination);
+        gain.gain.setValueAtTime(0, t + 0.96); gain.gain.linearRampToValueAtTime(0.1, t + 0.98);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 2.0);
+        osc.start(t + 0.96); osc.stop(t + 2.0);
+    });
 };
 
 // --- ENVIRONMENTAL AUDIO (v5.23.0) ---

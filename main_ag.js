@@ -307,9 +307,9 @@ window.advanceTurn = function(isPuttingTransition = false) {
                 if(vis) vis.innerText = msg;
 
                 // Trigger AI Signature or Default UI Blip
-                if (players[currentPlayerIndex].name === "Bot Woods" && typeof window.playBotWoodsSignature === 'function') {
-                    window.playBotWoodsSignature(Math.floor(Math.random() * 5) + 1);
-                } else if (typeof window.playGolfSound === 'function') {
+                if (pName === "Bot Rory" && typeof window.playBotRorySignature === 'function') window.playBotRorySignature();
+                else if (pName === "Bot Seve" && typeof window.playBotSeveSignature === 'function') window.playBotSeveSignature();
+                else if (typeof window.playGolfSound === 'function') {
                     window.playGolfSound('ui_nav_07');
                 }
             } else {
