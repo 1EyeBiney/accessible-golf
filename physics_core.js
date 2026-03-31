@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.43.1)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.44.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -31,6 +31,12 @@ window.setCaddyPanelText = function(msg) {
     }
 
     textEl.innerText = msg;
+};
+
+window.stopAllCourseAudio = function() {
+    if (typeof window.currentBgMusic !== 'undefined' && window.currentBgMusic) { window.currentBgMusic.pause(); window.currentBgMusic.currentTime = 0; }
+    if (typeof window.currentBgAmbient !== 'undefined' && window.currentBgAmbient) { window.currentBgAmbient.pause(); window.currentBgAmbient.currentTime = 0; }
+    if (typeof window.currentBgAmbientPost !== 'undefined' && window.currentBgAmbientPost) { window.currentBgAmbientPost.pause(); window.currentBgAmbientPost.currentTime = 0; }
 };
 
 window.playScoringAudioSequence = function(strokes, par, vol) {

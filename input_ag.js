@@ -1,8 +1,11 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.43.1)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.44.0)
 
 window.confirmingUnplayable = false;
 
 window.addEventListener('keydown', (e) => {
+    if (e.code === 'F5' || e.code === 'F6') {
+        return; // Allow default browser behavior (Refresh and Address Bar Focus)
+    }
     // v4.49.0 Unplayable penalty cancel interceptor
     if (window.confirmingUnplayable && e.code !== 'KeyU') {
         e.preventDefault();
@@ -472,6 +475,7 @@ window.addEventListener('keydown', (e) => {
         if (e.code === 'KeyS') {
             confirmingQuit = false;
             if (typeof window.saveGame === 'function') window.saveGame();
+            if (typeof window.stopAllCourseAudio === 'function') window.stopAllCourseAudio();
             gameMode = 'clubhouse';
             document.getElementById('dashboard-panel').style.display = 'none';
             document.getElementById('swing-meter').style.display = 'none';
@@ -480,6 +484,7 @@ window.addEventListener('keydown', (e) => {
         } else if (e.code === 'KeyA') {
             confirmingQuit = false;
             window.clearSave(); // Wipe the save state
+            if (typeof window.stopAllCourseAudio === 'function') window.stopAllCourseAudio();
             gameMode = 'clubhouse';
             document.getElementById('dashboard-panel').style.display = 'none';
             document.getElementById('swing-meter').style.display = 'none';
@@ -787,17 +792,25 @@ window.addEventListener('keydown', (e) => {
         if (e.code === 'KeyC') {
             e.preventDefault();
             if (e.shiftKey) {
-                let caddyPanel = document.getElementById('caddy-panel-text');
-                let report = caddyPanel && caddyPanel.innerText ? caddyPanel.innerText : (typeof lastTimingReport !== 'undefined' ? lastTimingReport : "");
+                let report = "";
+                if (typeof holeTelemetry !== 'undefined' && holeTelemetry.length > 0) {
+                    let pName = typeof players !== 'undefined' && players[currentPlayerIndex] ? players[currentPlayerIndex].name : "Player";
+                    let hNum = typeof hole !== 'undefined' ? hole : "?";
+                    report = `### HOLE ${hNum} TELEMETRY SO FAR: ${pName}\n\n` + holeTelemetry.join('\n\n');
+                } else {
+                    let caddyPanel = document.getElementById('caddy-panel-text');
+                    report = caddyPanel && caddyPanel.innerText ? caddyPanel.innerText : (typeof lastTimingReport !== 'undefined' ? lastTimingReport : "");
+                }
                 if (report) {
                     navigator.clipboard.writeText(report).then(() => {
-                        window.announce("Caddy shot report copied to clipboard.");
+                        window.announce("Current hole telemetry copied to clipboard.");
                     }).catch(err => {
-                        window.announce("Failed to copy shot report.");
+                        window.announce("Failed to copy telemetry.");
                     });
                 } else {
-                    window.announce("No shot report available to copy.");
+                    window.announce("No telemetry available to copy.");
                 }
+                return;
             } else {
                 document.getElementById('visual-output').innerText = lastShotReport; window.announce(lastShotReport);
             }
