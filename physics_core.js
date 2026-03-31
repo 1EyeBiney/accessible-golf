@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.46.2)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.47.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -1426,7 +1426,54 @@ window.autoEquipBestClub = function() {
     }
     currentClubIndex = bestClubIndex;
     club = clubs[currentClubIndex];
+    if (typeof window.autoSetFocus === 'function') window.autoSetFocus();
     window.updateDashboard();
+};
+
+window.autoSetFocus = function(isPuttingOverride = false) {
+    if (typeof focusIndex === 'undefined') return;
+
+    // 1. Putting Override
+    if (isPuttingOverride || (typeof isPutting !== 'undefined' && isPutting) || currentLie === "Green") {
+        focusIndex = 2; // Touch
+        return;
+    }
+
+    let distToTarget = typeof calculateDistanceToTarget === 'function' ? calculateDistanceToTarget() : 999;
+
+    // 2. Short Game (< 50 yards)
+    if (distToTarget < 50) {
+        focusIndex = 2; // Touch
+        return;
+    }
+
+    // 3. Trouble Lies
+    if (currentLie === 'Sand' || currentLie.includes('Rough') || currentLie === 'Pine Needles' || currentLie === 'Mud' || currentLie === 'Packed Earth') {
+        focusIndex = 5; // Recovery
+        return;
+    }
+
+    // 4. Club-Specific Logic
+    if (typeof club !== 'undefined' && club) {
+        if (club.name.includes("Wood") || club.name === "Driver") {
+            let threeWood = typeof clubs !== 'undefined' ? clubs.find(c => c.name === "3 Wood") : null;
+            let threeWoodMax = threeWood ? (threeWood.baseDistance * 1.1) : 250;
+
+            if (distToTarget <= threeWoodMax) {
+                focusIndex = 4; // Accuracy (Approaching green)
+            } else {
+                focusIndex = 1; // Power (Bombing)
+            }
+            return;
+        }
+
+        if (club.name.includes("Iron") || club.name.includes("Wedge")) {
+            focusIndex = 4; // Accuracy
+            return;
+        }
+    }
+
+    focusIndex = 0; // Standard fallback
 };
 
 // v4.37.0 Terrain Probe Helper

@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.45.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.47.0)
 
 window.copyToClipboard = function(text, successMsg) {
     if (navigator.clipboard && window.isSecureContext) {
