@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.46.0)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.46.1)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -1187,17 +1187,33 @@ function calculateShot(autoMiss = false) {
             const landX = (ballX - moveX) + (Math.sin(finalRad) * carryDistance + Math.cos(finalRad) * (physicsX + windXEffect));
             const landY = (ballY - moveY) + (Math.cos(finalRad) * carryDistance - Math.sin(finalRad) * (physicsX + windXEffect));
             const landDistToPin = Math.sqrt(Math.pow(pinX - landX, 2) + Math.pow(pinY - landY, 2));
-            const landRelY = landY - pinY;
-            const landRelX = landX - pinX;
             const greenSize = holeData.greenRadius || 20;
 
             let proximityDesc = `Settles in the ${currentLie}, ${dirStr}.`;
             
             // Trigger precision reporting if on the green OR if it landed on the green
             if (currentLie === "Green" || landDistToPin <= greenSize) {
-                const finalRelY = ballY - pinY;
-                const finalRelX = ballX - pinX;
-                const finalDistToPin = Math.sqrt(Math.pow(finalRelX, 2) + Math.pow(finalRelY, 2));
+                // v5.46.1 Relative Proximity Math (Dot/Cross Products)
+                let vX = pinX - startX;
+                let vY = pinY - startY;
+                let vMag = Math.sqrt(vX*vX + vY*vY) || 1;
+
+                let bLandX = landX - startX;
+                let bLandY = landY - startY;
+                let landDot = (vX * bLandX) + (vY * bLandY);
+                let landCross = (vX * bLandY) - (vY * bLandX);
+
+                const landRelY = (landDot / vMag) - vMag; // Positive = Long, Negative = Short
+                const landRelX = landCross / vMag;        // Positive = Right, Negative = Left
+
+                let bFinalX = ballX - startX;
+                let bFinalY = ballY - startY;
+                let finalDot = (vX * bFinalX) + (vY * bFinalY);
+                let finalCross = (vX * bFinalY) - (vY * bFinalX);
+
+                const finalRelY = (finalDot / vMag) - vMag;
+                const finalRelX = finalCross / vMag;
+                const finalDistToPin = Math.sqrt(Math.pow(ballX - pinX, 2) + Math.pow(ballY - pinY, 2));
 
                 // v4.32.0 Dynamic MP3 Proximity Rewards
                 if (currentLie === "Green" && club.name !== "Putter") {
