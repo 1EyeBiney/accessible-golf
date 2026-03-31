@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.46.1)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.46.2)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -1183,9 +1183,9 @@ function calculateShot(autoMiss = false) {
             const roughDesc = isStartingInRough ? "Hacked it out of the rough. " : "";
             let kickDesc = lateralKick === 0 ? "rolls straight" : `kicks ${Math.abs(lateralKick)} yds ${lateralKick > 0 ? 'right' : 'left'}`;
 
-            // Calculate landing position relative to pin
-            const landX = (ballX - moveX) + (Math.sin(finalRad) * carryDistance + Math.cos(finalRad) * (physicsX + windXEffect));
-            const landY = (ballY - moveY) + (Math.cos(finalRad) * carryDistance - Math.sin(finalRad) * (physicsX + windXEffect));
+            // v5.46.2 Shadow Origin Fix
+            const landX = startX + (Math.sin(finalRad) * carryDistance + Math.cos(finalRad) * (physicsX + windXEffect));
+            const landY = startY + (Math.cos(finalRad) * carryDistance - Math.sin(finalRad) * (physicsX + windXEffect));
             const landDistToPin = Math.sqrt(Math.pow(pinX - landX, 2) + Math.pow(pinY - landY, 2));
             const greenSize = holeData.greenRadius || 20;
 
