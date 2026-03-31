@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.44.1)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.44.2)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -940,6 +940,11 @@ function calculateShot(autoMiss = false) {
 
     const startX = ballX - moveX;
     const startY = ballY - moveY;
+
+    // v5.44.2 Absolute Coordinate Resync
+    ballX = startX + (Math.sin(finalRad) * totalDistance) + (Math.cos(finalRad) * lateralTotal) + lateralKickX;
+    ballY = startY + (Math.cos(finalRad) * totalDistance) - (Math.sin(finalRad) * lateralTotal) + lateralKickY;
+
     const landX = startX + (Math.sin(finalRad) * carryDistance + Math.cos(finalRad) * (physicsX + windXEffect));
     const landY = startY + (Math.cos(finalRad) * carryDistance - Math.sin(finalRad) * (physicsX + windXEffect));
 
@@ -1530,13 +1535,14 @@ window.getCaddyAdvice = function() {
             let totalDist = simClub.baseDistance * style.distMod * loftDistMod * lieMultiplier;
             
             let backspinRPM = Math.max(400, Math.round((simClub.loft * 150) + 1000 + ((simStance - 2) * 500) + style.spinMod));
+            let gyroMod = Math.max(0.6, Math.min(1.3, 1 - ((backspinRPM - 4000) / 10000)));
             let spinRollMod = Math.max(0.1, 1 - ((backspinRPM - 4000) / 10000));
             let rollDist = totalDist * simClub.rollPct * style.rollMod * spinRollMod;
             let carryDist = Math.max(1, totalDist - rollDist);
 
             let hangTime = Math.min(6, Math.max(0.5, (totalDist / 60) + (dynamicLoft / 15)));
-            let windForward = windY * (hangTime / 2.5) * style.windMod;
-            let windCross = windX * (hangTime / 2.5) * style.windMod;
+            let windForward = windY * (hangTime / 2.5) * style.windMod * gyroMod;
+            let windCross = windX * (hangTime / 2.5) * style.windMod * gyroMod;
 
             let desiredHeading = Math.atan2((targetPoint.x - ballX) - windCross, (targetPoint.y - ballY) - windForward);
             let aimDeg = Math.round((desiredHeading - baseHeading) * (180 / Math.PI));
@@ -1716,13 +1722,15 @@ window.getOracleBlueprint = function() {
                         requiredPower = Math.max(10, Math.min(100, Math.round((effectiveDist / totalDist) * 100)));
                     }
                     let fractionalDist = totalDist * (requiredPower / 100);
+                    let backspinRPM = Math.max(400, Math.round((simClub.loft * 150) + 1000 + ((simStance - 2) * 500) + style.spinMod));
+                    let gyroMod = Math.max(0.6, Math.min(1.3, 1 - ((backspinRPM - 4000) / 10000)));
 
                     let hangTime = Math.min(6, Math.max(0.5, (fractionalDist / 60) + (dynamicLoft / 15)));
                     let relWindY = (windY * Math.cos(baseHeading)) + (windX * Math.sin(baseHeading));
                     let relWindX = (windX * Math.cos(baseHeading)) - (windY * Math.sin(baseHeading));
 
-                    let windForward = relWindY * (hangTime / 2.5) * style.windMod;
-                    let windCross = relWindX * (hangTime / 2.5) * style.windMod;
+                    let windForward = relWindY * (hangTime / 2.5) * style.windMod * gyroMod;
+                    let windCross = relWindX * (hangTime / 2.5) * style.windMod * gyroMod;
                     let desiredHeading = Math.atan2((targetPoint.x - ballX) - windCross, (targetPoint.y - ballY) - windForward);
                     let aimDeg = Math.round((desiredHeading - baseHeading) * (180 / Math.PI));
                     aimDeg = Math.max(-45, Math.min(45, aimDeg)); 
