@@ -1,4 +1,25 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.44.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.44.1)
+
+window.copyToClipboard = function(text, successMsg) {
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => { window.announce(successMsg); })
+        .catch(err => { window.announce("Failed to copy. Permission denied."); });
+    } else {
+        let textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed"; textArea.style.left = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus(); textArea.select();
+        try {
+            document.execCommand('copy');
+            window.announce(successMsg);
+        } catch (err) {
+            window.announce("Failed to copy. Browser blocked execution.");
+        } finally {
+            textArea.remove();
+        }
+    }
+};
 
 window.confirmingUnplayable = false;
 
@@ -210,16 +231,12 @@ window.addEventListener('keydown', (e) => {
                     if (baseLogs) allLogs += baseLogs;
                 }
                 
-                navigator.clipboard.writeText(allLogs).then(() => {
-                    window.announce("Master Foursome Telemetry copied to clipboard.");
-                });
+                window.copyToClipboard(allLogs, "Master Foursome Telemetry copied to clipboard.");
             } else {
                 let viewData = players[scorecardPlayerIndex] ? players[scorecardPlayerIndex].roundData : roundData; // v4.85.0
                 let record = viewData.find(r => r.hole === targetHole);
                 let log = (record && record.telemetryLog) ? record.telemetryLog : `No telemetry found for Hole ${targetHole}.`;
-                navigator.clipboard.writeText(log).then(() => {
-                    window.announce(`Telemetry for Hole ${targetHole} copied to clipboard.`);
-                });
+                window.copyToClipboard(log, "Telemetry for Hole " + targetHole + " copied to clipboard.");
             }
             return;
         }
@@ -653,13 +670,7 @@ window.addEventListener('keydown', (e) => {
             if (e.shiftKey) {
                 if (gameMode === 'post_round' || (roundData.length > 0 && hole >= courses[currentCourseIndex].holes.length)) {
                     let summary = window.generateNarrativeSummary();
-                    navigator.clipboard.writeText(summary).then(() => {
-                        let msg = "Round summary copied to clipboard! " + summary;
-                        document.getElementById('visual-output').innerText = summary;
-                        window.announce(msg);
-                    }).catch(err => {
-                        window.announce("Failed to copy to clipboard, but here is your summary: " + summary);
-                    });
+                    window.copyToClipboard(summary, "Round summary copied to clipboard! " + summary);
                 } else {
                     window.announce("Share Sheet is only available when the round is complete.");
                 }
@@ -802,11 +813,7 @@ window.addEventListener('keydown', (e) => {
                     report = caddyPanel && caddyPanel.innerText ? caddyPanel.innerText : (typeof lastTimingReport !== 'undefined' ? lastTimingReport : "");
                 }
                 if (report) {
-                    navigator.clipboard.writeText(report).then(() => {
-                        window.announce("Current hole telemetry copied to clipboard.");
-                    }).catch(err => {
-                        window.announce("Failed to copy telemetry.");
-                    });
+                    window.copyToClipboard(report, "Current hole telemetry copied to clipboard.");
                 } else {
                     window.announce("No telemetry available to copy.");
                 }
@@ -1030,7 +1037,21 @@ window.addEventListener('keydown', (e) => {
         
         if (e.code === 'KeyC') { 
             e.preventDefault(); 
-            document.getElementById('visual-output').innerText = lastShotReport; window.announce(lastShotReport);
+            if (e.shiftKey) {
+                let report = "";
+                if (typeof holeTelemetry !== 'undefined' && holeTelemetry.length > 0) {
+                    let pName = typeof players !== 'undefined' && players[currentPlayerIndex] ? players[currentPlayerIndex].name : "Player";
+                    let hNum = typeof hole !== 'undefined' ? hole : "?";
+                    report = `### HOLE ${hNum} TELEMETRY SO FAR: ${pName}\n\n` + holeTelemetry.join('\n\n');
+                } else {
+                    let caddyPanel = document.getElementById('caddy-panel-text');
+                    report = caddyPanel && caddyPanel.innerText ? caddyPanel.innerText : (typeof lastTimingReport !== 'undefined' ? lastTimingReport : "");
+                }
+                if (report) window.copyToClipboard(report, "Current hole telemetry copied to clipboard.");
+                else window.announce("No telemetry available to copy.");
+            } else {
+                document.getElementById('visual-output').innerText = lastShotReport; window.announce(lastShotReport);
+            }
             return;
         }
         

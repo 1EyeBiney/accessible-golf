@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.44.0)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.44.1)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -482,8 +482,9 @@ function calculateShot(autoMiss = false) {
                     hole: hole, par: par, distance: window.currentCourse.holes[hole - 1].distance,
                         strokes: strokes, putts: puttsThisHole, fir: currentHoleStats.fir, gir: currentHoleStats.gir,
                         driveDistance: currentHoleStats.driveDistance, puttDistance: puttTargetDist,
-                        approachStart: currentHoleStats.approachStart, approachProx: currentHoleStats.approachProx, // v4.30.1 Save to array
-                        narrative: narrative
+                        approachStart: currentHoleStats.approachStart, approachProx: currentHoleStats.approachProx,
+                        narrative: narrative,
+                        telemetryLog: (typeof holeTelemetry !== 'undefined') ? holeTelemetry.join('\n\n') : ""
                     });
                 }
             } else {
