@@ -1,0 +1,27 @@
+ok, would like to institute a few changes.
+When a putt goes into the hole, I'd like a sound to be played right when the ball goes in the cup. All the audio assets mentioned here are in the /audio/swings folder, the same folder as the sounds we play for great drives or approach shots.
+These should be done grab bag per hole so they don't get repeated each hole.
+cup1.mp3
+through
+cup6.mp3
+Right now, after the ball goes in, we hear the caddy giving us information about that last shot. we need to squeeze in some audio assets to play before the TTS caddy report. We will have a 5 second melodic 8-bit victory/neutral sound that lasts 5 seconds. the type of sound will be based on the player's score for that hole. if they get below par, the triumph sound  should play, again grab bag style per hole, and if it is par or higher, a neutral sound should play.
+The files are named:
+8bit_neutral1.mp3
+through
+8bit_neutral5.mp3
+
+8bit_triumph1.mp3
+through
+8bit_triumph6.mp3
+
+Right after the triumph/neutral audio plays, I have a series of dialog where a voice shouts the result. these files are in the same folder and are named:
+score_birdie.mp3
+score_bogey.mp3
+score_dbogey.mp3
+score_eagle.mp3
+score_par.mp3
+score_tbogey.mp3
+and finally for when the score doesn't match any named ones so far:
+score_know.mp3
+
+use version 5.42.0 and do other usual update tasks

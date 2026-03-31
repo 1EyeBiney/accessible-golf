@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.41.0)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.42.0)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -21,6 +21,49 @@ window.setCaddyPanelText = function(msg) {
     }
 
     textEl.innerText = msg;
+};
+
+window.playScoringAudioSequence = function(strokes, par, vol) {
+    let diff = strokes - par;
+    let isTriumph = diff < 0;
+    let melodyFile = "";
+    
+    if (isTriumph) {
+        window.triumphSounds = window.triumphSounds || [1,2,3,4,5,6];
+        window.triumphSounds.sort(() => Math.random() - 0.5);
+        let num = window.triumphSounds.pop() || 1;
+        if (window.triumphSounds.length === 0) window.triumphSounds = [1,2,3,4,5,6];
+        melodyFile = `8bit_triumph${num}`;
+    } else {
+        window.neutralSounds = window.neutralSounds || [1,2,3,4,5];
+        window.neutralSounds.sort(() => Math.random() - 0.5);
+        let num = window.neutralSounds.pop() || 1;
+        if (window.neutralSounds.length === 0) window.neutralSounds = [1,2,3,4,5];
+        melodyFile = `8bit_neutral${num}`;
+    }
+    
+    let voiceFile = "score_know";
+    if (diff <= -2) voiceFile = "score_eagle";
+    else if (diff === -1) voiceFile = "score_birdie";
+    else if (diff === 0) voiceFile = "score_par";
+    else if (diff === 1) voiceFile = "score_bogey";
+    else if (diff === 2) voiceFile = "score_dbogey";
+    else if (diff === 3) voiceFile = "score_tbogey";
+
+    let melodyAudio = new Audio(`audio/swings/${melodyFile}.mp3`);
+    melodyAudio.volume = vol;
+    melodyAudio.play().catch(e=>{});
+    
+    let playVoice = () => {
+        let voiceAudio = new Audio(`audio/swings/${voiceFile}.mp3`);
+        voiceAudio.volume = vol;
+        voiceAudio.play().catch(e=>{});
+    };
+
+    if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(setTimeout(playVoice, 5000));
+    else setTimeout(playVoice, 5000);
+    
+    return 7500; // 5s melody + 2.5s voice = 7.5 seconds delay for TTS
 };
 
 window.initPutting = function() {
@@ -334,9 +377,17 @@ function calculateShot(autoMiss = false) {
             let resultMsg = "";
             let formattedDist = window.formatProximity(puttTargetDist);
             if (madeIt) {
-                // v4.28.0 Cup Sink Audio
-                if (typeof window.playGolfSound === 'function') window.playGolfSound('score_02');
-                else { playTone(440, 'sine', 0.2, 0.4); setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 200); }
+                // v5.42.0 Cup Grab-Bag Audio
+                if (!quick) {
+                    window.cupSounds = window.cupSounds || ['cup1', 'cup2', 'cup3', 'cup4', 'cup5', 'cup6'];
+                    window.cupSounds.sort(() => Math.random() - 0.5);
+                    let cupFile = window.cupSounds.pop() || 'cup1';
+                    if (window.cupSounds.length === 0) window.cupSounds = ['cup1', 'cup2', 'cup3', 'cup4', 'cup5', 'cup6'];
+                    let vol = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+                    let cupAudio = new Audio(`audio/swings/${cupFile}.mp3`);
+                    cupAudio.volume = vol;
+                    cupAudio.play().catch(e=>{});
+                }
 
                 resultMsg = `You sank a putt from ${formattedDist} away! IT'S IN THE HOLE!`;
                 broadcast = `${baseBroadcast} ${resultMsg}`;
@@ -447,23 +498,32 @@ function calculateShot(autoMiss = false) {
             let impactWord = impactDiff < 0 ? 'early' : impactDiff > 0 ? 'late' : 'perfect';
             lastTimingReport = `[${pName}] Putting Diagnostics. Power ${finalPower} percent. Touch tempo ${Math.abs(hingeDiff)}ms ${hingeWord}. Impact ${Math.abs(impactDiff)}ms ${impactWord}.`;
 
+            let delayAnnounceMs = 0;
+            if (isHoleComplete && !quick) {
+                let vol = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+                delayAnnounceMs = window.playScoringAudioSequence(strokes, par, vol);
+            }
+
             lastShotReport = broadcast + advancedTelemetry;
             holeTelemetry.push(lastShotReport);
-            window.announce(broadcast);
-            document.getElementById('visual-output').innerText = broadcast;
-            
+
+            stateTimeouts.push(setTimeout(() => {
+                window.announce(broadcast);
+                document.getElementById('visual-output').innerText = broadcast;
+            }, delayAnnounceMs));
+
             stateTimeouts.push(setTimeout(() => {
                 if (gameMode === 'putting') {
                     ballX = 0; ballY = 0; isHoleComplete = false;
                     swingState = 0; strokes = 0; puttState = 0; aimAngle = 0;
                     puttTargetDist = Math.round(calculateDistanceToPin());
-                    window.announce(`${broadcast} Resetting ball to ${puttTargetDist} yards. Targeting Mode active. Press T for a new target.`);
+                    window.announce(`${broadcast} Resetting ball to ${puttTargetDist} yards.`);
                     window.updateDashboard();
                 } else if (gameMode === 'course') {
                     window.advanceTurn();
                 }
                 if (typeof window.saveGame === 'function') window.saveGame();
-            }, 3000));
+            }, 3000 + delayAnnounceMs));
         }
 
         // v4.8.0 Putter Strike Sound
@@ -903,6 +963,16 @@ function calculateShot(autoMiss = false) {
             ballX = pinX;
             ballY = pinY;
             currentLie = "Hole";
+            if (!quick) {
+                window.cupSounds = window.cupSounds || ['cup1', 'cup2', 'cup3', 'cup4', 'cup5', 'cup6'];
+                window.cupSounds.sort(() => Math.random() - 0.5);
+                let cupFile = window.cupSounds.pop() || 'cup1';
+                if (window.cupSounds.length === 0) window.cupSounds = ['cup1', 'cup2', 'cup3', 'cup4', 'cup5', 'cup6'];
+                let vol = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+                let cupAudio = new Audio(`audio/swings/${cupFile}.mp3`);
+                cupAudio.volume = vol;
+                cupAudio.play().catch(e=>{});
+            }
         }
     }
 
@@ -1106,31 +1176,24 @@ function calculateShot(autoMiss = false) {
                 window.updateDashboard();
             } else {
                 if (isHoleComplete) {
-                    // v4.28.0 Dynamic Scoring Chords
+                    let delayAnnounceMs = 0;
                     if (!quick) {
-                        if (typeof window.playGolfSound === 'function') {
-                            let diff = strokes - par;
-                            let sfx = 'score_01';
-                            if (diff <= -2) sfx = 'score_04';
-                            else if (diff === -1) sfx = 'score_03';
-                            else if (diff === 1) sfx = 'score_05';
-                            else if (diff === 2) sfx = 'score_06';
-                            else if (diff >= 3) sfx = 'score_07';
-                            window.playGolfSound(sfx);
-                        } else {
-                            playTone(440, 'sine', 0.2, 0.4);
-                            stateTimeouts.push(setTimeout(() => playTone(554, 'sine', 0.2, 0.4), 200));
-                            stateTimeouts.push(setTimeout(() => playTone(659, 'sine', 0.4, 0.4), 400));
-                        }
+                        let vol = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+                        delayAnnounceMs = window.playScoringAudioSequence(strokes, par, vol);
                     }
 
                     const completionMessage = `Hole complete! ${shotBroadcast} You reached the green in ${strokes} strokes.`;
-                    if (!quick) window.announce(completionMessage);
                     lastShotReport = completionMessage + "\n\nTelemetry:\n" + metrics;
                     holeTelemetry.push(lastShotReport);
-                    if (!quick) window.setCaddyPanelText(lastShotReport);
 
-                    window.advanceTurn();
+                    stateTimeouts.push(setTimeout(() => {
+                        if (!quick) window.announce(completionMessage);
+                        if (!quick) window.setCaddyPanelText(lastShotReport);
+                    }, delayAnnounceMs));
+
+                    stateTimeouts.push(setTimeout(() => {
+                        window.advanceTurn();
+                    }, delayAnnounceMs));
                 } else {
                     if (gameMode === 'range') {
                         let finalProximity = distanceToPin;
@@ -1182,22 +1245,30 @@ function calculateShot(autoMiss = false) {
                                 }
                             }
 
-                            document.getElementById('visual-output').innerText = broadcast;
-                            if (typeof pacingModeIndex !== 'undefined' && pacingModes[pacingModeIndex] === 'Simulate') {
-                                // Suppress TTS for instant sim
-                            } else {
-                                window.announce(broadcast);
+                            let delayAnnounceMs = 0;
+                            if (isHoleComplete && !quick) {
+                                let vol = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+                                delayAnnounceMs = window.playScoringAudioSequence(strokes, par, vol);
                             }
-                            lastShotReport = broadcast + "\n\nTelemetry:\n" + metrics;
-                            holeTelemetry.push(lastShotReport);
-                            if (!quick) window.setCaddyPanelText(lastShotReport);
+
+                            stateTimeouts.push(setTimeout(() => {
+                                document.getElementById('visual-output').innerText = broadcast;
+                                if (typeof pacingModeIndex !== 'undefined' && pacingModes[pacingModeIndex] === 'Simulate') {
+                                    // Suppress
+                                } else {
+                                    window.announce(broadcast);
+                                }
+                                lastShotReport = broadcast + "\n\nTelemetry:\n" + metrics;
+                                holeTelemetry.push(lastShotReport);
+                                if (!quick) window.setCaddyPanelText(lastShotReport);
+                            }, delayAnnounceMs));
 
                             if (gameMode === 'course' && currentLie === "Green") {
                                 if (!quick) { playTone(440, 'sine', 0.1, 0.5); stateTimeouts.push(setTimeout(() => playTone(554, 'sine', 0.1, 0.5), 150)); stateTimeouts.push(setTimeout(() => playTone(659, 'sine', 0.2, 0.5), 300)); }
                                 stateTimeouts.push(setTimeout(() => {
                                     window.initPutting();
                                     window.advanceTurn(true);
-                                }, quick ? 0 : 3500));
+                                }, quick ? 0 : 3500 + delayAnnounceMs));
                             } else {
                                 if (gameMode === 'course') window.updateTargetZone();
                                 driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false; isChokedDown = false;
@@ -1205,7 +1276,7 @@ function calculateShot(autoMiss = false) {
                                 // v4.45.1 ARIA Interruption Fix (Wait 4 seconds before advancing turn)
                                 stateTimeouts.push(setTimeout(() => {
                                     window.advanceTurn();
-                                }, quick ? 0 : 4000));
+                                }, quick ? 0 : 4000 + delayAnnounceMs));
                             }
                         }, quick ? 0 : (typeof isPutting !== 'undefined' && isPutting && club.name === "Putter" && strokes > 1 ? 1500 : 0)));
                         // Track the Auto-Save delay
