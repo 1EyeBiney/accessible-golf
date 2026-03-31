@@ -1,4 +1,4 @@
-// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v5.31.2)
+// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v5.42.2)
 
 // v4.10.0 Scorecard System
 

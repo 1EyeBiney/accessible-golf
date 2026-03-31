@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.42.0)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.42.2)
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -25,21 +25,26 @@ window.setCaddyPanelText = function(msg) {
 
 window.playScoringAudioSequence = function(strokes, par, vol) {
     let diff = strokes - par;
-    let isTriumph = diff < 0;
     let melodyFile = "";
     
-    if (isTriumph) {
+    if (diff < 0) {
         window.triumphSounds = window.triumphSounds || [1,2,3,4,5,6];
         window.triumphSounds.sort(() => Math.random() - 0.5);
         let num = window.triumphSounds.pop() || 1;
         if (window.triumphSounds.length === 0) window.triumphSounds = [1,2,3,4,5,6];
         melodyFile = `8bit_triumph${num}`;
-    } else {
-        window.neutralSounds = window.neutralSounds || [1,2,3,4,5];
+    } else if (diff === 0) {
+        window.neutralSounds = window.neutralSounds || [1,2,3,4,5,6];
         window.neutralSounds.sort(() => Math.random() - 0.5);
         let num = window.neutralSounds.pop() || 1;
-        if (window.neutralSounds.length === 0) window.neutralSounds = [1,2,3,4,5];
+        if (window.neutralSounds.length === 0) window.neutralSounds = [1,2,3,4,5,6];
         melodyFile = `8bit_neutral${num}`;
+    } else {
+        window.sadnessSounds = window.sadnessSounds || [1,2,3,4,5,6];
+        window.sadnessSounds.sort(() => Math.random() - 0.5);
+        let num = window.sadnessSounds.pop() || 1;
+        if (window.sadnessSounds.length === 0) window.sadnessSounds = [1,2,3,4,5,6];
+        melodyFile = `8bit_sadness${num}`;
     }
     
     let voiceFile = "score_know";
@@ -51,7 +56,7 @@ window.playScoringAudioSequence = function(strokes, par, vol) {
     else if (diff === 3) voiceFile = "score_tbogey";
 
     let melodyAudio = new Audio(`audio/swings/${melodyFile}.mp3`);
-    melodyAudio.volume = vol;
+    melodyAudio.volume = vol * 0.8;
     melodyAudio.play().catch(e=>{});
     
     let playVoice = () => {
@@ -63,7 +68,7 @@ window.playScoringAudioSequence = function(strokes, par, vol) {
     if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(setTimeout(playVoice, 5000));
     else setTimeout(playVoice, 5000);
     
-    return 7500; // 5s melody + 2.5s voice = 7.5 seconds delay for TTS
+    return 7500;
 };
 
 window.initPutting = function() {
@@ -197,8 +202,8 @@ function calculateShot(autoMiss = false) {
         const holeData = window.currentCourse.holes[hole - 1];
         let netElevYards = 0; let netBreakYards = 0;
 
-        if (holeData && holeData.greenType && typeof greenDictionary !== 'undefined') {
-            let activeContours = greenDictionary[holeData.greenType] || [];
+        if (holeData && holeData.greenType && typeof window.greenDictionary !== 'undefined') {
+            let activeContours = window.greenDictionary[holeData.greenType] || [];
             activeContours.forEach(z => {
                 if (distToPin >= z.endY) {
                     let start = Math.min(distToPin, z.startY);
@@ -285,8 +290,8 @@ function calculateShot(autoMiss = false) {
         let activeContours = [];
         if (gameMode === 'course') {
             const holeData = window.currentCourse.holes[hole - 1];
-            if (holeData.greenType && typeof greenDictionary !== 'undefined') {
-                activeContours = greenDictionary[holeData.greenType] || [];
+            if (holeData.greenType && typeof window.greenDictionary !== 'undefined') {
+                activeContours = window.greenDictionary[holeData.greenType] || [];
             }
         } else if (gameMode === 'putting') {
             activeContours = [
@@ -844,8 +849,8 @@ function calculateShot(autoMiss = false) {
 
         if (gameMode === 'course') {
             const holeData = window.currentCourse.holes[hole - 1];
-            if (distToPinAtLand <= (holeData.greenRadius || 20) && holeData.greenType && typeof greenDictionary !== 'undefined') {
-                let activeContours = greenDictionary[holeData.greenType] || [];
+            if (distToPinAtLand <= (holeData.greenRadius || 20) && holeData.greenType && typeof window.greenDictionary !== 'undefined') {
+                let activeContours = window.greenDictionary[holeData.greenType] || [];
                 let zone = activeContours.find(z => distToPinAtLand <= z.startY && distToPinAtLand > z.endY);
                 if (zone) {
                     let globalSlopeY = zone.slopeY;
@@ -1348,8 +1353,8 @@ window.getCaddyAdvice = function() {
         let distToPin = calculateDistanceToPin();
         const holeData = window.currentCourse.holes[hole - 1];
         let activeContours = [];
-        if (gameMode === 'course' && holeData.greenType && typeof greenDictionary !== 'undefined') {
-            activeContours = greenDictionary[holeData.greenType] || [];
+        if (gameMode === 'course' && holeData.greenType && typeof window.greenDictionary !== 'undefined') {
+            activeContours = window.greenDictionary[holeData.greenType] || [];
         } else if (gameMode === 'putting') {
             activeContours = [
                 { startY: 45, endY: 25, slopeX: 0.8, slopeY: 0.4 },
@@ -1551,8 +1556,8 @@ window.getOracleBlueprint = function() {
         let distToPin = calculateDistanceToPin();
         const holeData = window.currentCourse.holes[hole - 1];
         let activeContours = [];
-        if (gameMode === 'course' && holeData.greenType && typeof greenDictionary !== 'undefined') {
-            activeContours = greenDictionary[holeData.greenType] || [];
+        if (gameMode === 'course' && holeData.greenType && typeof window.greenDictionary !== 'undefined') {
+            activeContours = window.greenDictionary[holeData.greenType] || [];
         } else if (gameMode === 'putting') {
             activeContours = [
                 { startY: 45, endY: 25, slopeX: 0.8, slopeY: 0.4 },

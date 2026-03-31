@@ -1,7 +1,0 @@
-Ok, working on hole 5. This will use the same rooster effect as in hole 3, the idea being that these holes are close to each other on the course and the chickens cover both holes, plus this gives players a chance to build up free mulligans and gimmes early in the round. I want this to be a long par 4 with a dog leg right and the chicken coop at the inside elbow, it needs to be tall enough to prevent players from cutting the corner, but a pro with a wide open stance should be able to wrap a drive around it and shave thtat corner, especially if the wind is blowing that direction.
-I'd like to introduce a new terrain here: Packed Earth and this is where the chickens would be closest to the coop so o speak and have packed the earth down. This should give balls an extra bounce/roll of this surface. we need to have this terrain replace any rough or heay rough and just have fairway and packed earth on this hole besides the actual green.
-Any shot over 50 yards that is 1st or 2nd shot triggers the free chicken effect that we use on hole 3, this is pretty much the same mechanic I think.
-The green should be turtleback and let's have a fairly large bunker on the front right of the green.
-The music background is: mu_pasture5.mp3
-The ambient background should be the same as for hole 3.
-as kany clarification questions, use version 5.41.0, do usual update tasks

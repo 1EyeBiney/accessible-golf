@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.40.2)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.42.2)
 
 window.confirmingUnplayable = false;
 
@@ -924,8 +924,8 @@ window.addEventListener('keydown', (e) => {
             const holeData = courses[currentCourseIndex].holes[hole - 1];
             let netElevYards = 0;
             let netBreakYards = 0;
-            if (holeData.greenType && typeof greenDictionary !== 'undefined') {
-                let activeContours = greenDictionary[holeData.greenType] || [];
+            if (holeData.greenType && window.greenDictionary && window.greenDictionary[holeData.greenType]) {
+                let activeContours = window.greenDictionary[holeData.greenType] || [];
                 activeContours.forEach(z => {
                     if (distToPin >= z.endY) {
                         let start = Math.min(distToPin, z.startY);
@@ -1324,8 +1324,8 @@ window.addEventListener('keydown', (e) => {
                     let initElevation = "Plays flat.";
                     let distToPin = calculateDistanceToPin();
                     const holeData = courses[currentCourseIndex].holes[hole - 1];
-                    if (distToPin <= 50 && holeData.greenType && typeof greenDictionary !== 'undefined') {
-                        let activeContours = greenDictionary[holeData.greenType] || [];
+                    if (distToPin <= 50 && holeData.greenType && window.greenDictionary && window.greenDictionary[holeData.greenType]) {
+                        let activeContours = window.greenDictionary[holeData.greenType] || [];
                         let zone = activeContours.find(z => distToPin <= z.startY && distToPin > z.endY);
                         if (zone) {
                             if (zone.slopeY > 0) initElevation = "Plays Uphill.";
