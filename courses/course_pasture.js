@@ -1,4 +1,4 @@
-// course_pasture.js - The Pasture Course Data (v5.53.1)
+// course_pasture.js - The Pasture Course Data (v5.54.0)
 window.courses = window.courses || [];
 window.courses.push({
     name: "The Pasture",
@@ -81,6 +81,9 @@ window.courses.push({
             number: 7, par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400,
             loreName: "Revenge of the Marquis",
             description: "In the Fight Club episode of the Dusty Farts podcast, John and Fred were slappin' some goats. Remember how you all laughed at that? Well ... now it's time for the Revenge of the Marquis of Sheepsberry Hill. For every stroke on this hole, the Marquis will unleash his goats and let them try to distract you during your swing. That will teach you all what happens when you mess with goats. Good luck on this normally easy par 4.",
+            bgMusic: 'audio/courses/pasture/mu_pasture7.mp3',
+            bgAmbient: 'audio/courses/pasture/am_farm1_goats.mp3',
+            bgAmbientPostGreen: 'audio/courses/pasture/am_farm1.mp3',
             hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}]
         },
         ...Array.from({length: 11}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))

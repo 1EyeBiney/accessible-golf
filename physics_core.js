@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.53.0)
-window.AG_VERSION = "v5.53.0";
+// physics_core.js - Math, Wind, and Shot Calculation (v5.56.0)
+window.AG_VERSION = "v5.56.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -750,23 +750,9 @@ function calculateShot(autoMiss = false) {
         window.playGolfSound(strikeSound);
     }
 
-    // v5.53.0 Reset Marquis flag at the start of each shot assessment
-    window.marquisActiveOnShot = false;
-    // v5.8.0 The Duck Hook Penalty (Sub-80% Accuracy)
+    // v5.56.0 Universal Mishap Trigger
     if (accuracyScore < 80 && !quick) {
-        if (window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 7 && currentLie !== 'Green') {
-            // v5.53.0 Hole 7 Marquis Intercept — Marquis mocks the bad shot instead of the duck
-            window.marquisActiveOnShot = true;
-            if (typeof window.playMarquisSequence === 'function') window.playMarquisSequence();
-        } else {
-            let duckVariant = Math.floor(Math.random() * 4) + 1; // 1 to 4
-            let duckAudio = new Audio(`audio/swings/duck${duckVariant}.mp3`);
-            duckAudio.volume = 0.8;
-            // Delay the quack so it plays mid-flight, after the execution pings
-            stateTimeouts.push(setTimeout(() => {
-                duckAudio.play().catch(e => console.warn("Duck audio missing:", e));
-            }, 800));
-        }
+        if (typeof window.triggerDuckEvent === 'function') window.triggerDuckEvent();
     }
 
     // v5.9.0 High Accuracy Strike Audio
@@ -1358,22 +1344,30 @@ function calculateShot(autoMiss = false) {
                                 let vol = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
                                 delayAnnounceMs = window.playScoringAudioSequence(strokes, par, vol);
                             }
-                            // v5.53.0 Marquis Caddy Delay — push announce back so Marquis finishes before Caddy speaks
-                            if (window.marquisActiveOnShot && !quick) {
-                                delayAnnounceMs = Math.max(delayAnnounceMs, 12000);
-                            }
 
                             stateTimeouts.push(setTimeout(() => {
                                 document.getElementById('visual-output').innerText = broadcast;
-                                if (typeof pacingModeIndex !== 'undefined' && pacingModes[pacingModeIndex] === 'Simulate') {
-                                    // Suppress
-                                } else {
-                                    window.announce(broadcast);
-                                }
                                 lastShotReport = broadcast + "\n\nTelemetry:\n" + metrics;
                                 holeTelemetry.push(lastShotReport);
-                                if (!quick) window.setCaddyPanelText(lastShotReport);
-                                window.marquisActiveOnShot = false; // v5.53.0 Reset after Caddy fires
+
+                                // v5.56.0 Dynamic Caddy Yield
+                                if (typeof window.waitForDuckToClear === 'function') {
+                                    window.waitForDuckToClear(() => {
+                                        if (typeof pacingModeIndex !== 'undefined' && pacingModes[pacingModeIndex] === 'Simulate') {
+                                            // Suppress
+                                        } else {
+                                            window.setCaddyPanelText(lastShotReport);
+                                            window.announce(broadcast);
+                                        }
+                                    });
+                                } else {
+                                    if (typeof pacingModeIndex !== 'undefined' && pacingModes[pacingModeIndex] === 'Simulate') {
+                                        // Suppress
+                                    } else {
+                                        window.setCaddyPanelText(lastShotReport);
+                                        window.announce(broadcast);
+                                    }
+                                }
                             }, delayAnnounceMs));
 
                             if (gameMode === 'course' && currentLie === "Green") {

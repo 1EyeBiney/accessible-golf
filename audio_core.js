@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.53.0)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.58.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -312,30 +312,50 @@ window.playBotSeveSignature = function() {
     });
 };
 
-// --- v5.53.0 HOLE 7 MARQUIS ASSETS ---
-
+// v5.58.0 Restored Hole 7 Goat Distractions
 window.audioGoatInterrupts = [];
-for (let i = 1; i <= 3; i++) window.audioGoatInterrupts.push(new Audio(`audio/courses/pasture/goat_interrupt${i}.mp3`));
-
-window.audioMarquisLaughs = [];
-for (let i = 1; i <= 8; i++) window.audioMarquisLaughs.push(new Audio(`audio/bots/marquis_laugh${i}.mp3`));
-
-window.audioMarquisInsults = [];
-for (let i = 1; i <= 12; i++) window.audioMarquisInsults.push(new Audio(`audio/bots/marquis_insult${i}.mp3`));
+for(let i=1; i<=3; i++) window.audioGoatInterrupts.push(new Audio(`audio/courses/pasture/goat_interrupt${i}.mp3`));
 
 window.playGoatInterrupt = function() {
     let r = Math.floor(Math.random() * window.audioGoatInterrupts.length);
-    if (window.audioGoatInterrupts[r]) window.audioGoatInterrupts[r].play().catch(e => {});
+    if (window.audioGoatInterrupts[r]) {
+        window.audioGoatInterrupts[r].currentTime = 0;
+        window.audioGoatInterrupts[r].play().catch(e => {});
+    }
 };
 
-window.playMarquisSequence = function() {
-    let rLaugh = Math.floor(Math.random() * window.audioMarquisLaughs.length);
-    let rInsult = Math.floor(Math.random() * window.audioMarquisInsults.length);
-    if (window.audioMarquisLaughs[rLaugh]) window.audioMarquisLaughs[rLaugh].play().catch(e => {});
-    // Wait 5 seconds for the laugh to finish before firing the insult
-    setTimeout(() => {
-        if (window.audioMarquisInsults[rInsult]) window.audioMarquisInsults[rInsult].play().catch(e => {});
-    }, 5000);
+// --- v5.56.0 UNIFIED CUSTOM DUCK LOGIC ---
+
+window.audioPastureDucks = [];
+for (let i = 1; i <= 12; i++) window.audioPastureDucks.push(new Audio(`audio/courses/pasture/duck_pasture${i}.mp3`));
+window.activeDuckAudio = null;
+
+window.triggerDuckEvent = function() {
+    // Determine which audio to play based on course context
+    if (typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && typeof hole !== 'undefined' && hole === 7 && typeof currentLie !== 'undefined' && currentLie !== 'Green') {
+        let r = Math.floor(Math.random() * window.audioPastureDucks.length);
+        window.activeDuckAudio = window.audioPastureDucks[r];
+    } else {
+        window.activeDuckAudio = typeof audioDuck !== 'undefined' ? audioDuck : null;
+    }
+
+    if (window.activeDuckAudio) {
+        window.activeDuckAudio.currentTime = 0;
+        window.activeDuckAudio.play().catch(e => {});
+    }
+};
+
+window.waitForDuckToClear = function(callback) {
+    if (window.activeDuckAudio && !window.activeDuckAudio.paused && !window.activeDuckAudio.ended) {
+        let fired = false;
+        window.activeDuckAudio.onended = () => {
+            if (!fired) { fired = true; callback(); }
+        };
+        // 15 second failsafe just in case onended is swallowed by the browser
+        setTimeout(() => { if (!fired) { fired = true; callback(); } }, 15000);
+    } else {
+        callback();
+    }
 };
 
 // --- ENVIRONMENTAL AUDIO (v5.23.0) ---
