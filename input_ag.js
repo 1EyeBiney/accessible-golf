@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.48.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.50.0)
 
 window.copyToClipboard = function(text, successMsg) {
     if (navigator.clipboard && window.isSecureContext) {
@@ -188,17 +188,8 @@ window.addEventListener('keydown', (e) => {
                 // v4.92.0 Master Telemetry Dump w/ Settings Header
                 let allLogs = "";
                 
-                let courseName = (typeof courses !== 'undefined' && courses[currentCourseIndex]) ? courses[currentCourseIndex].name : "Unknown Course";
-                let windName = (typeof windLevels !== 'undefined' && windLevels[windLevelIndex]) ? windLevels[windLevelIndex].name : "Unknown Wind";
-                let roughName = (typeof roughConditions !== 'undefined' && roughConditions[roughConditionIndex]) ? roughConditions[roughConditionIndex].name : "Standard";
-                let tgMode = typeof window.tournamentGreens !== 'undefined' && window.tournamentGreens;
-                
-                allLogs += `# MATCH SETTINGS\n`;
-                allLogs += `**Engine Version:** v5.45.0\n`;
-                allLogs += `**Course:** ${courseName}\n`;
-                allLogs += `**Wind:** ${windName}\n`;
-                allLogs += `**Green Speed:** ${tgMode ? "Tournament (Stimp 13)" : "Standard (Stimp 10)"}\n`;
-                allLogs += `**Rough Condition:** ${roughName}\n\n=========================================\n\n`;
+                let header = `# MATCH SETTINGS\n**Engine Version:** ${typeof window.AG_VERSION !== 'undefined' ? window.AG_VERSION : 'Unknown'}\n**Course:** ${window.currentCourse.name}\n**Wind:** ${windLevels[wizardWind].name}\n**Green Speed:** ${window.tournamentGreens ? 'Tournament (Stimp 13)' : 'Standard (Stimp 10)'}\n**Rough Condition:** ${roughConditions[roughConditionIndex].name}\n\n=========================================\n\n`;
+                allLogs += header;
 
                 // v5.1.2 Scoreboard Header
                 allLogs += `# SCOREBOARD SUMMARY\n`;

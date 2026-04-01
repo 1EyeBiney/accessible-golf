@@ -1,4 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.48.0)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.50.0)
+window.AG_VERSION = "v5.50.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -1632,7 +1633,17 @@ window.getCaddyAdvice = function() {
         for (let simStance = 0; simStance < 5; simStance++) {
             let dynamicLoft = Math.max(0, simClub.loft + style.loftMod + ((2 - simStance) * 5));
             let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
-            let totalDist = simClub.baseDistance * style.distMod * loftDistMod * lieMultiplier;
+            let baseCarry = simClub.baseDistance;
+            // v5.50.0 Focus Anticipation
+            let predictedFocus = 0; 
+            if (simClub.name === "Driver" || simClub.name.includes("Wood")) {
+                predictedFocus = (targetDist > 250) ? 1 : 4; 
+            } else {
+                predictedFocus = 4; 
+            }
+            let focusDistMod = (predictedFocus === 1) ? 1.10 : 1.0;
+            baseCarry = baseCarry * focusDistMod;
+            let totalDist = baseCarry * style.distMod * loftDistMod * lieMultiplier;
             
             let backspinRPM = Math.max(400, Math.round((simClub.loft * 150) + 1000 + ((simStance - 2) * 500) + style.spinMod));
             let gyroMod = Math.max(0.6, Math.min(1.3, 1 - ((backspinRPM - 4000) / 10000)));
@@ -1820,7 +1831,20 @@ window.getOracleBlueprint = function() {
                 for (let simStance = 0; simStance < 5; simStance++) {
                     let dynamicLoft = Math.max(0, simClub.loft + style.loftMod + ((2 - simStance) * 5));
                     let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
-                    let totalDist = simClub.baseDistance * style.distMod * loftDistMod * lieMultiplier;
+                    let baseCarry = simClub.baseDistance;
+                    // v5.50.0 Focus Anticipation
+                    let p = players[currentPlayerIndex];
+                    let pName = p.name;
+                    let predictedFocus = 0; // Default Standard
+                    if (simClub.name === "Driver" || simClub.name.includes("Wood")) {
+                        predictedFocus = (effectiveDist > 250) ? 1 : 4; // 1: Power, 4: Accuracy
+                    } else {
+                        predictedFocus = 4; // Irons/Wedges default to Accuracy
+                    }
+                    if (pName && pName.includes("Bot") && p.focusIndex === 1) predictedFocus = 1; 
+                    let focusDistMod = (predictedFocus === 1) ? 1.10 : 1.0;
+                    baseCarry = baseCarry * focusDistMod;
+                    let totalDist = baseCarry * style.distMod * loftDistMod * lieMultiplier;
                     
                     let requiredPower = 100;
                     if (totalDist > effectiveDist && totalDist > 0) {
@@ -1883,7 +1907,6 @@ window.getOracleBlueprint = function() {
                     }
 
                     // --- v5.10.0 AI Personality Math ---
-                    let pName = players[currentPlayerIndex].name;
                     if (pName === "Fairway Fred") {
                         if (club.name === "Driver" || club.name === "3 Wood") adjustedMiss += 30;
                         else if (club.name.includes("Iron")) adjustedMiss -= 15;

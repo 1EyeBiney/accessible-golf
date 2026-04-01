@@ -1,15 +1,55 @@
-let's work on hole 4, I'd like it to have the following features:
-This is the pig hole and I've got the sound of a solo pig grunting and rooting around in the mud and walking around. I've got it sounding like it is down the hole so he could be surrounding the hole.
-I'd like this to be a par 3 with mud surrounding the green, and make the green larger than normal, maybe 35 yards or whatever is about 45 yards bigger than our usual size. I'd like the green to be severely three tiered so that putts can have 2 distinct changes indirection, like we do on the practice putting green where I can have putts that go both directions and the oracle caddy acknowledges it and I want to be able to hear the putt move across the screen. If the tee shot misses the green, I want to introduce a new terrain: mud and we can go into detail about the physics of the ball from that lie but it's in mud, so should react accordingly with having to dig it out, and mud on the ball and such. balls out of mud should have a very large dispersion circle as you just can't control them well.
-I have the sound of the pig far off by the hole but I think I want to do like we did on hole 1, where once all shots are on the green, then we switch to the standard ambient background sound file. Here are the 2 names of the ambient background files:
-am_farm1_pig.mp3
-am_farm1.mp3
+Hole 7: The Marquis of Queensberry (Par 4)
+• 
+The Vibe: High-class, snobby, and aggressively proper.
+• 
+The Audio Mechanic (Psychological Warfare): We use your goat sounds, but we don't make them a physical hazard. Instead, the Marquis sits near the tee box. As you start your downswing (swingState === 3), the engine triggers a perfectly timed, highly judgmental goat bleat right before your impact window. It is purely designed to make you flinch and mess up your tempo. If you hit a "Fat" or "Thin" shot, we trigger a custom audio line of the Marquis laughing at your terrible form.
+Hole 8: The Dairy Drift (Par 5 - Cows Part 2)
+• 
+The Geography: This hole runs parallel to Hole 2, meaning the same herd is wandering the left rough.
+• 
+The Audio Mechanic (Audio Masking): Instead of pinballing off them, the cows are resting and chewing cud. If your ball lands near the left rough, the ambient audio crossfades into a deafening, low-frequency chorus of deep moos and heavy breathing. The rumble is so loud that it actually masks the Caddy's distance readouts and your 600Hz execution pings. You have to swing entirely by feel and muscle memory to escape the herd.
+Hole 9: The Cart Path Crossing (Par 3)
+• 
+The Vibe: Pure chaos. "Good luck concentrating."
+• 
+The Audio Mechanic (The Doppler Distraction): A 160-yard Par 3 over a busy intersection. We will program an independent looping timer that triggers a golf cart audio file. Using the Web Audio API StereoPannerNode, the cart sound will start at pan: -1 (hard left), rapidly swell in volume, cross the center, and fade out at pan: 1 (hard right), complete with sputtering engines, squeaking brakes, and maybe some yelling from the Lounge Lizards. The cart doesn't physically block the ball, but hitting a perfectly timed Spacebar hinge while a cart screams through your headset will be a nightmare.
+Hole 10: The Coop's Revenge (Par 4 - Chickens Part 2)
+• 
+The Geography: You are playing the backside of the Hole 5 chicken coop.
+• 
+The Audio Mechanic (The Drop-Zone): Instead of dropping loot on the fairway, the chickens are roosting in the canopy of the trees lining the fairway. If your ball's trajectory intersects a tree on Hole 10, it doesn't just hit wood. It triggers a massive, chaotic explosion of squawking and feathers. The physics engine then strips 100% of your ball's velocity (instead of the usual 15% retention), dropping the ball completely dead straight down into the rough.
+Hole 11: Floyd's Drain (Par 4 - Mud Part 2)
+• 
+The Geography: The downhill runoff from Floyd's Mud Bowl (Hole 4).
+• 
+The Audio Mechanic (The "Squelch" Zone): A massive mud trench splits the fairway at 240 yards, forcing a layup decision. To make it psychologically gross, we add an ambient track of bubbling mud and Floyd's heavy breathing. If you hit the mud, we reuse the V5.40.0 "burial" physics (0% roll), but we play an obnoxiously loud, 3-second wet "squelch" sound effect.
+Holes 12 - 17: The Dusty Farts Homages
+We can reserve these for direct references to the other scripts.
+• 
+Hole 14 ("Drip, Drip, Hooray"): A broken irrigation pipe creates an annoying, rhythmic dripping sound that you have to tune out while putting.
+• 
+Hole 16 ("Murder in the Park"): The fairway is lined with a "murder" of crows. If you miss the fairway, the crows caw aggressively in surround sound.
+• 
+Hole 17 ("All Power to the Ball"): You are teeing off underneath a high-voltage power line. A constant electrical 60Hz hum sits in the background.
+Hole 18: The Dusty Fart (Par 5 - 640 Yards)
+• 
+The Vibe: The grand finale. Mathematically impossible under normal conditions.
+• 
+The Mechanic (The Wind Tunnel): When Hole 18 loads, the engine bypasses the standard RNG wind generator and artificially locks windY = 45 (a massive, howling 45 mph tailwind). We add a heavy, rushing wind ambient track.
+• 
+The Strategy: The player must equip the Driver, move the ball to the Far Forward stance to maximize launch angle, and hit it perfectly to ride the gale-force wind 350+ yards.
+• 
+The Trap: You mentioned mud behind the green. We will paint a massive AABB Mud zone exactly 5 yards off the back edge of the putting surface. If the player miscalculates the tailwind and flies the green, the ball buries in the mud, turning an eagle opportunity into a scrambling par.
+How does this lineup sound? We can start building out the course data arrays and audio intercepts for the Marquis and the Golf Carts right now if you are ready!
+Good response
+Bad response
+Redo
+Copy
+Show more options
+Ask Gemini
 
-If the ball does not land on the green, I want a grab bag of 6 sound cues to play that sound like a ball landing in mud:
-mud_rock_small1.mp3
-through
-mud_rock_small6.mp3
-The music background for this hole is:
-mu_pasture4.mp3
-
-if you have any questions, ask for clarification, otherwise, use version 5.40.0, files changed, changelog entry, GCA prompt
+Open upload file menu
+Tools
+Open mode picker
+Microphone
+Gemini is AI and can make mistakes.
