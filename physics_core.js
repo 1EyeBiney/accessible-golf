@@ -73,7 +73,7 @@ window.playScoringAudioSequence = function(strokes, par, vol) {
     else if (diff === 3) voiceFile = "score_tbogey";
 
     let melodyAudio = new Audio(`audio/swings/${melodyFile}.mp3`);
-    melodyAudio.volume = vol * 0.8;
+    melodyAudio.volume = vol * 0.60; // v5.52.0 - 0.60x volume dampener on 8-bit jingles
     melodyAudio.play().catch(e=>{});
     
     let playVoice = () => {

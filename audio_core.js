@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.48.0)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.52.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
