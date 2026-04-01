@@ -1,4 +1,4 @@
-// course_pasture.js - The Pasture Course Data (v5.43.0)
+// course_pasture.js - The Pasture Course Data (v5.53.1)
 window.courses = window.courses || [];
 window.courses.push({
     name: "The Pasture",
@@ -77,6 +77,12 @@ window.courses.push({
             landingZones: [{ name: "Fight the Wind", x: 0, y: 220 }, { name: "Aggressive Approach", x: 0, y: 280 }],
             zones: [{x:0, y:220, w:30, h:30}, {x:0, y:280, w:30, h:30}]
         },
-        ...Array.from({length: 12}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
+        {
+            number: 7, par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400,
+            loreName: "Revenge of the Marquis",
+            description: "In the Fight Club episode of the Dusty Farts podcast, John and Fred were slappin' some goats. Remember how you all laughed at that? Well ... now it's time for the Revenge of the Marquis of Sheepsberry Hill. For every stroke on this hole, the Marquis will unleash his goats and let them try to distract you during your swing. That will teach you all what happens when you mess with goats. Good luck on this normally easy par 4.",
+            hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}]
+        },
+        ...Array.from({length: 11}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
     ]
 });

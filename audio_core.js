@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.52.0)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.53.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -310,6 +310,32 @@ window.playBotSeveSignature = function() {
         gain.gain.exponentialRampToValueAtTime(0.001, t + 2.0);
         osc.start(t + 0.96); osc.stop(t + 2.0);
     });
+};
+
+// --- v5.53.0 HOLE 7 MARQUIS ASSETS ---
+
+window.audioGoatInterrupts = [];
+for (let i = 1; i <= 3; i++) window.audioGoatInterrupts.push(new Audio(`audio/courses/pasture/goat_interrupt${i}.mp3`));
+
+window.audioMarquisLaughs = [];
+for (let i = 1; i <= 8; i++) window.audioMarquisLaughs.push(new Audio(`audio/bots/marquis_laugh${i}.mp3`));
+
+window.audioMarquisInsults = [];
+for (let i = 1; i <= 12; i++) window.audioMarquisInsults.push(new Audio(`audio/bots/marquis_insult${i}.mp3`));
+
+window.playGoatInterrupt = function() {
+    let r = Math.floor(Math.random() * window.audioGoatInterrupts.length);
+    if (window.audioGoatInterrupts[r]) window.audioGoatInterrupts[r].play().catch(e => {});
+};
+
+window.playMarquisSequence = function() {
+    let rLaugh = Math.floor(Math.random() * window.audioMarquisLaughs.length);
+    let rInsult = Math.floor(Math.random() * window.audioMarquisInsults.length);
+    if (window.audioMarquisLaughs[rLaugh]) window.audioMarquisLaughs[rLaugh].play().catch(e => {});
+    // Wait 5 seconds for the laugh to finish before firing the insult
+    setTimeout(() => {
+        if (window.audioMarquisInsults[rInsult]) window.audioMarquisInsults[rInsult].play().catch(e => {});
+    }, 5000);
 };
 
 // --- ENVIRONMENTAL AUDIO (v5.23.0) ---
