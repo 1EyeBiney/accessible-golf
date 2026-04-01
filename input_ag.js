@@ -1,4 +1,19 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.50.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.51.0)
+
+// v5.51.0 Swing Input Failsafe & Cooldown
+window.isSwingInitializing = false;
+window.swingCooldownEnd = 0;
+window.previousSwingState = 0;
+
+// Watchdog to detect when a swing ends and enforce an 800ms audio clearance delay
+setInterval(() => {
+    if (typeof swingState !== 'undefined') {
+        if (swingState === 0 && window.previousSwingState !== 0) {
+            window.swingCooldownEnd = performance.now() + 800; 
+        }
+        window.previousSwingState = swingState;
+    }
+}, 50);
 
 window.copyToClipboard = function(text, successMsg) {
     if (navigator.clipboard && window.isSecureContext) {
@@ -1062,8 +1077,12 @@ window.addEventListener('keydown', (e) => {
             return;
         }
 
-        if (swingState === 0) startBackswing(false);
-        else if (swingState === 4) {
+        if (swingState === 0) {
+            if (performance.now() < window.swingCooldownEnd || window.isSwingInitializing) return;
+            window.isSwingInitializing = true;
+            setTimeout(() => { window.isSwingInitializing = false; }, 300);
+            startBackswing(false);
+        } else if (swingState === 4) {
             if (typeof calculateShot === 'function') calculateShot(false); 
         }
     }
@@ -1082,8 +1101,12 @@ window.addEventListener('keydown', (e) => {
             return;
         }
 
-        if (swingState === 0) startBackswing(true);
-        else if (swingState === 4) {
+        if (swingState === 0) {
+            if (performance.now() < window.swingCooldownEnd || window.isSwingInitializing) return;
+            window.isSwingInitializing = true;
+            setTimeout(() => { window.isSwingInitializing = false; }, 300);
+            startBackswing(true);
+        } else if (swingState === 4) {
             lockedImpactTime = performance.now() - impactStartTime;
             if (typeof window.evaluatePracticeSwing === 'function') window.evaluatePracticeSwing();
         }
