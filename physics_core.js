@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.63.0)
-window.AG_VERSION = "v5.63.0";
+// physics_core.js - Math, Wind, and Shot Calculation (v5.65.0)
+window.AG_VERSION = "v5.65.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -750,15 +750,9 @@ function calculateShot(autoMiss = false) {
         window.playGolfSound(strikeSound);
     }
 
-    // v5.63.0 Duck Mishap & Toilet Reward Intercept
+    // v5.65.0 Duck Mishap Intercept
     if (accuracyScore < 80 && !quick) {
         if (typeof window.triggerDuckEvent === 'function') window.triggerDuckEvent();
-    } else if (!quick && typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && typeof hole !== 'undefined' && hole === 8 && typeof strokes !== 'undefined' && strokes === 1 && typeof currentLie !== 'undefined' && currentLie === "Green") {
-        if (typeof stateTimeouts !== 'undefined') {
-            stateTimeouts.push(setTimeout(() => {
-                if (typeof window.triggerToiletEvent === 'function') window.triggerToiletEvent();
-            }, 800));
-        }
     }
 
     // v5.9.0 High Accuracy Strike Audio
@@ -1005,6 +999,16 @@ function calculateShot(autoMiss = false) {
         players, currentPlayerIndex, isBotTurn
     });
     currentLie = hazardResult.currentLie;
+
+    // v5.65.0 Hole 8 Toilet Reward Intercept (Post-Math Evaluation)
+    if (!quick && typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && typeof hole !== 'undefined' && hole === 8 && typeof strokes !== 'undefined' && strokes === 1 && currentLie === "Green") {
+        if (typeof stateTimeouts !== 'undefined') {
+            stateTimeouts.push(setTimeout(() => {
+                if (typeof window.triggerToiletEvent === 'function') window.triggerToiletEvent();
+            }, 800));
+        }
+    }
+
     let inWater = hazardResult.inWater;
     let rollStopTriggered = hazardResult.rollStopTriggered;
     ballX = hazardResult.ballX;

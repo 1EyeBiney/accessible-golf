@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.64.0)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.65.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -335,11 +335,14 @@ window.audioDuck = new Audio('audio/swings/duck.mp3');
 
 window.triggerDuckEvent = function() {
     // Determine which audio to play based on course context
-    if (typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && typeof hole !== 'undefined' && hole === 7 && typeof currentLie !== 'undefined' && currentLie !== 'Green') {
-        let r = Math.floor(Math.random() * window.audioPastureDucks.length);
-        window.activeDuckAudio = window.audioPastureDucks[r];
+    if (typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && typeof hole !== 'undefined' && hole === 7) {
+        if (typeof window.audioPastureDucks !== 'undefined' && window.audioPastureDucks.length > 0) {
+            let r = Math.floor(Math.random() * window.audioPastureDucks.length);
+            window.activeDuckAudio = window.audioPastureDucks[r];
+        }
     } else {
-        window.activeDuckAudio = typeof audioDuck !== 'undefined' ? audioDuck : null;
+        // v5.65.0 Duck Router Fix
+        window.activeDuckAudio = typeof window.audioDuck !== 'undefined' ? window.audioDuck : null;
     }
 
     if (window.activeDuckAudio) {
