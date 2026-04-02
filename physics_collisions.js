@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.40.1)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.59.0)
 
 // --- TERRAIN QUERIES ---
 
@@ -521,6 +521,31 @@ window.resolveHazardLie = function(ctx) {
     if (currentLie === "Packed Earth") {
         rollDistance = Math.round(rollDistance * 1.5);
         totalDistance = carryDistance + rollDistance;
+    }
+
+    // v5.59.0 The Sinkhole Funnel
+    if (typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && typeof hole !== 'undefined' && hole === 8) {
+        let distToPin = Math.sqrt(Math.pow(ballX - pinX, 2) + Math.pow(ballY - pinY, 2));
+        // If the ball misses the 35y green but lands within the 80y crater
+        if (distToPin > 35 && distToPin < 80) {
+            currentLie = "Rough";
+            let kickNarrative = " The ball caught the steep embankment of the Sinkhole Wall and funneled violently down the slope.";
+            if (typeof flightPathNarrative !== 'undefined') flightPathNarrative += kickNarrative;
+
+            // Pull laterally towards center
+            ballX = ballX * 0.2;
+
+            // Push vertically towards the green
+            if (ballY < pinY) ballY += 25; // Kicks forward if short
+            else ballY -= 25;               // Kicks backward if long
+
+            // Cap the funnel so it stops exactly at the edge of the green (35 yards)
+            let newDistToPin = Math.sqrt(Math.pow(ballX - pinX, 2) + Math.pow(ballY - pinY, 2));
+            if (newDistToPin < 35) {
+                ballY = pinY > ballY ? pinY - 35.1 : pinY + 35.1;
+                currentLie = "Fringe"; // Gives them a clean look from the edge
+            }
+        }
     }
 
     return { currentLie, inWater, rollStopTriggered, ballX, ballY, rollDistance, totalDistance, strokes, flightPathNarrative };

@@ -1,55 +1,36 @@
-Hole 7: The Marquis of Queensberry (Par 4)
+Tutorial Playback within Game
+This is exactly the right trajectory for an audio-first engine. Building a native, custom JS player inside the game keeps the player completely immersed, and replacing standard text manuals with high-quality Eleven Labs audio is a massive UX upgrade for a screen reader user.
+To answer your technical question directly: Yes, fast-forwarding and rewinding by exact seconds in JavaScript is incredibly easy. We don't need to mess with percentages unless you want to. We just tell the engine to take the audio's currentTime and add or subtract 10 seconds.
+Here is a proposed control scheme and architecture for this "Audio Manual" module. Let me know what you think of this layout.
+The Proposed Control Scheme
+Since this will exist as a specific state within the Clubhouse (e.g., clubhouseState === 'audio_manual'), we can safely intercept the standard keys without triggering any golf swings.
 • 
-The Vibe: High-class, snobby, and aggressively proper.
+Spacebar: Play / Pause toggle.
 • 
-The Audio Mechanic (Psychological Warfare): We use your goat sounds, but we don't make them a physical hazard. Instead, the Marquis sits near the tee box. As you start your downswing (swingState === 3), the engine triggers a perfectly timed, highly judgmental goat bleat right before your impact window. It is purely designed to make you flinch and mess up your tempo. If you hit a "Fat" or "Thin" shot, we trigger a custom audio line of the Marquis laughing at your terrible form.
-Hole 8: The Dairy Drift (Par 5 - Cows Part 2)
+ArrowLeft / ArrowRight: Scrub Backward 10 seconds / Scrub Forward 10 seconds.
 • 
-The Geography: This hole runs parallel to Hole 2, meaning the same herd is wandering the left rough.
+ArrowUp / ArrowDown: Skip to Previous Chapter / Skip to Next Chapter.
 • 
-The Audio Mechanic (Audio Masking): Instead of pinballing off them, the cows are resting and chewing cud. If your ball lands near the left rough, the ambient audio crossfades into a deafening, low-frequency chorus of deep moos and heavy breathing. The rumble is so loud that it actually masks the Caddy's distance readouts and your 600Hz execution pings. You have to swing entirely by feel and muscle memory to escape the herd.
-Hole 9: The Cart Path Crossing (Par 3)
+KeyI or KeyT: "Time check." Pressing this pauses the audio for a split second to announce the current position (e.g., "Chapter 2: Swing Physics. 1 minute, 15 seconds").
 • 
-The Vibe: Pure chaos. "Good luck concentrating."
+Escape: Stops the playback, clears the audio from memory, and returns the user to the root Clubhouse menu.
+How the "Figurative" Chapters Work
+You won't need to embed any ID3 tags into the MP3 file itself. You will just render out one single, long MP3 file from Reaper.
+In the game's code, we will build a simple array that acts as the map. It will look something like this:
+JavaScript
+Copy code
+window.tutorialChapters = [
+    { title: "Introduction and Game Concepts", time: 0 },
+    { title: "Navigating the Clubhouse", time: 45 },
+    { title: "Understanding the Swing Mechanics", time: 112 },
+    { title: "Putting and Green Reading", time: 240 }
+];
+When the player presses ArrowDown to go to the next chapter, the engine looks at this array, finds the next timestamp, instantly snaps the audio's currentTime to 112, and fires window.announce("Understanding the Swing Mechanics") so the player knows exactly where they just landed.
+The Accessibility Feedback Loop
+The biggest challenge with an audio player for blind users is that they can't see the scrubber bar to know when the track is ending or how far they just skipped.
 • 
-The Audio Mechanic (The Doppler Distraction): A 160-yard Par 3 over a busy intersection. We will program an independent looping timer that triggers a golf cart audio file. Using the Web Audio API StereoPannerNode, the cart sound will start at pan: -1 (hard left), rapidly swell in volume, cross the center, and fade out at pan: 1 (hard right), complete with sputtering engines, squeaking brakes, and maybe some yelling from the Lounge Lizards. The cart doesn't physically block the ball, but hitting a perfectly timed Spacebar hinge while a cart screams through your headset will be a nightmare.
-Hole 10: The Coop's Revenge (Par 4 - Chickens Part 2)
+Scrubbing Feedback: When they tap ArrowRight, we can have the engine quickly announce "Plus 10" or just play a quick, quiet mechanical click sound from your audio bank so they have tactile feedback that the scrub worked.
 • 
-The Geography: You are playing the backside of the Hole 5 chicken coop.
-• 
-The Audio Mechanic (The Drop-Zone): Instead of dropping loot on the fairway, the chickens are roosting in the canopy of the trees lining the fairway. If your ball's trajectory intersects a tree on Hole 10, it doesn't just hit wood. It triggers a massive, chaotic explosion of squawking and feathers. The physics engine then strips 100% of your ball's velocity (instead of the usual 15% retention), dropping the ball completely dead straight down into the rough.
-Hole 11: Floyd's Drain (Par 4 - Mud Part 2)
-• 
-The Geography: The downhill runoff from Floyd's Mud Bowl (Hole 4).
-• 
-The Audio Mechanic (The "Squelch" Zone): A massive mud trench splits the fairway at 240 yards, forcing a layup decision. To make it psychologically gross, we add an ambient track of bubbling mud and Floyd's heavy breathing. If you hit the mud, we reuse the V5.40.0 "burial" physics (0% roll), but we play an obnoxiously loud, 3-second wet "squelch" sound effect.
-Holes 12 - 17: The Dusty Farts Homages
-We can reserve these for direct references to the other scripts.
-• 
-Hole 14 ("Drip, Drip, Hooray"): A broken irrigation pipe creates an annoying, rhythmic dripping sound that you have to tune out while putting.
-• 
-Hole 16 ("Murder in the Park"): The fairway is lined with a "murder" of crows. If you miss the fairway, the crows caw aggressively in surround sound.
-• 
-Hole 17 ("All Power to the Ball"): You are teeing off underneath a high-voltage power line. A constant electrical 60Hz hum sits in the background.
-Hole 18: The Dusty Fart (Par 5 - 640 Yards)
-• 
-The Vibe: The grand finale. Mathematically impossible under normal conditions.
-• 
-The Mechanic (The Wind Tunnel): When Hole 18 loads, the engine bypasses the standard RNG wind generator and artificially locks windY = 45 (a massive, howling 45 mph tailwind). We add a heavy, rushing wind ambient track.
-• 
-The Strategy: The player must equip the Driver, move the ball to the Far Forward stance to maximize launch angle, and hit it perfectly to ride the gale-force wind 350+ yards.
-• 
-The Trap: You mentioned mud behind the green. We will paint a massive AABB Mud zone exactly 5 yards off the back edge of the putting surface. If the player miscalculates the tailwind and flies the green, the ball buries in the mud, turning an eagle opportunity into a scrambling par.
-How does this lineup sound? We can start building out the course data arrays and audio intercepts for the Marquis and the Golf Carts right now if you are ready!
-Good response
-Bad response
-Redo
-Copy
-Show more options
-Ask Gemini
-
-Open upload file menu
-Tools
-Open mode picker
-Microphone
-Gemini is AI and can make mistakes.
+Auto-Advance: If the audio plays past the 240 second mark naturally, the engine can briefly dip the volume and announce "Putting and Green Reading" so they know they've entered a new section.
+Does this control layout and chapter array concept sound like what you had in mind? If so, we can start drafting the boilerplate code to inject this new state into the Clubhouse menu.
+G
