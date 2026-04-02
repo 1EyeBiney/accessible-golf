@@ -1,4 +1,4 @@
-// course_pasture.js - The Pasture Course Data (v5.59.0)
+// course_pasture.js - The Pasture Course Data (v5.60.0)
 window.courses = window.courses || [];
 window.courses.push({
     name: "The Pasture",
@@ -93,8 +93,8 @@ window.courses.push({
             loreName: "The Sinkhole",
             description: "A terrifying 195-yard Par 3. The green sits at the bottom of a massive, 40-yard deep crater. The putting surface is a massive 35-yard wide fortress featuring a swirling moat and a steep center dome. Anything that hits the crater walls will funnel aggressively down to the green. Club down drastically.",
             bgMusic: 'audio/courses/pasture/mu_pasture8.mp3',
-            bgAmbient: 'audio/courses/pasture/am_farm1.mp3',
-            bgAmbientPostGreen: 'audio/courses/pasture/am_farm1.mp3',
+            bgAmbient: 'audio/courses/pasture/am_farm1_sinkhole.mp3',
+            bgAmbientPostGreen: 'audio/courses/pasture/am_farm1_sinkhole.mp3',
             hazards: [],
             landingZones: [{ name: "Center Green", x: 0, y: 195, z: -40 }],
             zones: [{name: "Center Green", x: 0, y: 195}]

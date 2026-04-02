@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.56.0)
-window.AG_VERSION = "v5.56.0";
+// physics_core.js - Math, Wind, and Shot Calculation (v5.60.0)
+window.AG_VERSION = "v5.60.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -1421,8 +1421,12 @@ window.formatProximity = function(yards) {
     return `${feet} feet, ${inches} inches`;
 };
 
+// v5.60.0 3D Auto-Equip
 window.autoEquipBestClub = function() {
     let distToTarget = calculateDistanceToTarget();
+    let elevationDiff = (typeof targetZ !== 'undefined' && typeof ballZ !== 'undefined') ? (targetZ - ballZ) : 0;
+    let effectiveDistToTarget = distToTarget + elevationDiff;
+    
     let lieMultiplier = currentLie === 'Sand' ? 0.70 : (currentLie === 'Light Rough' || currentLie === 'Rough') ? 0.90 : 1.0;
     let currentStyle = shotStyles[shotStyleIndex];
     let chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
@@ -1435,7 +1439,7 @@ window.autoEquipBestClub = function() {
         let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
         let expectedDist = clubs[i].baseDistance * lieMultiplier * loftDistMod * chokeMod;
 
-        let diff = Math.abs(expectedDist - distToTarget);
+        let diff = Math.abs(expectedDist - effectiveDistToTarget);
         if (diff < smallestDiff) {
             smallestDiff = diff;
             bestClubIndex = i;
