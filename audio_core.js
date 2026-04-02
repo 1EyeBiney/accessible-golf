@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.65.0)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.66.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -330,8 +330,12 @@ window.audioPastureDucks = [];
 for (let i = 1; i <= 12; i++) window.audioPastureDucks.push(new Audio(`audio/courses/pasture/duck_pasture${i}.mp3`));
 window.activeDuckAudio = null;
 
-// v5.64.0 Standard Duck Restoration
-window.audioDuck = new Audio('audio/swings/duck.mp3');
+// v5.66.0 Standard Duck Grab Bag
+window.audioStandardDucks = [];
+for (let i = 1; i <= 4; i++) {
+    window.audioStandardDucks.push(new Audio(`audio/swings/duck${i}.mp3`));
+}
+window.standardDuckGrabBag = [];
 
 window.triggerDuckEvent = function() {
     // Determine which audio to play based on course context
@@ -341,8 +345,13 @@ window.triggerDuckEvent = function() {
             window.activeDuckAudio = window.audioPastureDucks[r];
         }
     } else {
-        // v5.65.0 Duck Router Fix
-        window.activeDuckAudio = typeof window.audioDuck !== 'undefined' ? window.audioDuck : null;
+        // v5.66.0 Standard Duck Grab Bag Logic
+        if (window.standardDuckGrabBag.length === 0) {
+            window.standardDuckGrabBag = [0, 1, 2, 3];
+            window.standardDuckGrabBag.sort(() => Math.random() - 0.5);
+        }
+        let idx = window.standardDuckGrabBag.pop();
+        window.activeDuckAudio = window.audioStandardDucks[idx];
     }
 
     if (window.activeDuckAudio) {

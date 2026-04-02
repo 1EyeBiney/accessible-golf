@@ -1,4 +1,4 @@
-﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v5.60.0)
+﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v5.68.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -82,14 +82,18 @@ window.greenDictionary["The Egg"] = [
     { startY: 25, endY: 10, slopeX: 0.2, slopeY: 0.1 },  // Left-to-right feed
     { startY: 10, endY: 0, slopeX: -0.3, slopeY: 0.2 }   // Narrow back, right-to-left
 ];
-// v5.60.0 The Swirling Moat (Corrected Schema)
-window.greenDictionary["The Swirling Moat"] = [
+// v5.67.0 The Porcelain Swirl (formerly The Swirling Moat)
+window.greenDictionary["The Porcelain Swirl"] = [
     { startY: 10, endY: 0, slopeY: 0.5, slopeX: -0.15 },    // The Center Dome
     { startY: 13, endY: 10, slopeY: 0.0, slopeX: 0.0 },      // The Flat Ring
     { startY: 16, endY: 13, slopeY: 0.4, slopeX: 0.2 },      // Moat Exit
     { startY: 19, endY: 16, slopeY: -0.4, slopeX: -0.3 },    // Moat Entry
     { startY: 35, endY: 19, slopeY: 0.2, slopeX: 0.1 },      // Outer Slope
     { startY: 999, endY: 35, slopeY: 0.1, slopeX: 0.0 }      // Fallback
+];
+// v5.68.0 Elevated Embankment Green
+window.greenDictionary["The Highway Ridge"] = [
+    { startY: 30, endY: 0, slopeY: -0.6, slopeX: 0.0 }
 ];
 
 // --- v2.30.0 Course Data with Hazards ---

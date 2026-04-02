@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.62.0)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.68.0)
 
 // --- TERRAIN QUERIES ---
 
@@ -9,7 +9,12 @@ window.getTerrainAt = function(x, y) {
     let distToPin = Math.sqrt(Math.pow(x - pinX, 2) + Math.pow(y - pinY, 2));
     const greenSize = holeData.greenRadius || 20;
 
-    if (distToPin <= greenSize) return "Green";
+    // v5.68.0 Rectangular Green Geometry & Packed Earth Base
+    if (window.currentCourse.name === "The Pasture" && hole === 9) {
+        if (Math.abs(x) <= 17.5 && y >= (pinY - 2) && y <= (pinY + 10)) return "Green";
+    } else {
+        if (distToPin <= greenSize) return "Green";
+    }
 
     let terrain = "Fairway";
     let currentFW = typeof activeFairwayWidth !== 'undefined' ? activeFairwayWidth : (holeData.fairwayWidth || 40);
@@ -39,6 +44,10 @@ window.getTerrainAt = function(x, y) {
     }
     if (window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 5 && (terrain === "Rough" || terrain === "Light Rough")) {
         terrain = "Packed Earth";
+    }
+    if (window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 9) {
+        if (terrain === "Fairway" || terrain === "Rough" || terrain === "Cart Path" || terrain === "Highway Fence") return "Packed Earth";
+        if (terrain === "Scrub Brush") return "Mud";
     }
     return terrain;
 };
@@ -278,6 +287,16 @@ window.resolveHazardLie = function(ctx) {
                         ballY = hStart + entryBuffer;
                         rollDistance = Math.max(0, Math.round(ballY - carryY));
                         totalDistance = carryDistance + rollDistance;
+                    } else if (h.type === "Scrub Brush") {
+                        currentLie = "Mud";
+                    } else if (h.type === "Highway Fence") {
+                        currentLie = "Packed Earth";
+                        if (typeof window.playGolfSound === 'function') window.playGolfSound('bunker_33');
+                        if (typeof strokes !== 'undefined') strokes++; 
+                        ballY -= 15; 
+                        rollStopTriggered = true;
+                        rollDistance = 0;
+                        if (typeof flightPathNarrative !== 'undefined') flightPathNarrative += " The ball smashed into the highway chain-link fence! One stroke penalty.";
                     }
                     if (h.type === "Water") inWater = true;
                     if (h.type.includes("Pine Needles")) {
@@ -528,7 +547,7 @@ window.resolveHazardLie = function(ctx) {
         // If the ball misses the 35y green but lands within the 80y crater
         if (distToPin > 35 && distToPin < 80) {
             currentLie = "Rough";
-            let kickNarrative = " The ball caught the steep embankment of the Sinkhole Wall and funneled violently down the slope.";
+            let kickNarrative = " The ball caught the upper rim and spiraled violently down the porcelain bowl!";
             if (typeof flightPathNarrative !== 'undefined') flightPathNarrative += kickNarrative;
 
             // Pull laterally towards center
