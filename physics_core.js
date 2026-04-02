@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.60.0)
-window.AG_VERSION = "v5.60.0";
+// physics_core.js - Math, Wind, and Shot Calculation (v5.63.0)
+window.AG_VERSION = "v5.63.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -750,9 +750,15 @@ function calculateShot(autoMiss = false) {
         window.playGolfSound(strikeSound);
     }
 
-    // v5.56.0 Universal Mishap Trigger
+    // v5.63.0 Duck Mishap & Toilet Reward Intercept
     if (accuracyScore < 80 && !quick) {
         if (typeof window.triggerDuckEvent === 'function') window.triggerDuckEvent();
+    } else if (!quick && typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && typeof hole !== 'undefined' && hole === 8 && typeof strokes !== 'undefined' && strokes === 1 && typeof currentLie !== 'undefined' && currentLie === "Green") {
+        if (typeof stateTimeouts !== 'undefined') {
+            stateTimeouts.push(setTimeout(() => {
+                if (typeof window.triggerToiletEvent === 'function') window.triggerToiletEvent();
+            }, 800));
+        }
     }
 
     // v5.9.0 High Accuracy Strike Audio

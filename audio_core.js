@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.58.0)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.64.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -330,6 +330,9 @@ window.audioPastureDucks = [];
 for (let i = 1; i <= 12; i++) window.audioPastureDucks.push(new Audio(`audio/courses/pasture/duck_pasture${i}.mp3`));
 window.activeDuckAudio = null;
 
+// v5.64.0 Standard Duck Restoration
+window.audioDuck = new Audio('audio/swings/duck.mp3');
+
 window.triggerDuckEvent = function() {
     // Determine which audio to play based on course context
     if (typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && typeof hole !== 'undefined' && hole === 7 && typeof currentLie !== 'undefined' && currentLie !== 'Green') {
@@ -340,8 +343,29 @@ window.triggerDuckEvent = function() {
     }
 
     if (window.activeDuckAudio) {
+        window.activeDuckAudio.volume = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
         window.activeDuckAudio.currentTime = 0;
         window.activeDuckAudio.play().catch(e => {});
+    }
+};
+
+// v5.63.0 Hole 8 Toilet Audio
+window.audioToilets = [];
+for(let i=1; i<=6; i++) {
+    window.audioToilets.push(new Audio(`audio/swings/toilet${i}.mp3`));
+}
+window.toiletGrabBag = [];
+
+window.triggerToiletEvent = function() {
+    if (window.toiletGrabBag.length === 0) {
+        window.toiletGrabBag = [0, 1, 2, 3, 4, 5];
+        window.toiletGrabBag.sort(() => Math.random() - 0.5);
+    }
+    let idx = window.toiletGrabBag.pop();
+    if (window.audioToilets[idx]) {
+        window.audioToilets[idx].volume = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+        window.audioToilets[idx].currentTime = 0;
+        window.audioToilets[idx].play().catch(e => {});
     }
 };
 
