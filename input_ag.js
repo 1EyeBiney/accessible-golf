@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.58.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.62.0)
 
 // v5.51.0 Swing Input Failsafe & Cooldown
 window.isSwingInitializing = false;
@@ -1369,11 +1369,11 @@ window.addEventListener('keydown', (e) => {
                     gridX = 0;
                     gridY = 0;
                     let initElevation = "Plays flat.";
-                    let distToPin = calculateDistanceToPin();
                     const holeData = courses[currentCourseIndex].holes[hole - 1];
-                    if (distToPin <= 50 && holeData.greenType && window.greenDictionary && window.greenDictionary[holeData.greenType]) {
+                    let targetDistFromPin = Math.sqrt(Math.pow(targetX - pinX, 2) + Math.pow(targetY - pinY, 2));
+                    if (targetDistFromPin <= 50 && holeData.greenType && window.greenDictionary && window.greenDictionary[holeData.greenType]) {
                         let activeContours = window.greenDictionary[holeData.greenType] || [];
-                        let zone = activeContours.find(z => distToPin <= z.startY && distToPin > z.endY);
+                        let zone = activeContours.find(z => targetDistFromPin <= z.startY && targetDistFromPin > z.endY);
                         if (zone) {
                             if (zone.slopeY > 0) initElevation = "Plays Uphill.";
                             if (zone.slopeY < 0) initElevation = "Plays Downhill.";

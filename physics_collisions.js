@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.59.0)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.62.0)
 
 // --- TERRAIN QUERIES ---
 
@@ -43,17 +43,16 @@ window.getTerrainAt = function(x, y) {
     return terrain;
 };
 
-// v4.37.1 Landing Zone Oracle
+// v5.62.0 Landing Zone Oracle (startY/endY Support)
 window.getLandingZoneEffect = function(x, y) {
     if (gameMode !== 'course') return "";
     const holeData = window.currentCourse.holes[hole - 1];
-    if (!holeData || !holeData.greenType || typeof greenDictionary === 'undefined') return "";
+    if (!holeData || !holeData.greenType || typeof window.greenDictionary === 'undefined') return "";
 
-    // Calculate distance from the targeted coordinates to the pin
     let distFromPin = Math.sqrt(Math.pow(x - pinX, 2) + Math.pow(y - pinY, 2));
-    let activeContours = greenDictionary[holeData.greenType] || [];
+    let activeContours = window.greenDictionary[holeData.greenType] || [];
 
-    // Find the contour zone that governs this specific distance from the cup
+    // Find the contour zone using the correct startY/endY schema
     let zone = activeContours.find(z => distFromPin <= z.startY && distFromPin > z.endY);
 
     if (!zone) return " Area is relatively flat.";
