@@ -188,15 +188,15 @@ window.courses.push({
                 { name: "Outer Boundary Pine", x: 65, y: 275, radius: 10, height: 40 },
                 { name: "Outer Boundary Pine", x: 58, y: 290, radius: 10, height: 40 },
                 // Inner Dogleg Canopy
-                { name: "Inner Dogleg Oak", x: 25, y: 210, radius: 10, height: 35 },
-                { name: "Inner Dogleg Pine", x: 32, y: 225, radius: 10, height: 40 },
-                { name: "Corner Guardian", x: 20, y: 240, radius: 12, height: 30 }
+                { name: "Inner Dogleg Oak", x: 18, y: 210, radius: 10, height: 35 },
+                { name: "Inner Dogleg Pine", x: 22, y: 225, radius: 10, height: 40 },
+                { name: "Corner Guardian", x: 10, y: 240, radius: 12, height: 30 }
             ],
             hazards: [
-                { type: "Tree Cluster", distance: 200, depth: 150, offset: 45, width: 80 },
+                { type: "Tree Cluster", distance: 200, depth: 150, offset: 35, width: 80 },
                 { type: "The Water Tower", distance: 200, depth: 120, offset: -35, width: 30 },
                 { type: "Tower Catch-All (Spectating)", distance: 100, depth: 280, offset: -200, width: 360 },
-                { type: "Tower Runoff", distance: 150, depth: 250, offset: -18, width: 10 },
+                { type: "Tower Runoff", distance: 150, depth: 250, offset: -12, width: 20 },
                 { type: "The Spillway", distance: 400, depth: 10, offset: 0, width: 150 }
             ],
             landingZones: [{ name: "The Tower Shortcut", x: -35, y: 260 }, { name: "Safe Layup", x: 10, y: 220 }],
