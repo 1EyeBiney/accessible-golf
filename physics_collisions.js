@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.77.0)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.80.0)
 
 // --- TERRAIN QUERIES ---
 
@@ -270,7 +270,7 @@ window.resolveHazardLie = function(ctx) {
                 // Check if the ball CARRY landed in hazard
                 if (carryY >= hStart && carryY <= hEnd && carryX >= hLeft && carryX <= hRight) {
                     if (h.type === "Bunker") currentLie = "Sand";
-                    if (h.type === "Water") inWater = true;
+                    if (h.type === "Water" || h.type === "Tower Runoff" || h.type === "The Spillway") inWater = true;
                 } else if (carryY >= hStart && carryY <= hEnd) {
                     // v4.23.1 Hazard Narrow Miss
                     let marginL = Math.abs(carryX - hLeft);
@@ -334,8 +334,38 @@ window.resolveHazardLie = function(ctx) {
                             }
                         }, delayMs);
                         if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(timeoutId);
+                    } else if (h.type === "The Water Tower" || h.type === "Tower Catch-All (Spectating)") {
+                        currentLie = "Fairway";
+                        ballY = pinY - 110; 
+                        ballX = 0; 
+                        rollStopTriggered = true;
+                        rollDistance = 0;
+                        if (typeof flightPathNarrative !== 'undefined') flightPathNarrative += " CLANG! The ball smashed into the rusted water tower and ricocheted perfectly around the dogleg, settling in the center of the fairway!";
+                        
+                        let delayMs = (hangTimeSecs || 4.5) * 1000;
+                        let panValue = -0.8; // Hard pan left for the impact
+                        
+                        let timeoutId = setTimeout(() => {
+                            window.metalSounds = window.metalSounds || ['ball_off_metal1', 'ball_off_metal2', 'ball_off_metal3', 'ball_off_metal4', 'ball_off_metal5', 'ball_off_metal6'];
+                            window.metalSounds.sort(() => Math.random() - 0.5);
+                            let metalFile = window.metalSounds.pop() || 'ball_off_metal1';
+                            if (window.metalSounds.length === 0) window.metalSounds = ['ball_off_metal1', 'ball_off_metal2', 'ball_off_metal3', 'ball_off_metal4', 'ball_off_metal5', 'ball_off_metal6'];
+                            
+                            if (typeof audioCtx !== 'undefined' && audioCtx) {
+                                let audioEl = new Audio('audio/courses/pasture/' + metalFile + '.mp3');
+                                audioEl.volume = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+                                let source = audioCtx.createMediaElementSource(audioEl);
+                                let panner = audioCtx.createStereoPanner();
+                                panner.pan.value = panValue;
+                                source.connect(panner); panner.connect(audioCtx.destination);
+                                audioEl.play().catch(e => {});
+                            } else {
+                                new Audio('audio/courses/pasture/' + metalFile + '.mp3').play().catch(e => {});
+                            }
+                        }, delayMs);
+                        if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(timeoutId);
                     }
-                    if (h.type === "Water") inWater = true;
+                    if (h.type === "Water" || h.type === "Tower Runoff" || h.type === "The Spillway") inWater = true;
                     if (h.type.includes("Pine Needles")) {
                         currentLie = "Pine Needles";
                         // v4.87.0 Frictionless Slide (Massive Roll Multiplier)

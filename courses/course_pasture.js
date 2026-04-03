@@ -1,4 +1,4 @@
-// course_pasture.js - The Pasture Course Data (v5.77.0)
+// course_pasture.js - The Pasture Course Data (v5.80.0)
 window.courses = window.courses || [];
 window.courses.push({
     name: "The Pasture",
@@ -171,6 +171,26 @@ window.courses.push({
             landingZones: [{ name: "Safe Layup", x: 0, y: 220 }, { name: "Aggressive Second", x: 0, y: 380 }],
             zones: [{name: "Center Fairway", x: 0, y: 250}, {name: "Approach", x: 0, y: 400}]
         },
-        ...Array.from({length: 6}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
+        {
+            number: 13, par: 4, distance: 420, greenRadius: 14, pinX: 0, pinY: 420,
+            greenType: "Back-to-Front",
+            fairwayWidth: 45, pinLocation: "Center",
+            loreName: "The Tower Heist",
+            description: "Welcome to The Tower Heist. You can't cut the corner through the right-side tree line on this 420-yard Par 4 dogleg right, but you can use Clifford's massive, rusted water tower on the left. Smash your drive directly into the tank, and the metal will funnel your ball right into the middle of the fairway, 110 yards from the pin. Take the shortcut, but watch your approach. The tower is leaking badly, creating a rushing stream that hugs the left rough and cuts a 10-yard trench straight across the fairway to guard the green.",
+            bgMusic: 'audio/courses/pasture/mu_pasture4.mp3',
+            bgAmbient: 'audio/courses/pasture/am_farm1_water_tower.mp3',
+            bgAmbientPostTee: 'audio/courses/pasture/am_farm1_stream1.mp3',
+            bgAmbientPostGreen: 'audio/courses/pasture/am_farm1.mp3',
+            hazards: [
+                { type: "Tree Cluster", distance: 200, depth: 150, offset: 35, width: 40 },
+                { type: "The Water Tower", distance: 200, depth: 120, offset: -35, width: 30 },
+                { type: "Tower Catch-All (Spectating)", distance: 100, depth: 280, offset: -200, width: 360 },
+                { type: "Tower Runoff", distance: 150, depth: 250, offset: -18, width: 10 },
+                { type: "The Spillway", distance: 400, depth: 10, offset: 0, width: 150 }
+            ],
+            landingZones: [{ name: "The Tower Shortcut", x: -35, y: 260 }, { name: "Safe Layup", x: 10, y: 220 }],
+            zones: [{name: "Approach", x: 0, y: 310}]
+        },
+        ...Array.from({length: 5}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
     ]
 });
