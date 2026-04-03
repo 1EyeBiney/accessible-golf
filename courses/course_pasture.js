@@ -1,4 +1,4 @@
-// course_pasture.js - The Pasture Course Data (v5.68.0)
+// course_pasture.js - The Pasture Course Data (v5.71.0)
 window.courses = window.courses || [];
 window.courses.push({
     name: "The Pasture",
@@ -118,6 +118,23 @@ window.courses.push({
             landingZones: [{ name: "Center Green", x: 0, y: 180, z: 25 }],
             zones: [{name: "Center Green", x: 0, y: 180}]
         },
-        ...Array.from({length: 9}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
+        {
+            number: 10, par: 4, distance: 430, greenRadius: 30, pinX: -15, pinY: 430,
+            greenType: "The Feed Bowl",
+            fairwayWidth: 45, pinLocation: "Center",
+            loreName: "Foul Territory",
+            description: "Welcome to the back nine. The backside of the coop is a desolate, 430-yard expanse of baked dirt and wandering poultry. The fairway is 45 yards wide and bends slightly to the left. A massive wall of chicken wire runs down the entire left side acting as a dead out-of-bounds line. The green is a giant 'Feed Bowl' designed to catch and funnel long fairway woods toward the pin. If you leave your approach short, aim for the chickens—they're holding the mulligans you'll need for the rest of the round.",
+            fairwayDescription: "A slight dogleg left. The chicken wire sits exactly 40 yards left of center. Smart players can intentionally miss the fairway slightly left to land on the Packed Earth, using the extra roll to cut the corner—but if you pull it too far, the wire will catch you.",
+            bgMusic: 'audio/courses/pasture/mu_pasture1.mp3',
+            bgAmbient: 'audio/courses/pasture/am_coop1.mp3',
+            bgAmbientPostGreen: 'audio/courses/pasture/am_farm1.mp3',
+            hazards: [
+                { type: "Chicken Wire", distance: 0, depth: 430, offset: -90, width: 100 },
+                { type: "Chicken Flock" }
+            ],
+            landingZones: [{ name: "Safe Right", x: 10, y: 230 }, { name: "Risky Packed Earth", x: -25, y: 260 }],
+            zones: [{name: "Center Fairway", x: 0, y: 240}]
+        },
+        ...Array.from({length: 8}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
     ]
 });

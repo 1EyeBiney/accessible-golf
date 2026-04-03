@@ -1,4 +1,4 @@
-﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v5.68.0)
+﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v5.71.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -94,6 +94,11 @@ window.greenDictionary["The Porcelain Swirl"] = [
 // v5.68.0 Elevated Embankment Green
 window.greenDictionary["The Highway Ridge"] = [
     { startY: 30, endY: 0, slopeY: -0.6, slopeX: 0.0 }
+];
+// v5.71.0 The Feed Bowl
+window.greenDictionary["The Feed Bowl"] = [
+    { startY: 30, endY: 15, slopeY: -0.6, slopeX: 0.0 }, // Outer bowl funnel
+    { startY: 15, endY: 0, slopeY: 0.0, slopeX: 0.0 }    // Flat center
 ];
 
 // --- v2.30.0 Course Data with Hazards ---

@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.66.0)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.70.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -608,5 +608,30 @@ window.trigger3DFlight = function(hangTimeSecs, dynamicLoft, startPan, endPan, b
         setTimeout(flightLoop, speedDelay);
     }
     flightLoop();
+};
+
+// v5.70.0 Universal Ambient Hot-Swap Controller
+window.hotSwapAmbient = function(targetAmbient) {
+    if (!targetAmbient) return;
+    
+    // Find the active ambient object inside this module's scope
+    let ambientObj = null;
+    if (typeof currentBgAmbient !== 'undefined' && currentBgAmbient) ambientObj = currentBgAmbient;
+    else if (typeof window.currentBgAmbient !== 'undefined' && window.currentBgAmbient) ambientObj = window.currentBgAmbient;
+    
+    if (ambientObj && ambientObj.src) {
+        let targetFile = targetAmbient.split('/').pop();
+        if (!ambientObj.src.includes(targetFile)) {
+            ambientObj.pause();
+            let newAmbient = new Audio(targetAmbient);
+            newAmbient.loop = true;
+            newAmbient.volume = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+            newAmbient.play().catch(e => {});
+            
+            // Re-assign back to the correct module scope
+            if (typeof currentBgAmbient !== 'undefined') currentBgAmbient = newAmbient;
+            if (typeof window.currentBgAmbient !== 'undefined') window.currentBgAmbient = newAmbient;
+        }
+    }
 };
 

@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.68.0)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.71.0)
 
 // --- TERRAIN QUERIES ---
 
@@ -42,7 +42,7 @@ window.getTerrainAt = function(x, y) {
     if (window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 4 && terrain !== "Green" && terrain !== "Tee") {
         terrain = "Mud";
     }
-    if (window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 5 && (terrain === "Rough" || terrain === "Light Rough")) {
+    if (window.currentCourse && window.currentCourse.name === "The Pasture" && (hole === 5 || hole === 10) && (terrain === "Rough" || terrain === "Light Rough")) {
         terrain = "Packed Earth";
     }
     if (window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 9) {
@@ -289,14 +289,15 @@ window.resolveHazardLie = function(ctx) {
                         totalDistance = carryDistance + rollDistance;
                     } else if (h.type === "Scrub Brush") {
                         currentLie = "Mud";
-                    } else if (h.type === "Highway Fence") {
+                    } else if (h.type === "Highway Fence" || h.type === "Chicken Wire") {
                         currentLie = "Packed Earth";
                         if (typeof window.playGolfSound === 'function') window.playGolfSound('bunker_33');
                         if (typeof strokes !== 'undefined') strokes++; 
                         ballY -= 15; 
                         rollStopTriggered = true;
                         rollDistance = 0;
-                        if (typeof flightPathNarrative !== 'undefined') flightPathNarrative += " The ball smashed into the highway chain-link fence! One stroke penalty.";
+                        let fenceName = h.type === "Chicken Wire" ? "chicken wire" : "highway chain-link fence";
+                        if (typeof flightPathNarrative !== 'undefined') flightPathNarrative += ` The ball smashed into the ${fenceName}! One stroke penalty.`;
                     }
                     if (h.type === "Water") inWater = true;
                     if (h.type.includes("Pine Needles")) {
@@ -439,8 +440,8 @@ window.resolveHazardLie = function(ctx) {
         }
     }
 
-    // v5.36.0 Foul Plate Roosters (Hole 3 Hazard & Bonus Loot) — v5.41.0 expanded to Hole 5
-    if (window.currentCourse.name === "The Pasture" && (hole === 3 || hole === 5) && currentLie !== "Green" && strokes <= 2 && totalDistance > 50 && !inWater) {
+    // v5.36.0 Foul Plate Roosters (Hole 3 Hazard & Bonus Loot) — v5.41.0 expanded to Hole 5 — v5.71.0 expanded to Hole 10
+    if (window.currentCourse.name === "The Pasture" && (hole === 3 || hole === 5 || hole === 10) && currentLie !== "Green" && strokes <= 2 && totalDistance > 50 && !inWater) {
         // Micro-bounce, 3 to 6 yards
         let bounceDist = 3 + (Math.random() * 3);
         let bounceAngle = Math.random() * Math.PI * 2;

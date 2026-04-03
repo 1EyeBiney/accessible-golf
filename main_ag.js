@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.40.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.70.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.tournamentGreens = false;
@@ -237,29 +237,29 @@ window.advanceTurn = function(isPuttingTransition = false) {
             return;
         }
 
-        // v5.34.3 Tractor Ambient Hot-Swap
-        if (hole === 1 && players.every(p => p.currentLie !== 'Tee')) {
-            const holeData = window.currentCourse.holes[0];
-            if (holeData.bgAmbientPostTee && currentBgAmbient && !currentBgAmbient.src.includes(holeData.bgAmbientPostTee)) {
-                currentBgAmbient.pause();
-                currentBgAmbient = new Audio(holeData.bgAmbientPostTee);
-                currentBgAmbient.loop = true;
-                currentBgAmbient.volume = window.ambientVolumeLevels[window.ambientVolumeIndex];
-                currentBgAmbient.play().catch(e => {});
+        // v5.70.0 Audio Router
+        const holeData = window.currentCourse.holes[hole - 1];
+        if (typeof holeData !== 'undefined') {
+            let allOffTee = true;
+            let allOnGreen = true;
+            let activePlayers = typeof rosterSize !== 'undefined' ? rosterSize : players.length;
+            
+            for (let i = 0; i < activePlayers; i++) {
+                let p = players[i];
+                if (!p) continue;
+                if (p.currentLie === 'Tee') allOffTee = false;
+                if (p.currentLie !== 'Green' && p.currentLie !== 'Hole' && !p.isHoleComplete) allOnGreen = false;
             }
-        }
 
-        // v5.40.0 Post-Green Ambient Hot-Swap
-        const _holeDataForAmbient = window.currentCourse.holes[hole - 1];
-        let allOnGreen = players.every(p => p.currentLie === 'Green' || p.currentLie === 'Hole' || p.isHoleComplete);
-        if (_holeDataForAmbient && _holeDataForAmbient.bgAmbientPostGreen && allOnGreen) {
-            let targetSrc = _holeDataForAmbient.bgAmbientPostGreen.split('/').pop();
-            if (currentBgAmbient && !currentBgAmbient.src.includes(targetSrc)) {
-                currentBgAmbient.pause();
-                currentBgAmbient = new Audio(_holeDataForAmbient.bgAmbientPostGreen);
-                currentBgAmbient.loop = true;
-                currentBgAmbient.volume = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
-                currentBgAmbient.play().catch(e => console.warn("Ambient swap blocked", e));
+            let targetAmbient = null;
+            if (allOnGreen && holeData.bgAmbientPostGreen) {
+                targetAmbient = holeData.bgAmbientPostGreen;
+            } else if (allOffTee && holeData.bgAmbientPostTee) {
+                targetAmbient = holeData.bgAmbientPostTee;
+            }
+
+            if (targetAmbient && typeof window.hotSwapAmbient === 'function') {
+                window.hotSwapAmbient(targetAmbient);
             }
         }
 
