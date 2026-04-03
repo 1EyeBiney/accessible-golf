@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.65.0)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.79.0)
 window.AG_VERSION = "v5.65.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
@@ -193,7 +193,7 @@ function getSetupReport() {
         const minTotal = Math.round(baseTotal * 0.85);
         const maxTotal = Math.round(baseTotal * 0.95);
         return `${club.name}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. In the rough. Style: ${style.name}. Focus: ${focusName}.`;
-    } else if (gameMode === 'course' && currentLie === 'Mud') {
+    } else if (gameMode === 'course' && (currentLie === 'Mud' || currentLie === 'Manure')) {
         const minTotal = Math.round(baseTotal * 0.50);
         const maxTotal = Math.round(baseTotal * 0.70);
         return `${club.name}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. Buried in thick mud. Massive dispersion. Style: ${style.name}. Focus: ${focusName}.`;
@@ -673,11 +673,11 @@ function calculateShot(autoMiss = false) {
         // v4.87.0 Pine Straw Lie Penalty
         lieMod = 0.85 + (Math.random() * 0.10);
         lieForgivenessMod = 0.7;
-    } else if (currentLie === 'Mud') {
+    } else if (currentLie === 'Mud' || currentLie === 'Manure') {
         lieMod = 0.5 + (Math.random() * 0.2); // 50% to 70% distance
         lieDispersionMod = 4.0; // Massive scatter
         lieForgivenessMod = 0.4; // Tiny sweet spot
-        backspinRPM = Math.round(backspinRPM * 0.1); // Kills spin
+        // v5.78.0 backspinRPM kill relocated below variable declaration — was a pre-init ReferenceError
     } else if (currentLie === 'Packed Earth') {
         lieMod = 0.95 + (Math.random() * 0.05); // 95% to 100% distance
         lieForgivenessMod = 0.85; // Tight lie, smaller sweet spot
@@ -789,6 +789,10 @@ function calculateShot(autoMiss = false) {
     // v4.87.0 Pine Straw Spin Penalty
     if (currentLie === 'Pine Needles') {
         backspinRPM = Math.round(backspinRPM * 0.1); // Kills 90% of backspin
+    }
+    // v5.78.0 Mud/Manure Spin Kill (relocated here from lie block to prevent pre-init ReferenceError)
+    if (currentLie === 'Mud' || currentLie === 'Manure') {
+        backspinRPM = Math.round(backspinRPM * 0.1); // Kills spin
     }
     // Spin Focus (Index 3)
     if (focusIndex === 3) backspinRPM += (2500 * focusEffect);
@@ -1122,7 +1126,7 @@ function calculateShot(autoMiss = false) {
 
         // v4.32.0 Theatrical Roll & Dramatic Pause (Reduced to 1000ms)
         let isWater = currentLie.toLowerCase().includes("water");
-        let isMud = currentLie === "Mud";
+        let isMud = currentLie === "Mud" || currentLie === "Manure";
         let rollTimeSecs = Math.max(0, Math.abs(rollDistance) / 10);
         let caddyDelayMs = 500;
 
@@ -1437,7 +1441,16 @@ window.autoEquipBestClub = function() {
     let elevationDiff = (typeof targetZ !== 'undefined' && typeof ballZ !== 'undefined') ? (targetZ - ballZ) : 0;
     let effectiveDistToTarget = distToTarget + elevationDiff;
     
-    let lieMultiplier = currentLie === 'Sand' ? 0.70 : (currentLie === 'Light Rough' || currentLie === 'Rough') ? 0.90 : 1.0;
+    // v5.79.0 Comprehensive Auto-Equip Lie Multipliers
+    let lieMultiplier = 1.0;
+    if (currentLie === 'Sand') lieMultiplier = 0.70;
+    else if (currentLie === 'Pine Needles') lieMultiplier = 0.90;
+    else if (currentLie === 'Packed Earth') lieMultiplier = 0.95;
+    else if (currentLie === 'Mud' || currentLie === 'Manure') lieMultiplier = 0.60;
+    else if (currentLie.includes('Rough')) {
+        let rIndex = typeof roughConditionIndex !== 'undefined' ? roughConditionIndex : 1;
+        lieMultiplier = (typeof roughConditions !== 'undefined' && roughConditions[rIndex]) ? (roughConditions[rIndex].penalty + 0.025) : 0.875;
+    }
     let currentStyle = shotStyles[shotStyleIndex];
     let chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
     let bestClubIndex = currentClubIndex;
@@ -1479,7 +1492,7 @@ window.autoSetFocus = function(isPuttingOverride = false) {
     }
 
     // 3. Trouble Lies
-    if (currentLie === 'Sand' || currentLie.includes('Rough') || currentLie === 'Pine Needles' || currentLie === 'Mud' || currentLie === 'Packed Earth') {
+    if (currentLie === 'Sand' || currentLie.includes('Rough') || currentLie === 'Pine Needles' || currentLie === 'Mud' || currentLie === 'Manure' || currentLie === 'Packed Earth') {
         focusIndex = 5; // Recovery
         return;
     }
@@ -1625,8 +1638,8 @@ window.getCaddyAdvice = function() {
     let elevationDiff = (typeof targetZ !== 'undefined' && typeof ballZ !== 'undefined') ? (targetZ - ballZ) : 0; // v5.1.2
 
     const style = shotStyles[0]; // Oracle simulates standard full swings
-    // v5.40.2 Mud early-return
-    if (currentLie === 'Mud') {
+    // v5.40.2 Mud / v5.77.0 Manure early-return
+    if (currentLie === 'Mud' || currentLie === 'Manure') {
         let dynamicLoft = Math.max(0, club.loft + style.loftMod + ((2 - stanceIndex) * 5));
         let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
         let baseCarry = club.baseDistance * style.distMod * loftDistMod;

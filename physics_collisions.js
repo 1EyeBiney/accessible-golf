@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.75.0)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.77.0)
 
 // --- TERRAIN QUERIES ---
 
@@ -32,7 +32,8 @@ window.getTerrainAt = function(x, y) {
 
     if (holeData.hazards) {
         holeData.hazards.forEach(h => {
-            if (!h.offset || !h.width || !h.distance || !h.depth) return; // Skip flag-only hazard objects
+            // v5.76.0 The Falsy Zero Fix
+            if (h.offset === undefined || h.width === undefined || h.distance === undefined || h.depth === undefined) return;
             const hLeft = h.offset - (h.width / 2);
             const hRight = h.offset + (h.width / 2);
             const hStart = h.distance;
@@ -258,7 +259,8 @@ window.resolveHazardLie = function(ctx) {
             const carryX = (ballX - moveX) + (moveX * (carryDistance / totalDistance));
 
             holeData.hazards.forEach(h => {
-                if (!h.offset || !h.width || !h.distance || !h.depth) return; // Skip flag-only hazard objects
+                // v5.76.0 The Falsy Zero Fix
+                if (h.offset === undefined || h.width === undefined || h.distance === undefined || h.depth === undefined) return;
 
                 const hLeft = h.offset - (h.width / 2);
                 const hRight = h.offset + (h.width / 2);
@@ -411,9 +413,49 @@ window.resolveHazardLie = function(ctx) {
         }
     }
 
-    // v5.35.0 The Bovine Bounce (Hole 2 Pinball Mechanics)
-    if (window.currentCourse.name === "The Pasture" && hole === 2 && currentLie !== "Green" && totalDistance > 50 && !inWater) {
-        // Random 360-degree bounce, 5 to 18 yards
+    // v5.35.0 The Bovine Bounce (Hole 2 Pinball Mechanics) — v5.77.0 expanded to Hole 12 with 50/50 Cow Pie Roulette
+    if (window.currentCourse.name === "The Pasture" && (hole === 2 || hole === 12) && currentLie !== "Green" && totalDistance > 50 && !inWater) {
+
+        if (hole === 12 && Math.random() < 0.5) {
+            // v5.77.0 Cow Pie Splat
+            currentLie = "Manure";
+            rollStopTriggered = true;
+            rollDistance = 0;
+            totalDistance = carryDistance;
+            
+            let bounceMsg = "SPLAT! Your ball landed dead in a fresh cow pie! Zero roll, and you're hitting out of deep manure.";
+            flightPathNarrative = flightPathNarrative ? flightPathNarrative + ' ' + bounceMsg : bounceMsg;
+
+            let delayMs = (hangTimeSecs || 4.5) * 1000;
+            let panValue = Math.max(-1, Math.min(1, ballX / 25));
+
+            let timeoutId = setTimeout(() => {
+                window.splatSounds = window.splatSounds || ['splat_wet1', 'splat_wet2', 'splat_wet3', 'splat_wet4', 'splat_wet5', 'splat_wet6'];
+                window.splatSounds.sort(() => Math.random() - 0.5);
+                let splatFile = window.splatSounds.pop() || 'splat_wet1';
+                if (window.splatSounds.length === 0) window.splatSounds = ['splat_wet1', 'splat_wet2', 'splat_wet3', 'splat_wet4', 'splat_wet5', 'splat_wet6'];
+                
+                if (typeof audioCtx !== 'undefined' && audioCtx) {
+                    let audioEl = new Audio('audio/courses/pasture/' + splatFile + '.mp3');
+                    audioEl.volume = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+                    let source = audioCtx.createMediaElementSource(audioEl);
+                    let panner = audioCtx.createStereoPanner();
+                    panner.pan.value = panValue;
+                    source.connect(panner); panner.connect(audioCtx.destination);
+                    audioEl.play().catch(e => {});
+                } else {
+                    new Audio('audio/courses/pasture/' + splatFile + '.mp3').play().catch(e => {});
+                }
+                
+                window.announce(bounceMsg);
+                if (document.getElementById('visual-output')) document.getElementById('visual-output').innerText = bounceMsg;
+            }, delayMs);
+            
+            if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(timeoutId);
+            else if (stateTimeouts) stateTimeouts.push(timeoutId);
+
+        } else {
+        // 360-degree Bovine Bounce ricochet
         let bounceDist = 5 + (Math.random() * 13);
         let bounceAngle = Math.random() * Math.PI * 2;
         
@@ -472,6 +514,7 @@ window.resolveHazardLie = function(ctx) {
         } else if (stateTimeouts) {
             stateTimeouts.push(timeoutId);
         }
+        } // end else (Bovine Bounce)
     }
 
     // v5.36.0 Foul Plate Roosters (Hole 3 Hazard & Bonus Loot) — v5.41.0 expanded to Hole 5 — v5.71.0 expanded to Hole 10

@@ -1,4 +1,4 @@
-// course_pasture.js - The Pasture Course Data (v5.75.0)
+// course_pasture.js - The Pasture Course Data (v5.77.0)
 window.courses = window.courses || [];
 window.courses.push({
     name: "The Pasture",
@@ -153,6 +153,24 @@ window.courses.push({
             landingZones: [{ name: "Layup Zone", x: 0, y: 185 }, { name: "Aggressive Carry", x: 0, y: 240 }],
             zones: [{name: "Center Fairway", x: 0, y: 150}]
         },
-        ...Array.from({length: 7}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
+        {
+            number: 12, par: 5, distance: 510, greenRadius: 18, pinX: 0, pinY: 510,
+            greenType: "The Saddle",
+            fairwayWidth: 55, pinLocation: "Center",
+            loreName: "Cow Pie Surprise",
+            description: "Welcome to the Cow Pie Surprise. Running parallel to Hole 2, this 510-yard Par 5 is completely overrun by Clifford's wandering herd. But unlike the front nine, these cows have been grazing here all day, turning the landing zones into a literal minefield. If your ball strikes the herd, you have a 50/50 chance: either you get a lucky 'Bovine Bounce' off a cow, or your ball lands dead in a fresh cow pie. Hitting out of the manure is exactly like hitting out of deep mud\u2014pray you get the bounce.",
+            bgMusic: 'audio/courses/pasture/mu_pasture3.mp3',
+            bgAmbient: 'audio/courses/pasture/am_cow1.mp3',
+            bgAmbientPostGreen: 'audio/courses/pasture/am_farm1.mp3',
+            hazards: [
+                { type: "Bovine Herd" },
+                { type: "Overturned Water Trough (Spectating)", distance: 260, offset: -25 },
+                { type: "Sleeping Calf (Spectating)", distance: 410, offset: 35 },
+                { type: "Salt Lick Block (Spectating)", distance: 480, offset: -15 }
+            ],
+            landingZones: [{ name: "Safe Layup", x: 0, y: 220 }, { name: "Aggressive Second", x: 0, y: 380 }],
+            zones: [{name: "Center Fairway", x: 0, y: 250}, {name: "Approach", x: 0, y: 400}]
+        },
+        ...Array.from({length: 6}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
     ]
 });
