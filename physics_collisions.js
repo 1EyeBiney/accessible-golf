@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.80.0)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.82.0)
 
 // --- TERRAIN QUERIES ---
 
@@ -267,31 +267,35 @@ window.resolveHazardLie = function(ctx) {
                 const hStart = h.distance;
                 const hEnd = h.distance + h.depth;
 
-                // Check if the ball CARRY landed in hazard
-                if (carryY >= hStart && carryY <= hEnd && carryX >= hLeft && carryX <= hRight) {
-                    if (h.type === "Bunker") currentLie = "Sand";
-                    if (h.type === "Water" || h.type === "Tower Runoff" || h.type === "The Spillway") inWater = true;
-                } else if (carryY >= hStart && carryY <= hEnd) {
-                    // v4.23.1 Hazard Narrow Miss
+                // v5.81.0 Airborne Hazard Immunity Fix
+                let carryHit = (carryY >= hStart && carryY <= hEnd && carryX >= hLeft && carryX <= hRight);
+                let rollHit = (ballY >= hStart && ballY <= hEnd && ballX >= hLeft && ballX <= hRight);
+
+                // v4.23.1 Hazard Narrow Miss (Only if it completely missed the box)
+                if (!carryHit && !rollHit && carryY >= hStart && carryY <= hEnd) {
                     let marginL = Math.abs(carryX - hLeft);
                     let marginR = Math.abs(carryX - hRight);
                     if (carryX < hLeft && marginL <= 15) flightPathNarrative += ` Shaved the left edge of the ${h.type} by ${Math.round(marginL)} yards.`;
                     else if (carryX > hRight && marginR <= 15) flightPathNarrative += ` Shaved the right edge of the ${h.type} by ${Math.round(marginR)} yards.`;
                 }
-                // Check if the ball ROLL entered a hazard
-                else if (!inWater && ballY >= hStart && ballY <= hEnd && ballX >= hLeft && ballX <= hRight) {
+
+                // Evaluate ALL interactors if the ball hit the hazard at any point
+                if (!inWater && (carryHit || rollHit)) {
                     if (h.type === "Bunker") {
                         currentLie = "Sand";
                         rollStopTriggered = true;
                         
-                        // v4.29.0 Sand Enter Audio
-                        if (typeof window.playGolfSound === 'function') window.playGolfSound('hazard_03');
-                        
-                        // Stop the ball just inside the bunker edge
-                        const entryBuffer = 2; 
-                        ballY = hStart + entryBuffer;
-                        rollDistance = Math.max(0, Math.round(ballY - carryY));
-                        totalDistance = carryDistance + rollDistance;
+                        // If it rolled in, stop it at the edge. If it carried in, stop exactly where it landed.
+                        if (!carryHit) {
+                            if (typeof window.playGolfSound === 'function') window.playGolfSound('hazard_03');
+                            const entryBuffer = 2; 
+                            ballY = hStart + entryBuffer;
+                            rollDistance = Math.max(0, Math.round(ballY - carryY));
+                            totalDistance = carryDistance + rollDistance;
+                        } else {
+                            rollDistance = 0;
+                            totalDistance = carryDistance;
+                        }
                     } else if (h.type === "Scrub Brush") {
                         currentLie = "Mud";
                     } else if (h.type === "Highway Fence" || h.type === "Chicken Wire") {
@@ -334,13 +338,24 @@ window.resolveHazardLie = function(ctx) {
                             }
                         }, delayMs);
                         if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(timeoutId);
-                    } else if (h.type === "The Water Tower" || h.type === "Tower Catch-All (Spectating)") {
+                    } else if ((h.type === "The Water Tower" || h.type === "Tower Catch-All (Spectating)") && !rollStopTriggered) {
                         currentLie = "Fairway";
-                        ballY = pinY - 110; 
-                        ballX = 0; 
+                        let newBallY = pinY - 110;
+                        let newBallX = 0;
+                        
+                        // v5.82.0 Correcting Total Distance for Warp
+                        let oX = ballX - moveX;
+                        let oY = ballY - moveY;
+                        totalDistance = Math.round(Math.sqrt(Math.pow(newBallX - oX, 2) + Math.pow(newBallY - oY, 2)));
+                        
+                        ballY = newBallY; 
+                        ballX = newBallX; 
                         rollStopTriggered = true;
                         rollDistance = 0;
-                        if (typeof flightPathNarrative !== 'undefined') flightPathNarrative += " CLANG! The ball smashed into the rusted water tower and ricocheted perfectly around the dogleg, settling in the center of the fairway!";
+                        
+                        if (typeof flightPathNarrative !== 'undefined') {
+                            flightPathNarrative += " CLANG! The ball smashed into the rusted water tower and ricocheted perfectly around the dogleg, settling in the center of the fairway! (Caddy note: True distance to pin is exactly 110 yards).";
+                        }
                         
                         let delayMs = (hangTimeSecs || 4.5) * 1000;
                         let panValue = -0.8; // Hard pan left for the impact
@@ -365,6 +380,7 @@ window.resolveHazardLie = function(ctx) {
                         }, delayMs);
                         if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(timeoutId);
                     }
+                    
                     if (h.type === "Water" || h.type === "Tower Runoff" || h.type === "The Spillway") inWater = true;
                     if (h.type.includes("Pine Needles")) {
                         currentLie = "Pine Needles";
