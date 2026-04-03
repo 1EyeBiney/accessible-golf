@@ -1,4 +1,4 @@
-// course_pasture.js - The Pasture Course Data (v5.71.0)
+// course_pasture.js - The Pasture Course Data (v5.75.0)
 window.courses = window.courses || [];
 window.courses.push({
     name: "The Pasture",
@@ -135,6 +135,24 @@ window.courses.push({
             landingZones: [{ name: "Safe Right", x: 10, y: 230 }, { name: "Risky Packed Earth", x: -25, y: 260 }],
             zones: [{name: "Center Fairway", x: 0, y: 240}]
         },
-        ...Array.from({length: 8}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
+        {
+            number: 11, par: 4, distance: 403, greenRadius: 12.5, pinX: 0, pinY: 403,
+            greenType: "The False Front",
+            fairwayWidth: 50, pinLocation: "Back-Center",
+            loreName: "Floyd's Main Drain",
+            description: "Floyd isn't done with you yet. The downhill runoff from Hole 4 has created 'The Main Drain,' a foul, bubbling mud trench that cuts the 403-yard fairway entirely in half. To reach the shallow, false-front green in regulation, you either need to smash a 230-yard drive over the 20-yard slop, or lay up and face a massive wood approach. Don't hit it in the drain; the sound alone is enough to ruin your round.",
+            bgMusic: 'audio/courses/pasture/mu_pasture2.mp3',
+            bgAmbient: 'audio/courses/pasture/am_farm1_floyd_drain.mp3',
+            bgAmbientPostHazard: 'audio/courses/pasture/am_farm1.mp3',
+            hazardSwapY: 220,
+            hazards: [
+                { type: "The Main Drain", distance: 200, depth: 20, offset: 0, width: 150 },
+                { type: "Rusty Drainage Pipe (Spectating)", distance: 195, offset: -35 },
+                { type: "Floyd's Wallowing Cousins (Spectating)", distance: 210, offset: 45 }
+            ],
+            landingZones: [{ name: "Layup Zone", x: 0, y: 185 }, { name: "Aggressive Carry", x: 0, y: 240 }],
+            zones: [{name: "Center Fairway", x: 0, y: 150}]
+        },
+        ...Array.from({length: 7}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
     ]
 });

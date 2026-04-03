@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.71.0)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.75.0)
 
 // --- TERRAIN QUERIES ---
 
@@ -9,9 +9,12 @@ window.getTerrainAt = function(x, y) {
     let distToPin = Math.sqrt(Math.pow(x - pinX, 2) + Math.pow(y - pinY, 2));
     const greenSize = holeData.greenRadius || 20;
 
-    // v5.68.0 Rectangular Green Geometry & Packed Earth Base
+    // v5.68.0 Rectangular Green Geometries
     if (window.currentCourse.name === "The Pasture" && hole === 9) {
         if (Math.abs(x) <= 17.5 && y >= (pinY - 2) && y <= (pinY + 10)) return "Green";
+    } else if (window.currentCourse.name === "The Pasture" && hole === 11) {
+        // 25 yards wide (+/- 12.5), 15 yards deep (pin is Back-Center)
+        if (Math.abs(x) <= 12.5 && y >= (pinY - 12) && y <= (pinY + 3)) return "Green";
     } else {
         if (distToPin <= greenSize) return "Green";
     }
@@ -298,6 +301,37 @@ window.resolveHazardLie = function(ctx) {
                         rollDistance = 0;
                         let fenceName = h.type === "Chicken Wire" ? "chicken wire" : "highway chain-link fence";
                         if (typeof flightPathNarrative !== 'undefined') flightPathNarrative += ` The ball smashed into the ${fenceName}! One stroke penalty.`;
+                    } else if (h.type === "The Main Drain") {
+                        currentLie = "Squelch Penalty";
+                        if (typeof strokes !== 'undefined') strokes++; 
+                        ballY = h.distance - 2; // Drop just short of the trench
+                        ballX = 0; // Drop in center fairway
+                        rollStopTriggered = true;
+                        rollDistance = 0;
+                        if (typeof flightPathNarrative !== 'undefined') flightPathNarrative += " SQUELCH! The ball sank directly into Floyd's bubbling mud trench! One stroke penalty and dropped tee-side.";
+                        
+                        let delayMs = (hangTimeSecs || 4.5) * 1000;
+                        let panValue = Math.max(-1, Math.min(1, ballX / 25));
+                        
+                        let timeoutId = setTimeout(() => {
+                            window.splatSounds = window.splatSounds || ['splat_wet1', 'splat_wet2', 'splat_wet3', 'splat_wet4', 'splat_wet5', 'splat_wet6'];
+                            window.splatSounds.sort(() => Math.random() - 0.5);
+                            let splatFile = window.splatSounds.pop() || 'splat_wet1';
+                            if (window.splatSounds.length === 0) window.splatSounds = ['splat_wet1', 'splat_wet2', 'splat_wet3', 'splat_wet4', 'splat_wet5', 'splat_wet6'];
+                            
+                            if (typeof audioCtx !== 'undefined' && audioCtx) {
+                                let audioEl = new Audio('audio/courses/pasture/' + splatFile + '.mp3');
+                                audioEl.volume = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+                                let source = audioCtx.createMediaElementSource(audioEl);
+                                let panner = audioCtx.createStereoPanner();
+                                panner.pan.value = panValue;
+                                source.connect(panner); panner.connect(audioCtx.destination);
+                                audioEl.play().catch(e => {});
+                            } else {
+                                new Audio('audio/courses/pasture/' + splatFile + '.mp3').play().catch(e => {});
+                            }
+                        }, delayMs);
+                        if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(timeoutId);
                     }
                     if (h.type === "Water") inWater = true;
                     if (h.type.includes("Pine Needles")) {
@@ -460,7 +494,23 @@ window.resolveHazardLie = function(ctx) {
             else p.earnedGimmes = (p.earnedGimmes || 0) + 1;
         }
         
-        let bounceMsg = `BRAWK! You beaned a rooster! It dropped a free ${rewardType}! The ball settled ${Math.round(bounceDist)} yards away.`;
+        let bounceMsg = `BRAWK! You beaned a rooster! It dropped a free ${rewardType}!`;
+
+        // v5.73.0 Bounded Speed Slot Graze
+        if (hole === 10 && currentLie === "Packed Earth" && ballX < 0 && ballY >= 170 && ballY <= 300) {
+            // v5.74.0 Audio Void Fix
+            rollStopTriggered = false;
+            
+            ballY += 40;
+            ballX = -10; // We know they are on the left, so warp safely inside the left fairway edge
+            currentLie = "Fairway";
+            rollDistance += 40;
+            totalDistance += 40;
+            bounceMsg += ` The ball grazed the chicken and still caught the packed earth speed slot, rocketing 40 yards further and magnetically warping back into the fairway!`;
+        } else {
+            bounceMsg += ` The ball settled ${Math.round(bounceDist)} yards away.`;
+        }
+
         flightPathNarrative = flightPathNarrative ? flightPathNarrative + ' ' + bounceMsg : bounceMsg;
 
         let delayMs = (hangTimeSecs || 4.5) * 1000;

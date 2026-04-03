@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.70.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.75.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.tournamentGreens = false;
@@ -242,6 +242,7 @@ window.advanceTurn = function(isPuttingTransition = false) {
         if (typeof holeData !== 'undefined') {
             let allOffTee = true;
             let allOnGreen = true;
+            let allPastHazard = true;
             let activePlayers = typeof rosterSize !== 'undefined' ? rosterSize : players.length;
             
             for (let i = 0; i < activePlayers; i++) {
@@ -249,11 +250,14 @@ window.advanceTurn = function(isPuttingTransition = false) {
                 if (!p) continue;
                 if (p.currentLie === 'Tee') allOffTee = false;
                 if (p.currentLie !== 'Green' && p.currentLie !== 'Hole' && !p.isHoleComplete) allOnGreen = false;
+                if (holeData.hazardSwapY && p.ballY < holeData.hazardSwapY) allPastHazard = false;
             }
 
             let targetAmbient = null;
             if (allOnGreen && holeData.bgAmbientPostGreen) {
                 targetAmbient = holeData.bgAmbientPostGreen;
+            } else if (holeData.bgAmbientPostHazard && allPastHazard) {
+                targetAmbient = holeData.bgAmbientPostHazard;
             } else if (allOffTee && holeData.bgAmbientPostTee) {
                 targetAmbient = holeData.bgAmbientPostTee;
             }
