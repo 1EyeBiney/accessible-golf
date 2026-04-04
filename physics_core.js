@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.90.1)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.91.0)
 window.AG_VERSION = "v5.65.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
@@ -120,6 +120,11 @@ function generateWind() {
         windX = Math.round((dx / dist) * 15); windY = Math.round((dy / dist) * 15);
         return;
     }
+    // v5.91.0 Hole 18 Wind Tunnel Override
+    if (gameMode === 'course' && window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 18 && currentLie !== "Green" && currentLie !== "Hole") {
+        windX = 0; windY = 45;
+        return;
+    }
     const level = windLevels[windLevelIndex];
     let magX = Math.floor(Math.random() * (level.max - level.min + 1)) + level.min;
     let magY = Math.floor(Math.random() * (level.max - level.min + 1)) + level.min;
@@ -134,6 +139,12 @@ function driftWind() {
         let dist = Math.sqrt(dx*dx + dy*dy) || 1;
         windX = Math.round((dx / dist) * 15);
         windY = Math.round((dy / dist) * 15);
+        if (typeof window.updateDashboard === 'function') window.updateDashboard();
+        return;
+    }
+    // v5.91.0 Hole 18 Wind Tunnel Override
+    if (gameMode === 'course' && window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 18 && currentLie !== "Green" && currentLie !== "Hole") {
+        windX = 0; windY = 45;
         if (typeof window.updateDashboard === 'function') window.updateDashboard();
         return;
     }

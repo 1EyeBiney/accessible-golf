@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.88.0)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.91.0)
 
 // --- TERRAIN QUERIES ---
 
@@ -403,6 +403,13 @@ window.resolveHazardLie = function(ctx) {
                         currentLie = "Pine Needles";
                         // v4.87.0 Frictionless Slide (Massive Roll Multiplier)
                         rollDistance *= 1.8;
+                    // v5.91.0 Hole 18 Exit Bog
+                    } else if (h.type === "The Exit Bog") {
+                        currentLie = "Mud";
+                        rollStopTriggered = true;
+                        rollDistance = 0;
+                        totalDistance = carryDistance;
+                        if (typeof flightPathNarrative !== 'undefined') flightPathNarrative += " PLOP! The ball overshot the green and buried itself deep in the Exit Bog!";
                     }
                 }
             });

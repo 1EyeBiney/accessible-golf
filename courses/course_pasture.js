@@ -1,4 +1,4 @@
-// course_pasture.js - The Pasture Course Data (v5.89.0)
+// course_pasture.js - The Pasture Course Data (v5.91.0)
 window.courses = window.courses || [];
 window.courses.push({
     name: "The Pasture",
@@ -279,6 +279,28 @@ window.courses.push({
             landingZones: [{ name: "The Gap", x: 0, y: 250 }, { name: "Green Center", x: 0, y: 370 }],
             zones: [{name: "Green Center", x: 0, y: 370}]
         },
-        ...Array.from({length: 1}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
+        {
+            number: 18, par: 5, distance: 640, greenRadius: 15, pinX: 0, pinY: 640,
+            greenType: "Back-to-Front",
+            fairwayWidth: 60, pinLocation: "Center",
+            loreName: "Just Grip It, and Rip It",
+            description: "Welcome to Just Grip It, and Rip It. It's not that Clifford wants you to leave, but he is giving you a rather aggressive shove toward the exit. He's hooked the farm's central windmill directly into the newly restored Maple Grove electrical grid, cranking the blades into overdrive. You are now standing in a literal wind tunnel with a howling 45 mph tailwind at your back. To conquer this mathematically impossible 640-yard Par 5, you'll need to tee it high, launch it into the jet stream, and ride the gale. Just don't overshoot the green, or you'll bury your ball in the massive mud pit waiting out back.",
+            fairwayDescription: "The fairway is wide open, acting as a massive wind tunnel. Do not miss long of the green, as the Exit Bog awaits.",
+            bgMusic: 'audio/courses/pasture/mu_pasture9.mp3',
+            bgAmbient: 'audio/courses/pasture/am_farm1_windmill2.mp3',
+            bgAmbientPostGreen: 'audio/courses/pasture/am_farm1_windmill3.mp3',
+            hazards: [
+                { type: "The Exit Bog", distance: 660, depth: 50, offset: 0, width: 150 },
+                { type: "Spectating", distance: 200, depth: 10, offset: -40, width: 10, name: "Rusted Car Parts" },
+                { type: "Spectating", distance: 400, depth: 10, offset: 40, width: 10, name: "Broken Fence" }
+            ],
+            landingZones: [
+                { name: "Zone 1", x: 0, y: 240 },
+                { name: "Zone 2", x: 0, y: 360 },
+                { name: "Zone 3", x: 0, y: 480 },
+                { name: "Green Center", x: 0, y: 640 }
+            ],
+            zones: [{name: "Green Center", x: 0, y: 640}]
+        }
     ]
 });
