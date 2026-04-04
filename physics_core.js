@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.89.0)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.89.3)
 window.AG_VERSION = "v5.65.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
@@ -876,8 +876,8 @@ function calculateShot(autoMiss = false) {
     // Apply +/- 5% of maxDispersion lateral scatter
     let naturalLatScatter = isPutt ? 0 : ((Math.random() * 0.1) - 0.05) * club.maxDispersion * scatterMult;
 
-    const physicsX = isPutt ? 0 : ((sideSpinRPM / 2400) * (club.maxDispersion * (typeof lieDispersionMod !== 'undefined' ? lieDispersionMod : 1) * pressureDispersion)) + naturalLatScatter;
-    const lateralTotal = physicsX + windXEffect;
+    let physicsX = isPutt ? 0 : ((sideSpinRPM / 2400) * (club.maxDispersion * (typeof lieDispersionMod !== 'undefined' ? lieDispersionMod : 1) * pressureDispersion)) + naturalLatScatter;
+    let lateralTotal = physicsX + windXEffect;
 
     const moveY = Math.cos(finalRad) * totalDistance - Math.sin(finalRad) * lateralTotal;
     const moveX = Math.sin(finalRad) * totalDistance + Math.cos(finalRad) * lateralTotal;
@@ -1076,26 +1076,33 @@ function calculateShot(autoMiss = false) {
             let panValue = Math.max(-1, Math.min(1, zapX / 25));
             
             let timeoutId = setTimeout(() => {
-                if (typeof audioCtx !== 'undefined' && audioCtx) {
-                    let osc = audioCtx.createOscillator();
-                    let gain = audioCtx.createGain();
-                    let panner = audioCtx.createStereoPanner();
-                    panner.pan.value = panValue;
-                    
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.3);
+                // v5.89.3 Custom Zap Audio Grab-Bag (4 Files)
+                if (typeof quick === 'undefined' || !quick) {
+                    window.zapSounds = window.zapSounds || ['electricity_zap1', 'electricity_zap2', 'electricity_zap3', 'electricity_zap4'];
+                    window.zapSounds.sort(() => Math.random() - 0.5);
+                    let zapFile = window.zapSounds.pop() || 'electricity_zap1';
+                    if (window.zapSounds.length === 0) window.zapSounds = ['electricity_zap1', 'electricity_zap2', 'electricity_zap3', 'electricity_zap4'];
                     
                     let vol = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
-                    gain.gain.setValueAtTime(vol * 0.8, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
                     
-                    osc.connect(gain); gain.connect(panner); panner.connect(audioCtx.destination);
-                    osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-                    
-                    if (typeof window.hotSwapAmbient === 'function') {
-                        window.hotSwapAmbient('audio/courses/pasture/am_farm1.mp3');
+                    if (typeof audioCtx !== 'undefined' && audioCtx) {
+                        let zapAudio = new Audio(`audio/courses/pasture/${zapFile}.mp3`);
+                        zapAudio.volume = vol;
+                        let source = audioCtx.createMediaElementSource(zapAudio);
+                        let panner = audioCtx.createStereoPanner();
+                        panner.pan.value = panValue;
+                        source.connect(panner);
+                        panner.connect(audioCtx.destination);
+                        zapAudio.play().catch(e => {});
+                    } else {
+                        let zapAudio = new Audio(`audio/courses/pasture/${zapFile}.mp3`);
+                        zapAudio.volume = vol;
+                        zapAudio.play().catch(e => {});
                     }
+                }
+                
+                if (typeof window.hotSwapAmbient === 'function') {
+                    window.hotSwapAmbient('audio/courses/pasture/am_farm1.mp3');
                 }
             }, delayMs);
             if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(timeoutId);
