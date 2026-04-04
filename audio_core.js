@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.70.0)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.86.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -321,6 +321,22 @@ window.playGoatInterrupt = function() {
     if (window.audioGoatInterrupts[r]) {
         window.audioGoatInterrupts[r].currentTime = 0;
         window.audioGoatInterrupts[r].play().catch(e => {});
+    }
+};
+
+// v5.86.0 Hole 16 Marquis Interrupts
+window.audioMarquisInterrupts = [];
+for (let i = 1; i <= 3; i++) {
+    window.audioMarquisInterrupts.push(new Audio(`audio/courses/pasture/marquis_interrupt${i}.mp3`));
+}
+
+window.playMarquisInterrupt = function() {
+    if (window.audioMarquisInterrupts.length > 0) {
+        let idx = Math.floor(Math.random() * window.audioMarquisInterrupts.length);
+        let clip = window.audioMarquisInterrupts[idx];
+        clip.currentTime = 0;
+        clip.volume = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+        clip.play().catch(e => {});
     }
 };
 

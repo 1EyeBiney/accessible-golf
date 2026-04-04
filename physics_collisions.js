@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.84.1)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.86.0)
 
 // --- TERRAIN QUERIES ---
 
@@ -719,6 +719,26 @@ window.resolveHazardLie = function(ctx) {
             if (newDistToPin < 35) {
                 ballY = pinY > ballY ? pinY - 35.1 : pinY + 35.1;
                 currentLie = "Fringe"; // Gives them a clean look from the edge
+            }
+        }
+    }
+
+    // v5.86.0 Hole 16: The Crowned Fairway & Spined Green
+    if (typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && typeof hole !== 'undefined' && hole === 16) {
+        if (currentLie === "Fairway") {
+            if (Math.abs(ballX) > 5) {
+                ballX += (ballX > 0 ? 12 : -12);
+                currentLie = "Light Rough";
+                if (typeof flightPathNarrative !== 'undefined') flightPathNarrative += " The crowned fairway rejected the shot, shedding the ball down the slope and into the rough!";
+            }
+        } else if (currentLie === "Green") {
+            let distToPin = Math.sqrt(Math.pow(ballX - pinX, 2) + Math.pow(ballY - pinY, 2));
+            if (distToPin <= 15 && Math.abs(ballX - pinX) > 2.5) {
+                ballX += (ballX > 0 ? 10 : -10);
+                currentLie = "Sand";
+                rollStopTriggered = true;
+                rollDistance = 0;
+                if (typeof flightPathNarrative !== 'undefined') flightPathNarrative += " The ball landed slightly off-center, caught the vicious spine, and funneled directly into the greenside bunker!";
             }
         }
     }

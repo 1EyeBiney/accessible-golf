@@ -1,4 +1,4 @@
-// course_pasture.js - The Pasture Course Data (v5.84.0)
+// course_pasture.js - The Pasture Course Data (v5.86.0)
 window.courses = window.courses || [];
 window.courses.push({
     name: "The Pasture",
@@ -244,6 +244,23 @@ window.courses.push({
             landingZones: [{ name: "Missile Drop Zone", x: 0, y: 115 }, { name: "Green Center", x: 0, y: 232 }],
             zones: [{name: "Green Center", x: 0, y: 232}]
         },
-        ...Array.from({length: 3}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
+        {
+            number: 16, par: 4, distance: 432, greenRadius: 15, pinX: 0, pinY: 432,
+            greenType: "The Marquis' Spine",
+            fairwayWidth: 35, pinLocation: "Center",
+            loreName: "Marquis de Gesundheit",
+            description: "A 432-yard Par 4 that demands absolute perfection. The fairway is crowned, kicking slightly offline drives directly into the rough, and the 30-yard deep green features a vicious center spine that feeds balls into the left and right bunkers. But the real hazard here is the Marquis himself. Having abandoned the goats, he's now relying on sheer obnoxious human interference. Expect loud sneezes, throat-clearing, and party poppers at the exact moment of your downswing. Block out the noise, or you'll be playing from the sand.",
+            fairwayDescription: "The fairway is crowned and rejects off-center shots. The green is extremely tight, roughly 12 yards wide, guarded by deep bunkers on both the left and right.",
+            bgMusic: 'audio/courses/pasture/mu_pasture7.mp3',
+            bgAmbient: 'audio/courses/pasture/am_farm1.mp3',
+            bgAmbientPostGreen: 'audio/courses/pasture/am_farm1.mp3',
+            hazards: [
+                { type: "Bunker", distance: 410, depth: 30, offset: -12, width: 10 },
+                { type: "Bunker", distance: 410, depth: 30, offset: 12, width: 10 }
+            ],
+            landingZones: [{ name: "Center Fairway", x: 0, y: 240 }, { name: "Green Center", x: 0, y: 432 }],
+            zones: [{name: "Center Fairway", x: 0, y: 240}]
+        },
+        ...Array.from({length: 2}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
     ]
 });

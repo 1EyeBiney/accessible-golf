@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.62.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.86.0)
 
 // v5.51.0 Swing Input Failsafe & Cooldown
 window.isSwingInitializing = false;
@@ -1487,11 +1487,10 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => {
     if ((e.code === 'ArrowDown' || e.code === 'ArrowUp') && (swingState === 1 || swingState === 2)) {
         e.preventDefault(); startDownswing();
-        // v5.58.0 Restored Hole 7 Goat Interruption
-        if (typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && typeof hole !== 'undefined' && hole === 7) {
-            if (typeof currentLie !== 'undefined' && currentLie !== 'Green' && currentLie !== 'Hole') {
-                if (typeof window.playGoatInterrupt === 'function') window.playGoatInterrupt();
-            }
+        // v5.86.0 Hole 7 & Hole 16 Psychological Warfare
+        if (typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && currentLie !== "Green" && currentLie !== "Hole") {
+            if (hole === 7 && typeof window.playGoatInterrupt === 'function') window.playGoatInterrupt();
+            else if (hole === 16 && typeof window.playMarquisInterrupt === 'function') window.playMarquisInterrupt();
         }
     }
 });
