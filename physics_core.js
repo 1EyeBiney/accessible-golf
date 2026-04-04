@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.88.0)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.88.1)
 window.AG_VERSION = "v5.65.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
@@ -999,42 +999,61 @@ function calculateShot(autoMiss = false) {
         }
     }
 
-    // v5.88.0 High Voltage Proximity Interceptor (Hole 17 Magnetic Gates)
-    if (typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && hole === 17) {
-        const holeData17 = window.currentCourse.holes[hole - 1];
-        if (holeData17 && holeData17.towers && holeData17.towers.length > 0) {
-            const projCarryX = startX + (Math.sin(finalRad) * carryDistance) + (Math.cos(finalRad) * lateralX);
-            const projCarryY = startY + (Math.cos(finalRad) * carryDistance) - (Math.sin(finalRad) * lateralX);
-            for (let t = 0; t < holeData17.towers.length; t++) {
-                const tower = holeData17.towers[t];
-                const tdx = projCarryX - tower.x;
-                const tdy = projCarryY - tower.y;
-                if (Math.sqrt(tdx * tdx + tdy * tdy) < tower.radius) {
-                    carryDistance = Math.max(0, tower.y - 10);
+    // v5.88.1 High Voltage Proximity Interceptor (Restored Flight Path Math)
+    if (typeof window.currentCourse !== 'undefined' && window.currentCourse.holes[hole - 1].towers) {
+        let currentHole = window.currentCourse.holes[hole - 1];
+        let oY = Math.cos(finalRad) * carryDistance;
+        let oX = Math.sin(finalRad) * carryDistance + (typeof lateralX !== 'undefined' ? lateralX : 0);
+        
+        for (let i = 0; i < currentHole.towers.length; i++) {
+            let t = currentHole.towers[i];
+            let dy = t.y - startY;
+            
+            // Check if ball travels forward and carries past the tower's depth
+            if (dy > 0 && oY > dy) { 
+                let flightFraction = dy / oY;
+                let projectedX = startX + (oX * flightFraction);
+                let distToTower = Math.abs(projectedX - t.x);
+                
+                if (distToTower <= t.radius) {
+                    // ZAPPED
+                    carryDistance = Math.round(Math.sqrt(Math.pow(oX * flightFraction, 2) + Math.pow(dy, 2)));
                     rollDistance = 0;
                     totalDistance = carryDistance;
-                    let zapMsg = " ZZZZT! The ball entered the magnetic field and was instantly dragged to the ground!";
-                    flightPathNarrative = flightPathNarrative ? flightPathNarrative + zapMsg : zapMsg;
-                    let zapDelayMs = (hangTimeSecs * 0.5) * 1000;
-                    let zapTimeout = setTimeout(() => {
+                    
+                    let sideName = t.x < 0 ? "left" : "right";
+                    let bounceMsg = `BZZZZT! The ball entered the magnetic field of the ${sideName} high-voltage tower and was instantly zapped out of the sky!`;
+                    flightPathNarrative = flightPathNarrative ? flightPathNarrative + " " + bounceMsg : bounceMsg;
+                    
+                    let delayMs = (hangTimeSecs * flightFraction) * 1000;
+                    let panValue = Math.max(-1, Math.min(1, projectedX / 25));
+                    
+                    let timeoutId = setTimeout(() => {
                         if (typeof audioCtx !== 'undefined' && audioCtx) {
                             let osc = audioCtx.createOscillator();
-                            let zapGain = audioCtx.createGain();
+                            let gain = audioCtx.createGain();
+                            let panner = audioCtx.createStereoPanner();
+                            panner.pan.value = panValue;
+                            
                             osc.type = 'sawtooth';
-                            osc.frequency.setValueAtTime(180, audioCtx.currentTime);
-                            osc.frequency.linearRampToValueAtTime(40, audioCtx.currentTime + 0.4);
-                            zapGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                            zapGain.gain.linearRampToValueAtTime(0.0, audioCtx.currentTime + 0.4);
-                            osc.connect(zapGain);
-                            zapGain.connect(audioCtx.destination);
-                            osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+                            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                            osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.3);
+                            
+                            let vol = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+                            gain.gain.setValueAtTime(vol * 0.8, audioCtx.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                            
+                            osc.connect(gain); gain.connect(panner); panner.connect(audioCtx.destination);
+                            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+                            
                             if (typeof window.hotSwapAmbient === 'function') {
                                 window.hotSwapAmbient('audio/courses/pasture/am_farm1.mp3');
                             }
                         }
-                    }, zapDelayMs);
-                    if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(zapTimeout);
-                    break;
+                    }, delayMs);
+                    if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(timeoutId);
+                    
+                    break; 
                 }
             }
         }
