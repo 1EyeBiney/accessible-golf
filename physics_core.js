@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.84.0)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.84.4)
 window.AG_VERSION = "v5.65.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
@@ -962,6 +962,43 @@ function calculateShot(autoMiss = false) {
     const startX = ballX - moveX;
     const startY = ballY - moveY;
 
+    let flightPathNarrative = "";
+
+    // v5.84.3 The Acorn Dome Interceptor (Relocated for true physics alteration)
+    window.skipDuckEvent = false;
+    if (typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && hole === 15) {
+        let apexHeight = carryDistance > 0 ? Math.tan(dynamicLoft * Math.PI / 180) * carryDistance / 4 : 0;
+        if (apexHeight > 6.66) {
+            let penaltyMod = 0.50 + (Math.random() * 0.10); 
+            carryDistance = Math.round(carryDistance * penaltyMod);
+            rollDistance = Math.round(rollDistance * 0.2); 
+            totalDistance = carryDistance + rollDistance; // Resync true total distance
+
+            let bounceMsg = "INCOMING! The ball crossed the 20-foot airspace and was shot down by an acorn missile!";
+            flightPathNarrative = flightPathNarrative ? flightPathNarrative + " " + bounceMsg : bounceMsg;
+
+            let delayMs = (hangTimeSecs * 0.2) * 1000; 
+            let missileFile = 'missile_0c';
+            if (lateralX < -15) missileFile = 'missile_80l';
+            else if (lateralX >= -15 && lateralX < -3) missileFile = 'missile_40l';
+            else if (lateralX > 3 && lateralX <= 15) missileFile = 'missile_40r';
+            else if (lateralX > 15) missileFile = 'missile_80r';
+
+            let timeoutId = setTimeout(() => {
+                if (typeof audioCtx !== 'undefined' && audioCtx) {
+                    let audioEl = new Audio('audio/courses/pasture/' + missileFile + '.mp3');
+                    audioEl.volume = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+                    audioEl.play().catch(e => {});
+                } else {
+                    new Audio('audio/courses/pasture/' + missileFile + '.mp3').play().catch(e => {});
+                }
+            }, delayMs);
+            if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(timeoutId);
+            
+            window.skipDuckEvent = true; 
+        }
+    }
+
     // v5.44.2 Absolute Coordinate Resync
     ballX = startX + (Math.sin(finalRad) * totalDistance) + (Math.cos(finalRad) * lateralTotal) + lateralKickX;
     ballY = startY + (Math.cos(finalRad) * totalDistance) - (Math.sin(finalRad) * lateralTotal) + lateralKickY;
@@ -977,7 +1014,6 @@ function calculateShot(autoMiss = false) {
 
     const currentHole = window.currentCourse.holes[hole - 1];
     let treeCollisionReport = "";
-    let flightPathNarrative = "";
 
     let treeResult = window.resolveTreeCollisions({
         gameMode, synthTreeActive, synthTreeDist, synthTreeX, synthTreeHeight,
@@ -1092,45 +1128,7 @@ function calculateShot(autoMiss = false) {
         }, 600));
     }
 
-    // v5.84.0 The Acorn Dome Interceptor
-    window.skipDuckEvent = false; // Reset each shot
-    if (typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && hole === 15) {
-        // Apex height derived from parabolic formula (yards): tan(loft) * carry / 4 = max height at midpoint
-        let apexHeight = carryDistance > 0 ? Math.tan(dynamicLoft * Math.PI / 180) * carryDistance / 4 : 0;
-        // Apex > 20 feet (6.66 yards)
-        if (apexHeight > 6.66) {
-            let penaltyMod = 0.50 + (Math.random() * 0.10); // 50% to 60% distance remaining
-            carryDistance *= penaltyMod;
-            rollDistance *= 0.2; // Kills most roll after it gets shot down
-
-            let bounceMsg = "INCOMING! The ball crossed the 20-foot airspace and was shot down by an acorn missile!";
-            flightPathNarrative = flightPathNarrative ? flightPathNarrative + " " + bounceMsg : bounceMsg;
-
-            let delayMs = (hangTimeSecs / 2) * 1000; // Trigger mid-flight
-            let missileFile = 'missile_0c';
-            if (ballX < -15) missileFile = 'missile_80l';
-            else if (ballX >= -15 && ballX < -3) missileFile = 'missile_40l';
-            else if (ballX > 3 && ballX <= 15) missileFile = 'missile_40r';
-            else if (ballX > 15) missileFile = 'missile_80r';
-
-            let timeoutId = setTimeout(() => {
-                if (typeof audioCtx !== 'undefined' && audioCtx) {
-                    let audioEl = new Audio('audio/courses/pasture/' + missileFile + '.mp3');
-                    audioEl.volume = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
-                    audioEl.play().catch(e => {});
-                } else {
-                    new Audio('audio/courses/pasture/' + missileFile + '.mp3').play().catch(e => {});
-                }
-            }, delayMs);
-            if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(timeoutId);
-
-            // Bypass standard duck event
-            window.skipDuckEvent = true;
-        } else {
-            window.skipDuckEvent = false;
-        }
-    }
-    // v5.65.0 Duck Mishap Intercept (v5.84.0: moved here, yielded to Acorn Dome on Hole 15)
+    // v5.65.0 Duck Mishap Intercept (v5.84.3: guarded by skipDuckEvent set in Acorn Dome)
     if (accuracyScore < 80 && !quick && !window.skipDuckEvent) {
         if (typeof window.triggerDuckEvent === 'function') window.triggerDuckEvent();
     }

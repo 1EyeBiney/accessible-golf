@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.84.0)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.84.1)
 
 // --- TERRAIN QUERIES ---
 
@@ -350,13 +350,11 @@ window.resolveHazardLie = function(ctx) {
                         }, delayMs);
                         if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(timeoutId);
                     } else if (h.type === "Dr. Bobby's Bus" && !rollStopTriggered) {
-                        currentLie = "Packed Earth";
+                        currentLie = "Rough";
+                        ballY -= 5;
                         rollStopTriggered = true;
                         rollDistance = 0;
-                        totalDistance = carryDistance;
-                        let panValue = Math.max(-1, Math.min(1, ballX / 25));
-                        if (typeof window.playPannedThud === 'function') window.playPannedThud(panValue, 'square', 80);
-                        if (typeof flightPathNarrative !== 'undefined') flightPathNarrative += " CLANG! The ball slammed hard into the side of Dr. Bobby's idling bus and dropped straight down to the packed earth.";
+                        if (typeof flightPathNarrative !== 'undefined') flightPathNarrative += " THUD! The ball slammed directly into Dr. Bobby's idling donor bus!";
                     } else if ((h.type === "The Water Tower" || h.type === "Tower Catch-All (Spectating)") && !rollStopTriggered) {
                         currentLie = "Fairway";
                         let newBallY = pinY - 110;
