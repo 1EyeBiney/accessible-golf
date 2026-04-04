@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.86.0)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.88.0)
 
 // --- TERRAIN QUERIES ---
 
@@ -740,6 +740,13 @@ window.resolveHazardLie = function(ctx) {
                 rollDistance = 0;
                 if (typeof flightPathNarrative !== 'undefined') flightPathNarrative += " The ball landed slightly off-center, caught the vicious spine, and funneled directly into the greenside bunker!";
             }
+        }
+    }
+
+    // v5.88.0 Hole 17 Safe Passage Audio Swap
+    if (typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && typeof hole !== 'undefined' && hole === 17) {
+        if (ballY > 250 && typeof window.hotSwapAmbient === 'function') {
+            window.hotSwapAmbient('audio/courses/pasture/am_farm1.mp3');
         }
     }
 

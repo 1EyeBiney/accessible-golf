@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.84.4)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.88.0)
 window.AG_VERSION = "v5.65.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
@@ -996,6 +996,47 @@ function calculateShot(autoMiss = false) {
             if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(timeoutId);
             
             window.skipDuckEvent = true; 
+        }
+    }
+
+    // v5.88.0 High Voltage Proximity Interceptor (Hole 17 Magnetic Gates)
+    if (typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && hole === 17) {
+        const holeData17 = window.currentCourse.holes[hole - 1];
+        if (holeData17 && holeData17.towers && holeData17.towers.length > 0) {
+            const projCarryX = startX + (Math.sin(finalRad) * carryDistance) + (Math.cos(finalRad) * lateralX);
+            const projCarryY = startY + (Math.cos(finalRad) * carryDistance) - (Math.sin(finalRad) * lateralX);
+            for (let t = 0; t < holeData17.towers.length; t++) {
+                const tower = holeData17.towers[t];
+                const tdx = projCarryX - tower.x;
+                const tdy = projCarryY - tower.y;
+                if (Math.sqrt(tdx * tdx + tdy * tdy) < tower.radius) {
+                    carryDistance = Math.max(0, tower.y - 10);
+                    rollDistance = 0;
+                    totalDistance = carryDistance;
+                    let zapMsg = " ZZZZT! The ball entered the magnetic field and was instantly dragged to the ground!";
+                    flightPathNarrative = flightPathNarrative ? flightPathNarrative + zapMsg : zapMsg;
+                    let zapDelayMs = (hangTimeSecs * 0.5) * 1000;
+                    let zapTimeout = setTimeout(() => {
+                        if (typeof audioCtx !== 'undefined' && audioCtx) {
+                            let osc = audioCtx.createOscillator();
+                            let zapGain = audioCtx.createGain();
+                            osc.type = 'sawtooth';
+                            osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+                            osc.frequency.linearRampToValueAtTime(40, audioCtx.currentTime + 0.4);
+                            zapGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                            zapGain.gain.linearRampToValueAtTime(0.0, audioCtx.currentTime + 0.4);
+                            osc.connect(zapGain);
+                            zapGain.connect(audioCtx.destination);
+                            osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+                            if (typeof window.hotSwapAmbient === 'function') {
+                                window.hotSwapAmbient('audio/courses/pasture/am_farm1.mp3');
+                            }
+                        }
+                    }, zapDelayMs);
+                    if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(zapTimeout);
+                    break;
+                }
+            }
         }
     }
 
