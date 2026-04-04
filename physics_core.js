@@ -1,15 +1,21 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.91.0)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.91.1)
 window.AG_VERSION = "v5.65.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
+// v5.91.1 Hole 18 Wind Tunnel Override (Bulletproof)
 window.applyDivergentWind = function() {
-    if (typeof gameMode !== 'undefined' && gameMode === 'course' && window.currentCourse && window.currentCourse.name === "The Pasture" && typeof hole !== 'undefined' && hole === 6 && typeof currentLie !== 'undefined' && currentLie !== "Green" && currentLie !== "Hole") {
-        let dx = ballX - 0;
-        let dy = ballY - 395;
-        let dist = Math.sqrt(dx*dx + dy*dy) || 1;
-        windX = Math.round((dx / dist) * 15);
-        windY = Math.round((dy / dist) * 15);
+    if (typeof gameMode !== 'undefined' && gameMode === 'course' && window.currentCourse && window.currentCourse.name === "The Pasture" && typeof hole !== 'undefined' && typeof currentLie !== 'undefined' && currentLie !== "Green" && currentLie !== "Hole") {
+        if (hole === 6) {
+            let dx = ballX - 0;
+            let dy = ballY - 395;
+            let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+            windX = Math.round((dx / dist) * 15);
+            windY = Math.round((dy / dist) * 15);
+        } else if (hole === 18) {
+            windX = 0;
+            windY = 45;
+        }
     }
 };
 
