@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.88.1)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.89.0)
 window.AG_VERSION = "v5.65.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
@@ -999,63 +999,106 @@ function calculateShot(autoMiss = false) {
         }
     }
 
-    // v5.88.1 High Voltage Proximity Interceptor (Restored Flight Path Math)
+    // v5.89.0 Continuous Path Magnetic Interceptor
     if (typeof window.currentCourse !== 'undefined' && window.currentCourse.holes[hole - 1].towers) {
         let currentHole = window.currentCourse.holes[hole - 1];
         let oY = Math.cos(finalRad) * carryDistance;
         let oX = Math.sin(finalRad) * carryDistance + (typeof lateralX !== 'undefined' ? lateralX : 0);
         
+        let isZapped = false;
+        let zapFraction = 0;
+        let zapTower = null;
+        let zapIsAir = true;
+        let zapX = 0;
+
         for (let i = 0; i < currentHole.towers.length; i++) {
             let t = currentHole.towers[i];
-            let dy = t.y - startY;
             
-            // Check if ball travels forward and carries past the tower's depth
-            if (dy > 0 && oY > dy) { 
-                let flightFraction = dy / oY;
-                let projectedX = startX + (oX * flightFraction);
-                let distToTower = Math.abs(projectedX - t.x);
-                
-                if (distToTower <= t.radius) {
-                    // ZAPPED
-                    carryDistance = Math.round(Math.sqrt(Math.pow(oX * flightFraction, 2) + Math.pow(dy, 2)));
-                    rollDistance = 0;
-                    totalDistance = carryDistance;
-                    
-                    let sideName = t.x < 0 ? "left" : "right";
-                    let bounceMsg = `BZZZZT! The ball entered the magnetic field of the ${sideName} high-voltage tower and was instantly zapped out of the sky!`;
-                    flightPathNarrative = flightPathNarrative ? flightPathNarrative + " " + bounceMsg : bounceMsg;
-                    
-                    let delayMs = (hangTimeSecs * flightFraction) * 1000;
-                    let panValue = Math.max(-1, Math.min(1, projectedX / 25));
-                    
-                    let timeoutId = setTimeout(() => {
-                        if (typeof audioCtx !== 'undefined' && audioCtx) {
-                            let osc = audioCtx.createOscillator();
-                            let gain = audioCtx.createGain();
-                            let panner = audioCtx.createStereoPanner();
-                            panner.pan.value = panValue;
-                            
-                            osc.type = 'sawtooth';
-                            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                            osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.3);
-                            
-                            let vol = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
-                            gain.gain.setValueAtTime(vol * 0.8, audioCtx.currentTime);
-                            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                            
-                            osc.connect(gain); gain.connect(panner); panner.connect(audioCtx.destination);
-                            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-                            
-                            if (typeof window.hotSwapAmbient === 'function') {
-                                window.hotSwapAmbient('audio/courses/pasture/am_farm1.mp3');
-                            }
-                        }
-                    }, delayMs);
-                    if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(timeoutId);
-                    
-                    break; 
+            // 1. Check Air Path (Carry)
+            let steps = Math.ceil(carryDistance);
+            for (let s = 1; s <= steps; s++) {
+                let frac = s / carryDistance;
+                let cx = startX + (oX * frac);
+                let cy = startY + (oY * frac);
+                if (Math.sqrt(Math.pow(cx - t.x, 2) + Math.pow(cy - t.y, 2)) <= t.radius) {
+                    isZapped = true; zapFraction = frac; zapTower = t; zapIsAir = true; zapX = cx;
+                    break;
                 }
             }
+            if (isZapped) break;
+
+            // 2. Check Ground Path (Roll)
+            let landProjX = startX + oX;
+            let landProjY = startY + oY;
+            let finalProjX = startX + (Math.sin(finalRad) * totalDistance) + (Math.cos(finalRad) * lateralTotal) + lateralKickX;
+            let finalProjY = startY + (Math.cos(finalRad) * totalDistance) - (Math.sin(finalRad) * lateralTotal) + lateralKickY;
+
+            let rSteps = Math.ceil(rollDistance);
+            if (rSteps > 0) {
+                for (let s = 1; s <= rSteps; s++) {
+                    let frac = s / rollDistance;
+                    let cx = landProjX + ((finalProjX - landProjX) * frac);
+                    let cy = landProjY + ((finalProjY - landProjY) * frac);
+                    if (Math.sqrt(Math.pow(cx - t.x, 2) + Math.pow(cy - t.y, 2)) <= t.radius) {
+                        isZapped = true; zapFraction = frac; zapTower = t; zapIsAir = false; zapX = cx;
+                        break;
+                    }
+                }
+            }
+            if (isZapped) break;
+        }
+
+        if (isZapped) {
+            let sideName = zapTower.x < 0 ? "left" : "right";
+            let bounceMsg = "";
+
+            // Scale laterals to prevent offline warping when distance is cut
+            lateralTotal *= zapFraction;
+            lateralKickX *= zapFraction;
+            lateralKickY *= zapFraction;
+            physicsX *= zapFraction;
+            windXEffect *= zapFraction;
+
+            if (zapIsAir) {
+                carryDistance = Math.round(carryDistance * zapFraction);
+                rollDistance = 0;
+                totalDistance = carryDistance;
+                bounceMsg = `BZZZZT! The ball flew into the magnetic field of the ${sideName} high-voltage tower and was instantly zapped out of the sky!`;
+            } else {
+                rollDistance = Math.round(rollDistance * zapFraction);
+                totalDistance = carryDistance + rollDistance;
+                bounceMsg = `BZZZZT! The ball rolled directly into the magnetic field of the ${sideName} high-voltage tower and was instantly fried into the turf!`;
+            }
+            
+            flightPathNarrative = flightPathNarrative ? flightPathNarrative + " " + bounceMsg : bounceMsg;
+            
+            let delayMs = zapIsAir ? ((hangTimeSecs * zapFraction) * 1000) : (hangTimeSecs * 1000) + ((rollDistance / 10) * zapFraction * 1000);
+            let panValue = Math.max(-1, Math.min(1, zapX / 25));
+            
+            let timeoutId = setTimeout(() => {
+                if (typeof audioCtx !== 'undefined' && audioCtx) {
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    let panner = audioCtx.createStereoPanner();
+                    panner.pan.value = panValue;
+                    
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.3);
+                    
+                    let vol = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+                    gain.gain.setValueAtTime(vol * 0.8, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    
+                    osc.connect(gain); gain.connect(panner); panner.connect(audioCtx.destination);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+                    
+                    if (typeof window.hotSwapAmbient === 'function') {
+                        window.hotSwapAmbient('audio/courses/pasture/am_farm1.mp3');
+                    }
+                }
+            }, delayMs);
+            if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(timeoutId);
         }
     }
 

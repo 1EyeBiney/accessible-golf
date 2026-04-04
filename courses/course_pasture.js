@@ -1,4 +1,4 @@
-// course_pasture.js - The Pasture Course Data (v5.88.0)
+// course_pasture.js - The Pasture Course Data (v5.89.0)
 window.courses = window.courses || [];
 window.courses.push({
     name: "The Pasture",
@@ -266,14 +266,14 @@ window.courses.push({
             greenType: "Front-to-Back",
             fairwayWidth: 45, pinLocation: "Center",
             loreName: "All Power to the Ball",
-            description: "Welcome to All Power to the Ball. Now that the New Year's celebrations are over, the power restrictions in Maple Grove have been fully lifted. This means the twin high-voltage towers flanking the fairway at the 250-yard mark are fully juiced, acting as towering electrical centurions. They project massive, 15-yard magnetic fields that will instantly zap and drop any ball that enters their airspace. You only have a microscopic 16-yard gap to thread the needle. You can try to punch a driver straight through the gate, lay up short, or attempt a massive pro-shape hook around the outside. Choose your current wisely.",
+            description: "Welcome to All Power to the Ball. Now that the New Year's celebrations are over, the power restrictions in Maple Grove have been fully lifted. This means the twin high-voltage towers flanking the fairway at the 250-yard mark are fully juiced, acting as towering electrical centurions. They project massive, 35-yard magnetic fields that will instantly zap and drop any ball that enters their airspace. You only have a microscopic 16-yard gap to thread the needle. You can try to punch a driver straight through the gate, lay up short, or attempt a massive pro-shape hook around the outside. Choose your current wisely.",
             fairwayDescription: "The fairway is 45 yards wide, but completely choked by the magnetic gate at the 250-yard mark.",
             bgMusic: 'audio/courses/pasture/mu_pasture8.mp3',
             bgAmbient: 'audio/courses/pasture/am_farm1_voltage.mp3',
             bgAmbientPostGreen: 'audio/courses/pasture/am_farm1.mp3',
             towers: [
-                { x: -23, y: 250, radius: 15 },
-                { x: 23, y: 250, radius: 15 }
+                { x: -43, y: 250, radius: 35 },
+                { x: 43, y: 250, radius: 35 }
             ],
             hazards: [],
             landingZones: [{ name: "The Gap", x: 0, y: 250 }, { name: "Green Center", x: 0, y: 370 }],
