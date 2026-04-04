@@ -1,4 +1,4 @@
-// course_pasture.js - The Pasture Course Data (v5.80.0)
+// course_pasture.js - The Pasture Course Data (v5.84.0)
 window.courses = window.courses || [];
 window.courses.push({
     name: "The Pasture",
@@ -202,6 +202,48 @@ window.courses.push({
             landingZones: [{ name: "The Tower Shortcut", x: -35, y: 260 }, { name: "Safe Layup", x: 10, y: 220 }],
             zones: [{name: "Approach", x: 0, y: 310}]
         },
-        ...Array.from({length: 5}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
+        {
+            number: 14, par: 3, distance: 148, greenRadius: 12, pinX: 0, pinY: 148, pinZ: 2,
+            greenType: "The Pig Tiers",
+            fairwayWidth: 30, pinLocation: "Center",
+            loreName: "Drip, Drip, Hooray",
+            description: "Welcome to Drip, Drip, Hooray. This 148-yard par 3 plays to a terrifying, three-tiered green elevated 6 feet above a nasty two-yard moat. Off to the right, Dr. Bobby's blood donor bus sits idling. He's currently utilizing the water tower runoff from Hole 13 for what he calls a 'hyper-osmotic biohazard filtration exchange.' Try to tune out the rhythmic dripping and the low hum of the diesel engine, and whatever you do, don't step in the moat.",
+            fairwayDescription: "It is a short forced carry over rough directly to the elevated green. The bus is parked deep in the right rough. Do not miss the putting surface; the green is completely surrounded by a toxic moat.",
+            bgMusic: 'audio/courses/pasture/mu_pasture5.mp3',
+            bgAmbient: 'audio/courses/pasture/am_farm1_drip_far.mp3',
+            bgAmbientPostTee: 'audio/courses/pasture/am_farm1_drip_close.mp3',
+            hazards: [
+                { type: "Dr. Bobby's Bus", distance: 120, depth: 25, offset: 25, width: 10 },
+                // The 4-wall moat enclosing the green (radius 12)
+                { type: "Toxic Moat", distance: 132, depth: 4, offset: 0, width: 32 }, // Front
+                { type: "Toxic Moat", distance: 160, depth: 4, offset: 0, width: 32 }, // Back
+                { type: "Toxic Moat", distance: 136, depth: 24, offset: -15, width: 4 }, // Left
+                { type: "Toxic Moat", distance: 136, depth: 24, offset: 15, width: 4 }  // Right
+            ],
+            landingZones: [{ name: "Center Green", x: 0, y: 148, z: 2 }],
+            zones: [{name: "Center Green", x: 0, y: 148}]
+        },
+        {
+            number: 15, par: 4, distance: 232, greenRadius: 15, pinX: 0, pinY: 232,
+            greenType: "Front-to-Back",
+            fairwayWidth: 35, pinLocation: "Center",
+            loreName: "Nut Jobs",
+            description: "Welcome to Nut Jobs. Sick and tired of you hacking golf balls into their living rooms, Clifford's squirrels have officially declared war. They've set up a sophisticated acorn-to-air missile defense grid flanking both sides of this 232-yard Par 4. Their rules of engagement are simple: any projectile crossing the 20-foot airspace apex will be intercepted and shot down, suffering a massive 50% distance penalty. You'll have to play this entirely differently—smash a driver off the tee just to survive the gauntlet, and club up massively on your approach.",
+            fairwayDescription: "A tree-lined, 232-yard Par 4. The fairway is slightly wider than normal, flanked by 20 yards of rough and dense tree lines on both sides. The back of the green is heavily guarded by the canopy.",
+            bgMusic: 'audio/courses/pasture/mu_pasture6.mp3',
+            bgAmbient: 'audio/courses/pasture/am_farm1_squirrels.mp3',
+            bgAmbientPostGreen: 'audio/courses/pasture/am_farm1.mp3',
+            windOverride: "Gusty",
+            trees: [
+                { name: "Left Canopy Grid", x: -25, y: 110, radius: 15, height: 45 },
+                { name: "Right Canopy Grid", x: 25, y: 110, radius: 15, height: 45 },
+                { name: "Back Green Guard", x: -10, y: 245, radius: 12, height: 40 },
+                { name: "Back Green Guard", x: 10, y: 245, radius: 12, height: 40 }
+            ],
+            hazards: [],
+            landingZones: [{ name: "Missile Drop Zone", x: 0, y: 115 }, { name: "Green Center", x: 0, y: 232 }],
+            zones: [{name: "Green Center", x: 0, y: 232}]
+        },
+        ...Array.from({length: 3}, () => ({ par: 4, distance: 400, greenRadius: 12, pinX: 0, pinY: 400, hazards: ['sand'], zones: [{x:0, y:250, w:40, h:40}] }))
     ]
 });

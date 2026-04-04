@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.82.0)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.84.0)
 
 // --- TERRAIN QUERIES ---
 
@@ -52,6 +52,17 @@ window.getTerrainAt = function(x, y) {
     if (window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 9) {
         if (terrain === "Fairway" || terrain === "Rough" || terrain === "Cart Path" || terrain === "Highway Fence") return "Packed Earth";
         if (terrain === "Scrub Brush") return "Mud";
+    }
+    if (holeData && holeData.hazards) {
+        holeData.hazards.forEach(h => {
+            if (h.type === "Dr. Bobby's Bus" && h.offset !== undefined && h.width !== undefined && h.distance !== undefined && h.depth !== undefined) {
+                const hLeft = h.offset - (h.width / 2);
+                const hRight = h.offset + (h.width / 2);
+                const hStart = h.distance;
+                const hEnd = h.distance + h.depth;
+                if (y >= hStart && y <= hEnd && x >= hLeft && x <= hRight) terrain = "Packed Earth";
+            }
+        });
     }
     return terrain;
 };
@@ -338,6 +349,14 @@ window.resolveHazardLie = function(ctx) {
                             }
                         }, delayMs);
                         if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(timeoutId);
+                    } else if (h.type === "Dr. Bobby's Bus" && !rollStopTriggered) {
+                        currentLie = "Packed Earth";
+                        rollStopTriggered = true;
+                        rollDistance = 0;
+                        totalDistance = carryDistance;
+                        let panValue = Math.max(-1, Math.min(1, ballX / 25));
+                        if (typeof window.playPannedThud === 'function') window.playPannedThud(panValue, 'square', 80);
+                        if (typeof flightPathNarrative !== 'undefined') flightPathNarrative += " CLANG! The ball slammed hard into the side of Dr. Bobby's idling bus and dropped straight down to the packed earth.";
                     } else if ((h.type === "The Water Tower" || h.type === "Tower Catch-All (Spectating)") && !rollStopTriggered) {
                         currentLie = "Fairway";
                         let newBallY = pinY - 110;
@@ -381,7 +400,7 @@ window.resolveHazardLie = function(ctx) {
                         if (typeof window.stateTimeouts !== 'undefined') window.stateTimeouts.push(timeoutId);
                     }
                     
-                    if (h.type === "Water" || h.type === "Tower Runoff" || h.type === "The Spillway") inWater = true;
+                    if (h.type === "Water" || h.type === "Tower Runoff" || h.type === "The Spillway" || h.type === "Toxic Moat") inWater = true;
                     if (h.type.includes("Pine Needles")) {
                         currentLie = "Pine Needles";
                         // v4.87.0 Frictionless Slide (Massive Roll Multiplier)
