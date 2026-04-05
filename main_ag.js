@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.94.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.96.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.tournamentGreens = false;
@@ -24,10 +24,18 @@ window.musicVolumeIndex = 2; // Defaults to 10%
 window.ambientVolumeLevels = [0.0, 0.25, 0.5, 0.75, 1.0];
 window.ambientVolumeIndex = 4; // Defaults to 100%
 
-    // v5.22.2 Course Profiles Architecture (Dynamic Bridge Getter)
+    // v5.96.0 Course Profiles Architecture (Scope-Merging Bridge Getter)
     Object.defineProperty(window, 'courseData', {
         get: function() {
-            return typeof courses !== 'undefined' ? courses.map(c => {
+            let base = typeof courses !== 'undefined' ? courses : [];
+            let win = typeof window.courses !== 'undefined' ? window.courses : [];
+            let combined = base === win ? base : [...base];
+            if (base !== win) {
+                win.forEach(wc => {
+                    if (!combined.find(c => c.name === wc.name)) combined.push(wc);
+                });
+            }
+            return combined.map(c => {
                 let id = c.name.toLowerCase().replace(/ /g, '_');
                 let desc = "An 18-hole championship layout.";
                 if (c.name.includes("Holo")) desc = "A pristine 18-hole digital championship layout. Fairways, bunkers, and perfect greens.";
@@ -36,7 +44,7 @@ window.ambientVolumeIndex = 4; // Defaults to 100%
                 if (c.name.includes("Pasture")) desc = "A chaotic farmland hazard course. Watch out for tractors, cows, and chickens!";
                 if (c.name.includes("Scrapyard")) desc = "A rugged, post-apocalyptic course built through a Texas junk yard. Tight fairways and severe metallic hazards.";
                 return { ...c, id, desc };
-            }) : [];
+            });
         }
     });
     window.currentCourse = window.courseData[0]; // Defaults to Holo Links
