@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.92.0)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.99.0)
 window.AG_VERSION = "v5.65.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
@@ -89,6 +89,8 @@ window.playScoringAudioSequence = function(strokes, par, vol) {
 };
 
 window.initPutting = function() {
+    // v5.99.0 Practice Range State Lock — block putting transition on the range
+    if (gameMode === 'range') return;
     isPutting = true; swingState = 0; puttState = 0;
     currentClubIndex = clubs.findIndex(c => c.name === "Putter");
     if (currentClubIndex !== -1) club = clubs[currentClubIndex];

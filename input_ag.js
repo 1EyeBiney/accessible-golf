@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.97.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.98.0)
 
 // v5.51.0 Swing Input Failsafe & Cooldown
 window.isSwingInitializing = false;
@@ -718,7 +718,7 @@ window.addEventListener('keydown', (e) => {
         }
         // v5.1.5 Holo Range Object Manager
         if (gameMode === 'range') {
-            const holoTypes = ["Target Flag", "Single Tree", "Tree Wall", "Tree Cluster", "Sand Bunker"];
+            const holoTypes = ["Flag", "Target", "Single Tree", "Tree Wall", "Tree Cluster", "Sand Bunker"];
             let hd = typeof courses !== 'undefined' ? courses[currentCourseIndex].holes[hole - 1] : null;
             
             let checkCollisions = () => {
@@ -754,21 +754,23 @@ window.addEventListener('keydown', (e) => {
             }
             if (e.code === 'KeyO') {
                 e.preventDefault();
-                window.holoFocusIndex = (window.holoFocusIndex + 1) % holoTypes.length;
+                let cycleDir = e.shiftKey ? -1 : 1;
+                window.holoFocusIndex = (window.holoFocusIndex + cycleDir + holoTypes.length) % holoTypes.length;
                 let t = holoTypes[window.holoFocusIndex];
-                // Target Flag is now permanently spawned
-                let isSp = t === "Target Flag" ? true : (t === "Sand Bunker" ? hd.hazards.length > 0 : hd.trees.length > 0 && hd.trees[0].name === t);
+                // Flag and Target are permanently active
+                let isSp = (t === "Flag" || t === "Target") ? true : (t === "Sand Bunker" ? hd.hazards.length > 0 : hd.trees.length > 0 && hd.trees[0].name === t);
                 window.announce(`${t} selected. ${isSp ? "Spawned." : "Not spawned."}`);
                 return;
             }
             if (e.code === 'Enter') {
                 e.preventDefault();
                 let t = holoTypes[window.holoFocusIndex];
-                if (t === "Target Flag") { window.announce("The primary target flag is always active."); return; }
-                
+                if (t === "Flag") { window.announce("The primary flag is always active."); return; }
+                if (t === "Target") { window.announce("The target landing zone is always active."); return; }
+
                 let isSp = (t === "Sand Bunker" ? hd.hazards.length > 0 : hd.trees.length > 0 && hd.trees[0].name === t);
                 if (isSp) { window.announce(`${t} is already spawned.`); return; }
-                
+
                 let baseD = club.baseDistance;
                 if (t === "Sand Bunker") { hd.hazards = [{ type: "Bunker", name: "Greenside Bunker", distance: Math.max(5, baseD - 20), offset: pinX, width: 7, depth: 7 }]; }
                 else if (t === "Single Tree") { hd.trees = [{ name: t, x: pinX, y: Math.max(5, baseD * 0.7), radius: 5, height: 40 }]; }
@@ -779,24 +781,26 @@ window.addEventListener('keydown', (e) => {
             if (e.code === 'Backspace' || e.code === 'Delete') {
                 e.preventDefault();
                 let t = holoTypes[window.holoFocusIndex];
-                if (t === "Target Flag") { window.announce("The primary target flag cannot be removed."); return; }
-                
+                if (t === "Flag") { window.announce("The primary flag cannot be removed."); return; }
+                if (t === "Target") { window.announce("The target landing zone cannot be removed."); return; }
+
                 if (t === "Sand Bunker") { hd.hazards = []; }
                 else { hd.trees = []; }
                 window.announce(`${t} removed.`); window.updateDashboard(); return;
             }
             if (e.code === 'BracketLeft' || e.code === 'BracketRight' || e.code === 'Minus' || e.code === 'Equal') {
                 let t = holoTypes[window.holoFocusIndex];
-                let isSp = t === "Target Flag" ? true : (t === "Sand Bunker" ? hd.hazards.length > 0 : hd.trees.length > 0 && hd.trees[0].name === t);
+                let isSp = (t === "Flag" || t === "Target") ? true : (t === "Sand Bunker" ? hd.hazards.length > 0 : hd.trees.length > 0 && hd.trees[0].name === t);
                 if (!isSp) return;
-                
+
                 e.preventDefault();
                 let isX = (e.code === 'BracketLeft' || e.code === 'BracketRight');
                 let dir = (e.code === 'BracketLeft' || e.code === 'Minus') ? -1 : 1;
-                
+
                 if (e.shiftKey && !isX) {
                     // Z-Axis Adjustments
-                    if (t === "Target Flag") { pinZ += (dir * 5); window.announce(`Flag Elevation: ${pinZ > 0 ? '+'+pinZ : pinZ} yards.`); }
+                    if (t === "Flag") { pinZ += (dir * 5); targetZ = pinZ; window.announce(`Flag Elevation: ${pinZ > 0 ? '+'+pinZ : pinZ} yards. Target elevation synced.`); }
+                    else if (t === "Target") { targetZ += (dir * 5); window.announce(`Target Elevation: ${targetZ > 0 ? '+'+targetZ : targetZ} yards.`); }
                     else if (t === "Sand Bunker") { window.announce("Bunker depth cannot be adjusted."); }
                     else { hd.trees[0].height += (dir * 10); window.announce(`${t} height: ${hd.trees[0].height} feet.`); }
                 } else {
@@ -806,16 +810,18 @@ window.addEventListener('keydown', (e) => {
                         if (window.rangeMode === 'short') inc = 1;
                         else if (window.rangeMode === 'long') inc = Math.round(inc / 2);
                     }
-                    
-                    if (t === "Target Flag") { if (isX) pinX += (dir * inc); else pinY = Math.max(5, pinY + (dir * inc)); }
+
+                    if (t === "Flag") { if (isX) { pinX += (dir * inc); targetX = pinX; } else { pinY = Math.max(5, pinY + (dir * inc)); targetY = pinY; } }
+                    else if (t === "Target") { if (isX) targetX += (dir * inc); else targetY = Math.max(5, targetY + (dir * inc)); }
                     else if (t === "Sand Bunker") { if (isX) hd.hazards[0].offset += (dir * inc); else hd.hazards[0].distance = Math.max(5, hd.hazards[0].distance + (dir * inc)); }
                     else { if (isX) hd.trees[0].x += (dir * inc); else hd.trees[0].y = Math.max(5, hd.trees[0].y + (dir * inc)); }
-                    
-                    let objX = t === "Target Flag" ? pinX : (t === "Sand Bunker" ? hd.hazards[0].offset : hd.trees[0].x);
-                    let objY = t === "Target Flag" ? pinY : (t === "Sand Bunker" ? hd.hazards[0].distance : hd.trees[0].y);
+
+                    let objX = t === "Flag" ? pinX : (t === "Target" ? targetX : (t === "Sand Bunker" ? hd.hazards[0].offset : hd.trees[0].x));
+                    let objY = t === "Flag" ? pinY : (t === "Target" ? targetY : (t === "Sand Bunker" ? hd.hazards[0].distance : hd.trees[0].y));
                     let msgX = objX === 0 ? "Center" : `${Math.abs(objX)}y ${objX < 0 ? 'Left' : 'Right'}`;
                     let collMsg = typeof checkCollisions === 'function' ? checkCollisions() : "";
-                    window.announce(`${t} moved to ${objY} yards, ${msgX}.${collMsg}`);
+                    if (t === "Flag") { window.announce(`Flag moved to ${objY} yards, ${msgX}. Target synced.${collMsg}`); }
+                    else { window.announce(`${t} moved to ${objY} yards, ${msgX}.${collMsg}`); }
                 }
                 window.updateDashboard(); return;
             }
@@ -1471,7 +1477,9 @@ window.addEventListener('keydown', (e) => {
                 let distMsg = "";
                 if (gameMode === 'course' || gameMode === 'range') {
                     const holeData = courses[currentCourseIndex].holes[hole - 1];
-                    if (targetY !== holeData.pinY || targetX !== holeData.pinX) {
+                    // v5.98.0 Compare target against live pin coords (not static dummy hole data) in range mode
+                    let isTargetSeparated = gameMode === 'range' ? (targetY !== pinY || targetX !== pinX) : (targetY !== holeData.pinY || targetX !== holeData.pinX);
+                    if (isTargetSeparated) {
                         let distToTarget = Math.round(Math.sqrt(Math.pow(targetX - ballX, 2) + Math.pow(targetY - ballY, 2)));
                         distMsg += `Aiming at target, ${distToTarget} yards away. `;
                     }
@@ -1481,7 +1489,7 @@ window.addEventListener('keydown', (e) => {
                     // v4.83.0 Exact 3D Slope Rangefinder
                     let elevationDiff = (typeof targetZ !== 'undefined' && typeof ballZ !== 'undefined') ? (targetZ - ballZ) : 0;
                     if (elevationDiff !== 0) {
-                         let effDist = targetY !== holeData.pinY || targetX !== holeData.pinX ? 
+                         let effDist = isTargetSeparated ? 
                              Math.round(Math.sqrt(Math.pow(targetX - ballX, 2) + Math.pow(targetY - ballY, 2))) + elevationDiff : 
                              distToPin + elevationDiff;
                          distMsg += ` Plays ${Math.abs(elevationDiff)} yards ${elevationDiff > 0 ? 'uphill' : 'downhill'}. Effective distance: ${effDist} yards.`;
