@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.98.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.100.1)
 
 // v5.51.0 Swing Input Failsafe & Cooldown
 window.isSwingInitializing = false;
@@ -693,7 +693,7 @@ window.addEventListener('keydown', (e) => {
         if (e.code === 'KeyN') {
             e.preventDefault();
             if (e.shiftKey) {
-                if (gameMode === 'post_round' || (roundData.length > 0 && hole >= courses[currentCourseIndex].holes.length)) {
+                if (gameMode === 'post_round' || (roundData.length > 0 && window.currentCourse && hole >= window.currentCourse.holes.length)) {
                     let summary = window.generateNarrativeSummary();
                     window.copyToClipboard(summary, "Round summary copied to clipboard! " + summary);
                 } else {
@@ -719,7 +719,8 @@ window.addEventListener('keydown', (e) => {
         // v5.1.5 Holo Range Object Manager
         if (gameMode === 'range') {
             const holoTypes = ["Flag", "Target", "Single Tree", "Tree Wall", "Tree Cluster", "Sand Bunker"];
-            let hd = typeof courses !== 'undefined' ? courses[currentCourseIndex].holes[hole - 1] : null;
+            // v5.100.0 Object Manager Memory Sync
+            let hd = typeof window.currentCourse !== 'undefined' && window.currentCourse ? window.currentCourse.holes[hole - 1] : null;
             
             let checkCollisions = () => {
                 let warns = [];
@@ -910,7 +911,7 @@ window.addEventListener('keydown', (e) => {
     if (swingState === 0) {
         if (e.code === 'KeyH') {
             e.preventDefault();
-            const holeData = courses[currentCourseIndex].holes[hole - 1];
+            const holeData = window.currentCourse ? window.currentCourse.holes[hole - 1] : null;
             // Combine hazards and trees into one list for the menu
             const allObstacles = [...(holeData.hazards || []), ...(holeData.trees || [])];
             
@@ -931,7 +932,7 @@ window.addEventListener('keydown', (e) => {
 
         if (viewingHazards) {
             e.preventDefault();
-            const holeData = courses[currentCourseIndex].holes[hole - 1];
+            const holeData = window.currentCourse ? window.currentCourse.holes[hole - 1] : null;
             const allObstacles = [...(holeData.hazards || []), ...(holeData.trees || [])];
             if (e.code === 'ArrowDown') {
                 if (hazardIndex < allObstacles.length - 1) hazardIndex++;
@@ -957,7 +958,7 @@ window.addEventListener('keydown', (e) => {
     if (isHoleComplete && gameMode === 'course') {
         if (e.code === 'Enter') {
             e.preventDefault();
-            const course = courses[currentCourseIndex];
+            const course = window.currentCourse;
             if (hole < course.holes.length) {
                 loadHole(hole + 1);
             } else {
@@ -976,7 +977,7 @@ window.addEventListener('keydown', (e) => {
         if (e.code === 'KeyB') {
             e.preventDefault();
             let distToPin = calculateDistanceToPin();
-            const holeData = courses[currentCourseIndex].holes[hole - 1];
+            const holeData = window.currentCourse ? window.currentCourse.holes[hole - 1] : null;
             let netElevYards = 0;
             let netBreakYards = 0;
             if (holeData.greenType && window.greenDictionary && window.greenDictionary[holeData.greenType]) {
@@ -1224,7 +1225,7 @@ window.addEventListener('keydown', (e) => {
                 document.getElementById('visual-output').innerText = aimReport; window.announce(aimReport);
             }
             if (viewingHazards && !e.shiftKey) {
-                const holeData = courses[currentCourseIndex].holes[hole - 1];
+                const holeData = window.currentCourse ? window.currentCourse.holes[hole - 1] : null;
                 const allObstacles = [...(holeData.hazards || []), ...(holeData.trees || [])];
                 window.announceHazard(allObstacles[hazardIndex]);
             }
@@ -1246,7 +1247,7 @@ window.addEventListener('keydown', (e) => {
         }
         if (e.code === 'KeyD' && gameMode === 'course') {
             e.preventDefault();
-            const holeData = courses[currentCourseIndex].holes[hole - 1];
+            const holeData = window.currentCourse ? window.currentCourse.holes[hole - 1] : null;
             if (holeData.description) {
                 document.getElementById('visual-output').innerText = holeData.description; 
                 window.announce(holeData.description);
@@ -1272,7 +1273,7 @@ window.addEventListener('keydown', (e) => {
         }
         if (e.code === 'KeyF' && gameMode === 'course') {
             e.preventDefault();
-            const holeData = courses[currentCourseIndex].holes[hole - 1];
+            const holeData = window.currentCourse ? window.currentCourse.holes[hole - 1] : null;
             let fwMsg = holeData.fairwayDescription || `The fairway is ${holeData.fairwayWidth} yards wide.`;
             document.getElementById('visual-output').innerText = fwMsg;
             window.announce(fwMsg);
@@ -1400,7 +1401,7 @@ window.addEventListener('keydown', (e) => {
                     gridX = 0;
                     gridY = 0;
                     let initElevation = "Plays flat.";
-                    const holeData = courses[currentCourseIndex].holes[hole - 1];
+                    const holeData = window.currentCourse ? window.currentCourse.holes[hole - 1] : null;
                     let targetDistFromPin = Math.sqrt(Math.pow(targetX - pinX, 2) + Math.pow(targetY - pinY, 2));
                     if (targetDistFromPin <= 50 && holeData.greenType && window.greenDictionary && window.greenDictionary[holeData.greenType]) {
                         let activeContours = window.greenDictionary[holeData.greenType] || [];
@@ -1416,7 +1417,7 @@ window.addEventListener('keydown', (e) => {
                 return;
             }
 
-            const holeData = courses[currentCourseIndex].holes[hole - 1];
+            const holeData = window.currentCourse ? window.currentCourse.holes[hole - 1] : null;
             const landingZones = holeData.landingZones || [];
 
             if (activeTargetType === 'pin') {
@@ -1434,7 +1435,7 @@ window.addEventListener('keydown', (e) => {
                 targetZoneIndex++;
                 if (targetZoneIndex >= landingZones.length) {
                     activeTargetType = 'pin';
-                    const holeData = courses[currentCourseIndex].holes[hole - 1];
+                    const holeData = window.currentCourse ? window.currentCourse.holes[hole - 1] : null;
                     targetX = holeData.pinX; targetY = holeData.pinY; 
                     targetZ = holeData.pinZ || 0; lieTilt = 0; landingSlope = 0;
                 } else {
@@ -1476,7 +1477,7 @@ window.addEventListener('keydown', (e) => {
                 let distToPin = calculateDistanceToPin();
                 let distMsg = "";
                 if (gameMode === 'course' || gameMode === 'range') {
-                    const holeData = courses[currentCourseIndex].holes[hole - 1];
+                    const holeData = window.currentCourse ? window.currentCourse.holes[hole - 1] : null;
                     // v5.98.0 Compare target against live pin coords (not static dummy hole data) in range mode
                     let isTargetSeparated = gameMode === 'range' ? (targetY !== pinY || targetX !== pinX) : (targetY !== holeData.pinY || targetX !== holeData.pinX);
                     if (isTargetSeparated) {

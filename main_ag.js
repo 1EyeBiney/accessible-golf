@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.96.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.100.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.tournamentGreens = false;
@@ -600,6 +600,15 @@ function loadHole(holeNumber) {
     try {
         stateTimeouts.forEach(clearTimeout);
         stateTimeouts = [];
+
+        // v5.100.0 Practice Sandbox Isolation
+        if ((gameMode === 'range' || gameMode === 'putting') && (!window.currentCourse || !window.currentCourse.name.includes("Simulator"))) {
+            window.currentCourse = {
+                name: "Practice Simulator",
+                holes: [{ number: 1, par: 4, distance: 600, pinX: 0, pinY: 180, pinZ: 0, greenRadius: 30, fairwayWidth: 150, hazards: [], trees: [], zones: [] }]
+            };
+            hole = 1;
+        }
 
         // v4.80.0 Telemetry Archiving
         if (typeof holeTelemetry !== 'undefined' && holeTelemetry.length > 0 && typeof roundData !== 'undefined') {
