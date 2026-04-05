@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.95.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.97.0)
 
 // v5.51.0 Swing Input Failsafe & Cooldown
 window.isSwingInitializing = false;
@@ -756,19 +756,21 @@ window.addEventListener('keydown', (e) => {
                 e.preventDefault();
                 window.holoFocusIndex = (window.holoFocusIndex + 1) % holoTypes.length;
                 let t = holoTypes[window.holoFocusIndex];
-                let isSp = t === "Target Flag" ? pinY > 0 : (t === "Sand Bunker" ? hd.hazards.length > 0 : hd.trees.length > 0 && hd.trees[0].name === t);
+                // Target Flag is now permanently spawned
+                let isSp = t === "Target Flag" ? true : (t === "Sand Bunker" ? hd.hazards.length > 0 : hd.trees.length > 0 && hd.trees[0].name === t);
                 window.announce(`${t} selected. ${isSp ? "Spawned." : "Not spawned."}`);
                 return;
             }
             if (e.code === 'Enter') {
                 e.preventDefault();
                 let t = holoTypes[window.holoFocusIndex];
-                let isSp = t === "Target Flag" ? pinY > 0 : (t === "Sand Bunker" ? hd.hazards.length > 0 : hd.trees.length > 0 && hd.trees[0].name === t);
+                if (t === "Target Flag") { window.announce("The primary target flag is always active."); return; }
+                
+                let isSp = (t === "Sand Bunker" ? hd.hazards.length > 0 : hd.trees.length > 0 && hd.trees[0].name === t);
                 if (isSp) { window.announce(`${t} is already spawned.`); return; }
                 
-                let baseD = pinY > 0 ? pinY : club.baseDistance;
-                if (t === "Target Flag") { pinY = club.baseDistance; pinX = 0; pinZ = 0; }
-                else if (t === "Sand Bunker") { hd.hazards = [{ type: "Bunker", name: "Greenside Bunker", distance: Math.max(5, baseD - 20), offset: pinX, width: 7, depth: 7 }]; }
+                let baseD = club.baseDistance;
+                if (t === "Sand Bunker") { hd.hazards = [{ type: "Bunker", name: "Greenside Bunker", distance: Math.max(5, baseD - 20), offset: pinX, width: 7, depth: 7 }]; }
                 else if (t === "Single Tree") { hd.trees = [{ name: t, x: pinX, y: Math.max(5, baseD * 0.7), radius: 5, height: 40 }]; }
                 else if (t === "Tree Wall") { hd.trees = [{ name: t, x: pinX, y: Math.max(5, baseD * 0.7), radius: 7.5, height: 40 }]; }
                 else if (t === "Tree Cluster") { hd.trees = [{ name: t, x: pinX, y: Math.max(5, baseD * 0.7), radius: 15, height: 40 }]; }
@@ -777,14 +779,15 @@ window.addEventListener('keydown', (e) => {
             if (e.code === 'Backspace' || e.code === 'Delete') {
                 e.preventDefault();
                 let t = holoTypes[window.holoFocusIndex];
-                if (t === "Target Flag") { pinY = 0; pinX = 0; pinZ = 0; }
-                else if (t === "Sand Bunker") { hd.hazards = []; }
+                if (t === "Target Flag") { window.announce("The primary target flag cannot be removed."); return; }
+                
+                if (t === "Sand Bunker") { hd.hazards = []; }
                 else { hd.trees = []; }
                 window.announce(`${t} removed.`); window.updateDashboard(); return;
             }
             if (e.code === 'BracketLeft' || e.code === 'BracketRight' || e.code === 'Minus' || e.code === 'Equal') {
                 let t = holoTypes[window.holoFocusIndex];
-                let isSp = t === "Target Flag" ? pinY > 0 : (t === "Sand Bunker" ? hd.hazards.length > 0 : hd.trees.length > 0 && hd.trees[0].name === t);
+                let isSp = t === "Target Flag" ? true : (t === "Sand Bunker" ? hd.hazards.length > 0 : hd.trees.length > 0 && hd.trees[0].name === t);
                 if (!isSp) return;
                 
                 e.preventDefault();
@@ -799,8 +802,10 @@ window.addEventListener('keydown', (e) => {
                 } else {
                     // X/Y Adjustments
                     let inc = t === "Sand Bunker" ? 5 : 10;
-                    if (window.rangeMode === 'short') inc = 1;
-                    else if (window.rangeMode === 'long') inc = Math.round(inc / 2);
+                    if (typeof window.rangeMode !== 'undefined') {
+                        if (window.rangeMode === 'short') inc = 1;
+                        else if (window.rangeMode === 'long') inc = Math.round(inc / 2);
+                    }
                     
                     if (t === "Target Flag") { if (isX) pinX += (dir * inc); else pinY = Math.max(5, pinY + (dir * inc)); }
                     else if (t === "Sand Bunker") { if (isX) hd.hazards[0].offset += (dir * inc); else hd.hazards[0].distance = Math.max(5, hd.hazards[0].distance + (dir * inc)); }
@@ -809,7 +814,8 @@ window.addEventListener('keydown', (e) => {
                     let objX = t === "Target Flag" ? pinX : (t === "Sand Bunker" ? hd.hazards[0].offset : hd.trees[0].x);
                     let objY = t === "Target Flag" ? pinY : (t === "Sand Bunker" ? hd.hazards[0].distance : hd.trees[0].y);
                     let msgX = objX === 0 ? "Center" : `${Math.abs(objX)}y ${objX < 0 ? 'Left' : 'Right'}`;
-                    window.announce(`${t} moved to ${objY} yards, ${msgX}.${checkCollisions()}`);
+                    let collMsg = typeof checkCollisions === 'function' ? checkCollisions() : "";
+                    window.announce(`${t} moved to ${objY} yards, ${msgX}.${collMsg}`);
                 }
                 window.updateDashboard(); return;
             }

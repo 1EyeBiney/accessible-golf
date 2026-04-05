@@ -1,4 +1,4 @@
-// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v5.94.0)
+// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v5.97.0)
 
 // v4.10.0 Scorecard System
 
@@ -289,7 +289,7 @@ window.buildClubhouseMenu = function() {
 
             clubhouseMenu.push({ text: "The Holo Range", action: () => {
                 gameMode = 'range'; window.rangeMode = 'holo'; setupDummyCourse();
-                pinY = club.baseDistance;
+                pinY = 180;
                 let msg = `Welcome to the Holo Range. Target set to ${pinY} yards. ${window.rangeOrientationText}`;
                 setTimeout(() => { window.announce(msg); }, 1000);
                 document.getElementById('visual-output').innerText = "Holo Range Active.";
