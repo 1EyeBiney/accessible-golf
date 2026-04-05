@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.100.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.101.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.tournamentGreens = false;
@@ -979,7 +979,15 @@ function startPowerPhase() {
 }
 
 function startDownswing() {
-    if (swingState !== 2) { swingState = 0; return; }
+    // v5.101.0 Ghost Timer Abort Failsafe
+    if (swingState !== 2) { 
+        swingState = 0; 
+        if (typeof stateTimeouts !== 'undefined') {
+            stateTimeouts.forEach(clearTimeout);
+            stateTimeouts = [];
+        }
+        return; 
+    }
     swingState = 3; stateTimeouts.forEach(clearTimeout);
     let elapsed = performance.now() - powerStartTime;
     finalPower = Math.min(110, Math.round(25 + ((elapsed / 2000) * 75)));
