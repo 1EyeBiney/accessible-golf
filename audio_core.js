@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.93.0)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.95.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -431,8 +431,12 @@ window.playEnvironment = function(musicSrc, ambientSrc) {
 };
 
 window.updateMusicVolume = function() {
-    if (currentBgMusic) {
+    if (typeof currentBgMusic !== 'undefined' && currentBgMusic) {
         currentBgMusic.volume = window.musicVolumeLevels[window.musicVolumeIndex];
+    }
+    // v5.95.0 Clubhouse Volume Linkage
+    if (typeof window.clubhouseAudio !== 'undefined' && window.clubhouseAudio) {
+        window.clubhouseAudio.volume = window.musicVolumeLevels[window.musicVolumeIndex];
     }
 };
 
@@ -733,7 +737,7 @@ window.triggerDoorTransition = function(targetRoom) {
             window.deferredAnnounce();
             window.deferredAnnounce = null;
         }
-    }, 3000); // 3000ms delay for TTS clarity
+    }, 4000); // 4000ms delay for TTS clarity
 };
 
 window.stopClubhouseMusic = function() {

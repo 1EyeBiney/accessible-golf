@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.93.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.95.0)
 
 // v5.51.0 Swing Input Failsafe & Cooldown
 window.isSwingInitializing = false;
@@ -387,6 +387,20 @@ window.addEventListener('keydown', (e) => {
     // v4.12.0 Clubhouse Interceptor
     if (gameMode === 'clubhouse') {
         e.preventDefault();
+
+        // v5.95.0 Clubhouse Global Volume Controls
+        if (e.code === 'KeyV' && e.shiftKey) {
+            window.musicVolumeIndex = (window.musicVolumeIndex + 1) % window.musicVolumeLevels.length;
+            if (typeof window.updateMusicVolume === 'function') window.updateMusicVolume();
+            window.announce("Music volume set to " + Math.round(window.musicVolumeLevels[window.musicVolumeIndex] * 100) + " percent.");
+            return;
+        }
+        if (e.code === 'KeyB' && e.shiftKey) {
+            window.ambientVolumeIndex = (window.ambientVolumeIndex + 1) % window.ambientVolumeLevels.length;
+            if (typeof window.updateAmbientVolume === 'function') window.updateAmbientVolume();
+            window.announce("Ambient background volume set to " + Math.round(window.ambientVolumeLevels[window.ambientVolumeIndex] * 100) + " percent.");
+            return;
+        }
 
         // v5.1.0 Fast-Forward Setup
         if (e.ctrlKey && e.code === 'Enter') {

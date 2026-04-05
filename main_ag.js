@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.93.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.94.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.tournamentGreens = false;
@@ -609,8 +609,12 @@ function loadHole(holeNumber) {
         }
 
         window.initAudio(); 
-        // v5.93.0 Stop Clubhouse Ambient on Course Entry
-        if (typeof window.stopClubhouseMusic === 'function') window.stopClubhouseMusic();
+        // v5.94.0 Course vs Practice Audio Routing
+        if (gameMode === 'course') {
+            if (typeof window.stopClubhouseMusic === 'function') window.stopClubhouseMusic();
+        } else {
+            if (typeof window.playClubhouseMusic === 'function') window.playClubhouseMusic('cafe');
+        }
         if (typeof window.playEcho === 'function') {
             window.playEcho('sine', 600, 800, 0.2, 0.3, 0.2);
         }

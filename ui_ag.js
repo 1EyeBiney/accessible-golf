@@ -1,4 +1,4 @@
-// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v5.93.0)
+// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v5.94.0)
 
 // v4.10.0 Scorecard System
 
@@ -546,11 +546,13 @@ window.confirmClubhouseSelection = function() {
     }
     let newState = typeof clubhouseState !== 'undefined' ? clubhouseState : 'root';
     
-    // v5.93.0 Door Triggers
+    // v5.94.0 Bi-Directional Door Triggers
     if (oldState === 'root' && (newState === 'course' || newState === 'course_quick')) {
         if (typeof window.triggerDoorTransition === 'function') window.triggerDoorTransition('vox');
     } else if (oldState === 'root' && newState === 'practice') {
         if (typeof window.triggerDoorTransition === 'function') window.triggerDoorTransition('cafe');
+    } else if ((oldState === 'practice' || oldState === 'course' || oldState === 'course_quick') && newState === 'root') {
+        if (typeof window.triggerDoorTransition === 'function') window.triggerDoorTransition('vox');
     }
 };
 
