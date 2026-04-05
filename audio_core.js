@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.86.0)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.93.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -626,6 +626,15 @@ window.trigger3DFlight = function(hangTimeSecs, dynamicLoft, startPan, endPan, b
     flightLoop();
 };
 
+// v5.92.0 Audio Scope Relocation
+window.stopAllCourseAudio = function() {
+    if (typeof currentBgMusic !== 'undefined' && currentBgMusic) { currentBgMusic.pause(); currentBgMusic.currentTime = 0; }
+    if (typeof currentBgAmbient !== 'undefined' && currentBgAmbient) { currentBgAmbient.pause(); currentBgAmbient.currentTime = 0; }
+    if (typeof currentBgAmbientPost !== 'undefined' && currentBgAmbientPost) { currentBgAmbientPost.pause(); currentBgAmbientPost.currentTime = 0; }
+    if (typeof window.currentBgMusic !== 'undefined' && window.currentBgMusic) { window.currentBgMusic.pause(); }
+    if (typeof window.currentBgAmbient !== 'undefined' && window.currentBgAmbient) { window.currentBgAmbient.pause(); }
+};
+
 // v5.70.0 Universal Ambient Hot-Swap Controller
 window.hotSwapAmbient = function(targetAmbient) {
     if (!targetAmbient) return;
@@ -649,5 +658,89 @@ window.hotSwapAmbient = function(targetAmbient) {
             if (typeof window.currentBgAmbient !== 'undefined') window.currentBgAmbient = newAmbient;
         }
     }
+};
+
+// v5.93.0 Clubhouse Acoustic Rooms & Transitions
+window.voxTracks = ['a_toast_in_the_trophy_room', 'a_walk_to_the_first_tee', 'mulligans_off_the_first_tee', 'the_fairway_awaits', 'thursday_at_the_club', 'velvet_greens_and_sandy_beaches'];
+window.cafeTracks = ['cream_and_crashes', 'crumbs_in_the_mainframe', 'espresso_yourself', 'to_whom_it_may_accordian'];
+window.currentClubhouseRoom = null;
+window.clubhouseAudio = null;
+window.isDoorTransitioning = false;
+window.deferredAnnounce = null;
+
+window.playClubhouseMusic = function(room) {
+    if (window.currentClubhouseRoom === room && window.clubhouseAudio && !window.clubhouseAudio.ended) return; 
+    
+    let oldRoom = window.currentClubhouseRoom;
+    window.currentClubhouseRoom = room;
+    
+    let playNext = () => {
+        let trackList = room === 'cafe' ? window.cafeTracks : window.voxTracks;
+        let bagName = room + 'Bag';
+        if (!window[bagName] || window[bagName].length === 0) {
+            window[bagName] = [...trackList].sort(() => Math.random() - 0.5);
+        }
+        let track = window[bagName].pop();
+        let folder = room === 'cafe' ? 'cafe_deja_brew' : 'all_that_vox';
+        
+        let nextAudio = new Audio(`audio/clubhouse/${folder}/${track}.mp3`);
+        let vol = typeof window.musicVolumeLevels !== 'undefined' ? window.musicVolumeLevels[window.musicVolumeIndex] : 0.2;
+        nextAudio.volume = 0;
+        nextAudio.onended = () => { window.clubhouseAudio = null; window.playClubhouseMusic(room); };
+        nextAudio.play().catch(e=>{});
+        window.clubhouseAudio = nextAudio;
+        
+        // 4-second fade in
+        let steps = 40; let cur = 0;
+        let fIn = setInterval(() => {
+            cur++;
+            if (window.clubhouseAudio === nextAudio) nextAudio.volume = (cur / steps) * vol;
+            if (cur >= steps) clearInterval(fIn);
+        }, 100);
+    };
+
+    if (window.clubhouseAudio && oldRoom !== room) {
+        // 3-second fade out + 1-second gap
+        let old = window.clubhouseAudio;
+        let steps = 30; let cur = 0; let startVol = old.volume;
+        let fOut = setInterval(() => {
+            cur++;
+            old.volume = Math.max(0, startVol * (1 - (cur/steps)));
+            if (cur >= steps) {
+                clearInterval(fOut);
+                old.pause();
+                setTimeout(playNext, 1000);
+            }
+        }, 100);
+    } else {
+        if (window.clubhouseAudio) window.clubhouseAudio.pause();
+        playNext();
+    }
+};
+
+window.triggerDoorTransition = function(targetRoom) {
+    window.isDoorTransitioning = true;
+    let door = new Audio('audio/clubhouse/clubhouse_door1.mp3');
+    let vol = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+    door.volume = vol;
+    door.play().catch(e=>{});
+    
+    if (targetRoom) window.playClubhouseMusic(targetRoom);
+    
+    setTimeout(() => {
+        window.isDoorTransitioning = false;
+        if (window.deferredAnnounce) {
+            window.deferredAnnounce();
+            window.deferredAnnounce = null;
+        }
+    }, 3000); // 3000ms delay for TTS clarity
+};
+
+window.stopClubhouseMusic = function() {
+    if (window.clubhouseAudio) {
+        window.clubhouseAudio.pause();
+        window.clubhouseAudio = null;
+    }
+    window.currentClubhouseRoom = null;
 };
 

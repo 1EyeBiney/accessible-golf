@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.86.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.93.0)
 
 // v5.51.0 Swing Input Failsafe & Cooldown
 window.isSwingInitializing = false;
@@ -470,6 +470,7 @@ window.addEventListener('keydown', (e) => {
         } else if (e.code === 'Escape') {
             if (typeof window.playGolfSound === 'function') window.playGolfSound('menu_02'); // Back Cancel
             if (typeof clubhouseState !== 'undefined') {
+                let oldState = clubhouseState;
                 if (clubhouseState === 'settings') { clubhouseState = 'roster'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
                 else if (clubhouseState === 'practice') { clubhouseState = 'root'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
                 else if (clubhouseState === 'roster_bot_amateur' || clubhouseState === 'roster_bot_tour') { clubhouseState = 'roster_type'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
@@ -477,6 +478,10 @@ window.addEventListener('keydown', (e) => {
                 else if (clubhouseState === 'roster') { clubhouseState = 'size'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
                 else if (clubhouseState === 'size') { clubhouseState = 'course'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
                 else if (clubhouseState === 'course') { clubhouseState = 'root'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(true); }
+                // v5.93.0 Return Door Trigger
+                if ((oldState === 'course' || oldState === 'practice') && clubhouseState === 'root') {
+                    if (typeof window.triggerDoorTransition === 'function') window.triggerDoorTransition('vox');
+                }
             }
         }
         return; 

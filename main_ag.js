@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.85.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.93.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.tournamentGreens = false;
@@ -223,6 +223,7 @@ window.advanceTurn = function(isPuttingTransition = false) {
             let compMsg = `All players have finished Hole ${hole}. Press Enter to proceed to the next hole.`;
             if (hole >= window.currentCourse.holes.length) {
                 gameMode = 'post_round';
+                if (typeof window.stopAllCourseAudio === 'function') window.stopAllCourseAudio();
                 compMsg = "Round Complete! All players have finished. Press Shift + E to view telemetry.";
                 window.isQuickSim = false; // Safety stop
             }
@@ -608,6 +609,8 @@ function loadHole(holeNumber) {
         }
 
         window.initAudio(); 
+        // v5.93.0 Stop Clubhouse Ambient on Course Entry
+        if (typeof window.stopClubhouseMusic === 'function') window.stopClubhouseMusic();
         if (typeof window.playEcho === 'function') {
             window.playEcho('sine', 600, 800, 0.2, 0.3, 0.2);
         }
@@ -823,6 +826,7 @@ window.saveGame = function() {
         players, currentPlayerIndex, activePlayerCount,
         wizardWind, wizardTournamentGreens, wizardRough, wizardMulligans, wizardGimmes, wizardMaxScore,
         hasHeardHoloOrientation: window.hasHeardHoloOrientation,
+        courseName: typeof window.currentCourse !== 'undefined' && window.currentCourse ? window.currentCourse.name : null,
     };
     try { localStorage.setItem('ag_save_state', JSON.stringify(state)); } catch(e) {}
 };
@@ -832,6 +836,12 @@ window.loadGame = function() {
         const saved = localStorage.getItem('ag_save_state');
         if (!saved) return false;
         const state = JSON.parse(saved);
+
+        // v5.92.0 Restore Course Context
+        if (state.courseName && typeof window.courses !== 'undefined') {
+            let foundCourse = window.courses.find(c => c.name === state.courseName);
+            if (foundCourse) window.currentCourse = foundCourse;
+        }
 
         gameMode = state.gameMode; currentCourseIndex = state.currentCourseIndex;
         hole = state.hole; par = state.par; strokes = state.strokes;
@@ -895,6 +905,8 @@ window.initGame = function() {
     document.getElementById('game-container').focus();
 
     gameMode = 'clubhouse';
+    // v5.93.0 Start Clubhouse Ambient
+    if (typeof window.playClubhouseMusic === 'function') window.playClubhouseMusic('vox');
     // v4.18.2 Prime before Clubhouse announcement path
     if (typeof window.playEcho === 'function') {
         window.playEcho('sine', 600, 800, 0.2, 0.3, 0.2);

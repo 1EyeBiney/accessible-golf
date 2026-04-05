@@ -1,4 +1,4 @@
-// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v5.48.1)
+// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v5.93.0)
 
 // v4.10.0 Scorecard System
 
@@ -516,6 +516,11 @@ window.buildClubhouseMenu = function() {
 };
 
 window.announceClubhouse = function(isInit = true) {
+    // v5.93.0 TTS Delay for Door Transitions
+    if (typeof window.isDoorTransitioning !== 'undefined' && window.isDoorTransitioning) {
+        window.deferredAnnounce = () => window.announceClubhouse(isInit);
+        return;
+    }
     if (!clubhouseMenu || clubhouseMenu.length === 0) return;
     window.menuOptions = clubhouseMenu;
     window.menuIndex = clubhouseIndex;
@@ -535,8 +540,17 @@ window.announceClubhouse = function(isInit = true) {
 };
 
 window.confirmClubhouseSelection = function() {
-    if (window.menuOptions && typeof window.menuIndex === 'number') {
+    let oldState = typeof clubhouseState !== 'undefined' ? clubhouseState : 'root';
+    if (window.menuOptions && window.menuOptions[window.menuIndex]) {
         window.menuOptions[window.menuIndex].action();
+    }
+    let newState = typeof clubhouseState !== 'undefined' ? clubhouseState : 'root';
+    
+    // v5.93.0 Door Triggers
+    if (oldState === 'root' && (newState === 'course' || newState === 'course_quick')) {
+        if (typeof window.triggerDoorTransition === 'function') window.triggerDoorTransition('vox');
+    } else if (oldState === 'root' && newState === 'practice') {
+        if (typeof window.triggerDoorTransition === 'function') window.triggerDoorTransition('cafe');
     }
 };
 

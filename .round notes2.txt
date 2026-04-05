@@ -1,36 +1,49 @@
-Tutorial Playback within Game
-This is exactly the right trajectory for an audio-first engine. Building a native, custom JS player inside the game keeps the player completely immersed, and replacing standard text manuals with high-quality Eleven Labs audio is a massive UX upgrade for a screen reader user.
-To answer your technical question directly: Yes, fast-forwarding and rewinding by exact seconds in JavaScript is incredibly easy. We don't need to mess with percentages unless you want to. We just tell the engine to take the audio's currentTime and add or subtract 10 seconds.
-Here is a proposed control scheme and architecture for this "Audio Manual" module. Let me know what you think of this layout.
-The Proposed Control Scheme
-Since this will exist as a specific state within the Clubhouse (e.g., clubhouseState === 'audio_manual'), we can safely intercept the standard keys without triggering any golf swings.
-• 
-Spacebar: Play / Pause toggle.
-• 
-ArrowLeft / ArrowRight: Scrub Backward 10 seconds / Scrub Forward 10 seconds.
-• 
-ArrowUp / ArrowDown: Skip to Previous Chapter / Skip to Next Chapter.
-• 
-KeyI or KeyT: "Time check." Pressing this pauses the audio for a split second to announce the current position (e.g., "Chapter 2: Swing Physics. 1 minute, 15 seconds").
-• 
-Escape: Stops the playback, clears the audio from memory, and returns the user to the root Clubhouse menu.
-How the "Figurative" Chapters Work
-You won't need to embed any ID3 tags into the MP3 file itself. You will just render out one single, long MP3 file from Reaper.
-In the game's code, we will build a simple array that acts as the map. It will look something like this:
-JavaScript
-Copy code
-window.tutorialChapters = [
-    { title: "Introduction and Game Concepts", time: 0 },
-    { title: "Navigating the Clubhouse", time: 45 },
-    { title: "Understanding the Swing Mechanics", time: 112 },
-    { title: "Putting and Green Reading", time: 240 }
-];
-When the player presses ArrowDown to go to the next chapter, the engine looks at this array, finds the next timestamp, instantly snaps the audio's currentTime to 112, and fires window.announce("Understanding the Swing Mechanics") so the player knows exactly where they just landed.
-The Accessibility Feedback Loop
-The biggest challenge with an audio player for blind users is that they can't see the scrubber bar to know when the track is ending or how far they just skipped.
-• 
-Scrubbing Feedback: When they tap ArrowRight, we can have the engine quickly announce "Plus 10" or just play a quick, quiet mechanical click sound from your audio bank so they have tactile feedback that the scrub worked.
-• 
-Auto-Advance: If the audio plays past the 240 second mark naturally, the engine can briefly dip the volume and announce "Putting and Green Reading" so they know they've entered a new section.
-Does this control layout and chapter array concept sound like what you had in mind? If so, we can start drafting the boilerplate code to inject this new state into the Clubhouse menu.
-G
+Fairway Frank should be Fairway Fred, make sure his attributes line up
+Gimmes and Mulligans during game setup for The Pasture should only have 1 option: Earned on the course
+On the caddy shot callout following a shot on a hole, TTS is reading out ## that I think is part of the MD, but from a screen reader user perspective, if we are not in an environment where we are specifically looking for MD with hashtags as heading markers, well, if we can remove that from the callout but leave it there for the round report with Shift C and such, that would be ideal.
+
+hole2:
+First LZ is 360 yards out, we need one for standard driver at 250.
+Choke should be reset to normal after usage on a prior shot
+on my 2nd shot, I was hitting out of sand but I think the shot callout on shot 2 indicated that the shot was out of the rough. Pressing L before shot 2 reported sand correctly.
+We need to adjust when the duck sound is played based on the level of the golfer
+on my 3rd shot, that ball, with being so short a distance could just not ever generate that kind of backspin. we may need to look at the swing styles and amount of backspin and momentum and such. We should probably introduce a new style called bump and run and investigate how to best use that, especially with the Touch focus
+	
+might think about switching to default ambient background on the green for hole 2.
+
+Should have "Press Enter to Go To next hole" callout every 15 seconds so if a player steps away and comes back they know what to do.
+
+Hole 3:
+We need to work on the Hole callout, nothing this was done before we really started dedeveloping holes so the initial callout doe not have the hole name or even mention the free chicken and such. we may need to brainstorm a backstory for the first 3 holes like we were doing over the rest of the course. Check this stuff for holes 1 through 3.
+
+
+LZs need a lot of work for this hole, probably totally redone.
+
+We need a better way to indicate hazards in the hazards list, it's confusing at times as it seems to indicate that I am within a hazards edges but I'm not aimed at the hazard.
+We need to identify the 2 bunkers on hole 3, maybe left bunker and right bunker.
+I think as we ended up using actual distances and actual objects as visual hazards later that we need to go back through holes 1 through 3 and make things like the chickens on hole 3 distance is n/a now and need to have a distance off the hole but a real distance.
+
+The hole callout for 3 needs to explain the Free Chicken concept where the player can lay up on purpose to get the free gimme/mulligan
+let's put the Focus options in alphabetical order, consider putting bump and run here or another thing to make shots hit and release.
+
+hole 4:
+need to make sure the caddy understands mud.
+probably need some dispersion on longer putts. I made one fro 80 feet on hole 4, should look into that.
+
+hole 5:
+need work on the hazards list. the chicken coop should be the first one as it is closest. The  bunker 2nd  asit is in play and the chickens set off as visual hazards with actual distances but not in play
+
+ball alignment needs reset after each shot too
+
+on my 2nd shot on hole 5, it said "you went through the canopy" which there should not really be trees there, so don't know what Ihazard I went through.
+probably should switch to default farm background when all players on the green for hole 5
+
+After hole 5, I did a quit game and saved it. Then restarted and it did put me on hole 6, but the ambient music and ambient background did not start.
+
+hole 6:
+I don't know if the caddy understands the wind as the bots seem to way underclub.
+I wonder aabout my first shot on this hole as it seems to have gone pretty far.
+yeah, i followed the caddy advice on shot 2, and did ok with p/h/i and ended up way short.
+mthe bots were a little crazy getting up on the green.
+my chip shot seemed like it should have ended up a lot closer
+
