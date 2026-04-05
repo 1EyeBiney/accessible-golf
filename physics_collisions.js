@@ -1,4 +1,4 @@
-// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.91.0)
+// physics_collisions.js - Hazard Detection, Lie Penalties, and Terrain Collision (v5.99.1)
 
 // --- TERRAIN QUERIES ---
 
@@ -439,7 +439,7 @@ window.resolveHazardLie = function(ctx) {
 
     // v5.34.5 Clifford's Tractor Reward (First Shot Fairway - Delayed & Audio Fixed)
     let p = players && players[currentPlayerIndex] ? players[currentPlayerIndex] : { currentLie: 'Tee' };
-    if (window.currentCourse.name === "The Pasture" && hole === 1 && currentLie === "Fairway" && p.currentLie === "Tee") {
+    if (gameMode === 'course' && window.currentCourse.name === "The Pasture" && hole === 1 && currentLie === "Fairway" && p.currentLie === "Tee") {
         strokes = 0; // Free Shot
         let bounceAngle = Math.random() * Math.PI;
         ballX += Math.cos(bounceAngle) * 15;
@@ -484,7 +484,7 @@ window.resolveHazardLie = function(ctx) {
     }
 
     // v5.35.0 The Bovine Bounce (Hole 2 Pinball Mechanics) — v5.77.0 expanded to Hole 12 with 50/50 Cow Pie Roulette
-    if (window.currentCourse.name === "The Pasture" && (hole === 2 || hole === 12) && currentLie !== "Green" && totalDistance > 50 && !inWater) {
+    if (gameMode === 'course' && window.currentCourse.name === "The Pasture" && (hole === 2 || hole === 12) && currentLie !== "Green" && totalDistance > 50 && !inWater) {
 
         if (hole === 12 && Math.random() < 0.5) {
             // v5.77.0 Cow Pie Splat
@@ -588,7 +588,7 @@ window.resolveHazardLie = function(ctx) {
     }
 
     // v5.36.0 Foul Plate Roosters (Hole 3 Hazard & Bonus Loot) — v5.41.0 expanded to Hole 5 — v5.71.0 expanded to Hole 10
-    if (window.currentCourse.name === "The Pasture" && (hole === 3 || hole === 5 || hole === 10) && currentLie !== "Green" && strokes <= 2 && totalDistance > 50 && !inWater) {
+    if (gameMode === 'course' && window.currentCourse.name === "The Pasture" && (hole === 3 || hole === 5 || hole === 10) && currentLie !== "Green" && strokes <= 2 && totalDistance > 50 && !inWater) {
         // Micro-bounce, 3 to 6 yards
         let bounceDist = 3 + (Math.random() * 3);
         let bounceAngle = Math.random() * Math.PI * 2;
