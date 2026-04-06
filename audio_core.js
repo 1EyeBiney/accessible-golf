@@ -412,8 +412,9 @@ window.waitForDuckToClear = function(callback) {
 
 // v6.01.0 Dynamic Character Voice Registry
 window.audioVoices = {
-    "Mulligan Moe": "mm"
-    // Add future characters here (e.g., "Dusty Bunkers": "db", "Fairway Fred": "ff")
+    "Mulligan Moe": "mm",
+    "Dusty Bunkers": "db",
+    "Fairway Fred": "ff"
 };
 window.botAudioBags = {}; // Tracks the shuffled state for each character
 

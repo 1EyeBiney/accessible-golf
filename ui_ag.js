@@ -405,8 +405,8 @@ window.buildClubhouseMenu = function() {
             wizardRoster[wizardSlot] = { name: "Mulligan Moe", isBot: true, skill: 1, iBias: 35, hBias: 0, focus: 1, ball: 1 };
             clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
-        clubhouseMenu.push({ text: "Fairway Frank", action: () => {
-            wizardRoster[wizardSlot] = { name: "Fairway Frank", isBot: true, skill: 1, iBias: -15, hBias: 45, focus: 4, ball: 4 };
+        clubhouseMenu.push({ text: "Fairway Fred", action: () => {
+            wizardRoster[wizardSlot] = { name: "Fairway Fred", isBot: true, skill: 1, iBias: -15, hBias: 45, focus: 4, ball: 4 };
             clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
         clubhouseMenu.push({ text: "Shankin' Shawn", action: () => {
