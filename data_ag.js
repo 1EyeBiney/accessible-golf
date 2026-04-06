@@ -1,4 +1,4 @@
-﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v6.02.0)
+﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v6.04.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -168,7 +168,7 @@ const rosterPresets = [
         name: "Friends Foursome",
         count: 4,
         bots: [
-            { name: "Shankin' Shawn", skill: 0, iBias: 80,  hBias: -40, focus: 0, ball: 5 },
+            { name: "Shankin' Shawn", skill: 0, iBias: 80,  hBias: -40, focus: 4, ball: 5 },
             { name: "Mulligan Moe",   skill: 1, iBias: 35,  hBias: 0,   focus: 1, ball: 1 },
             { name: "Tour-Pro Ted",   skill: 3, iBias: 0,   hBias: 0,   focus: 3, ball: 0 }
         ]
@@ -177,9 +177,9 @@ const rosterPresets = [
         name: "4 Bots - Foursome",
         count: 4,
         bots: [
-            { name: "Shankin' Shawn", skill: 0, iBias: 80,  hBias: -40, focus: 0, ball: 5 },
-            { name: "Dusty Bunkers",  skill: 1, iBias: 0,   hBias: 0,   focus: 0, ball: 2 },
-            { name: "Fairway Fred",   skill: 1, iBias: -15, hBias: 45,  focus: 4, ball: 4 },
+            { name: "Shankin' Shawn", skill: 0, iBias: 80,  hBias: -40, focus: 4, ball: 5 },
+            { name: "Dusty Bunkers",  skill: 1, iBias: 0,   hBias: 0,   focus: 4, ball: 2 },
+            { name: "Fairway Fred",   skill: 1, iBias: -15, hBias: 45,  focus: 0, ball: 4 },
             { name: "Tour-Pro Ted",   skill: 3, iBias: 0,   hBias: 0,   focus: 3, ball: 0 }
         ]
     },

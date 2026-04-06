@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v6.03.0)
-window.AG_VERSION = "v6.03.0";
+// physics_core.js - Math, Wind, and Shot Calculation (v6.04.0)
+window.AG_VERSION = "v6.04.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -320,7 +320,7 @@ function calculateShot(autoMiss = false) {
         let p150 = 150 * diffScale.hingeMod;
         let p250 = 250 * diffScale.hingeMod;
 
-        if (focusIndex !== 0) { // Standard Focus has no effects
+        if (focusIndex !== 4) { // Standard Focus has no effects
             if (absHinge <= p50) focusEffect = 1.0;
             else if (absHinge <= p150) focusEffect = 1.0 - ((absHinge - p50) / (p150 - p50));
             else if (absHinge <= p250) focusEffect = -((absHinge - p150) / (p250 - p150));
@@ -328,7 +328,7 @@ function calculateShot(autoMiss = false) {
         }
 
         let tempoBonus = 1.0;
-        if (focusIndex === 2) { // v5.45.0 Touch Focus: 5-Tier Magnetism System
+        if (focusIndex === 5) { // v5.45.0 Touch Focus: 5-Tier Magnetism System
             if (absHinge <= p50) {
                 tempoBonus = effectiveStimp === 13 ? 1.5 : 4.0;     // Tier 1: Perfect touch
             } else if (absHinge <= p150) {
@@ -704,7 +704,7 @@ function calculateShot(autoMiss = false) {
     let p150 = 150 * diffScale.hingeMod;
     let p250 = 250 * diffScale.hingeMod;
 
-    if (focusIndex !== 0) {
+    if (focusIndex !== 4) {
         if (absHinge <= p50) focusEffect = 1.0;
         else if (absHinge <= p150) focusEffect = 1.0 - ((absHinge - p50) / (p150 - p50));
         else if (absHinge <= p250) focusEffect = -((absHinge - p150) / (p250 - p150));
@@ -712,7 +712,7 @@ function calculateShot(autoMiss = false) {
     }
 
     // Recovery Focus (Index 5)
-    if (focusIndex === 5 && isStartingInRough) {
+    if (focusIndex === 2 && isStartingInRough) {
         lieMod = lieMod + ((1.0 - lieMod) * 0.5 * focusEffect);
         lieDispersionMod = lieDispersionMod - ((lieDispersionMod - 1.0) * 0.5 * focusEffect);
         lieForgivenessMod = lieForgivenessMod + ((1.0 - lieForgivenessMod) * 0.5 * focusEffect);
@@ -723,7 +723,7 @@ function calculateShot(autoMiss = false) {
     forgiveness *= diffScale.impactMod; // v4.42.0 Difficulty Expansion
 
     // Accuracy Focus (Index 4)
-    if (focusIndex === 4) forgiveness *= (1.0 + (0.5 * focusEffect));
+    if (focusIndex === 0) forgiveness *= (1.0 + (0.5 * focusEffect));
 
     let absImpact = Math.abs(impactDiff);
     let adjustedImpact = absImpact / forgiveness;
@@ -887,7 +887,7 @@ function calculateShot(autoMiss = false) {
     // v4.41.0 Natural Dispersion Circle (Base Scatter)
     const isPutt = club.name === "Putter";
     let scatterMult = 1.0;
-    if (focusIndex === 4) scatterMult = Math.max(0.0, 1.0 - (0.5 * focusEffect)); // Accuracy Focus cuts scatter
+    if (focusIndex === 0) scatterMult = Math.max(0.0, 1.0 - (0.5 * focusEffect)); // Accuracy Focus cuts scatter
 
     // Apply +/- 1.5% distance scatter
     let distScatterMod = 1.0 + (((Math.random() * 0.03) - 0.015) * scatterMult);
@@ -1200,7 +1200,7 @@ function calculateShot(autoMiss = false) {
         let touchBonus = 1.0;
         if (shotOriginDistToPin < 60 && accuracyScore >= 95 && Math.abs(hingeDiff) <= 15) {
             touchBonus = 6.0; // Tier 4: Chip-in gravity well
-        } else if (focusIndex === 2) {
+        } else if (focusIndex === 5) {
             touchBonus = Math.max(0.5, 1.0 + (2.0 * focusEffect)); // Max 3.0x, Min 0.5x
         }
 
@@ -1714,7 +1714,7 @@ window.autoSetFocus = function(isPuttingOverride = false) {
 
     // 1. Putting Override
     if (isPuttingOverride || (typeof isPutting !== 'undefined' && isPutting) || currentLie === "Green") {
-        focusIndex = 2; // Touch
+        focusIndex = 5; // Touch
         return;
     }
 
@@ -1722,13 +1722,13 @@ window.autoSetFocus = function(isPuttingOverride = false) {
 
     // 2. Short Game (< 50 yards)
     if (distToTarget < 50) {
-        focusIndex = 2; // Touch
+        focusIndex = 5; // Touch
         return;
     }
 
     // 3. Trouble Lies
     if (currentLie === 'Sand' || currentLie.includes('Rough') || currentLie === 'Pine Needles' || currentLie === 'Mud' || currentLie === 'Manure' || currentLie === 'Packed Earth') {
-        focusIndex = 5; // Recovery
+        focusIndex = 2; // Recovery
         return;
     }
 
@@ -1739,7 +1739,7 @@ window.autoSetFocus = function(isPuttingOverride = false) {
             let threeWoodMax = threeWood ? (threeWood.baseDistance * 1.1) : 250;
 
             if (distToTarget <= threeWoodMax) {
-                focusIndex = 4; // Accuracy (Approaching green)
+                focusIndex = 0; // Accuracy (Approaching green)
             } else {
                 focusIndex = 1; // Power (Bombing)
             }
@@ -1747,12 +1747,12 @@ window.autoSetFocus = function(isPuttingOverride = false) {
         }
 
         if (club.name.includes("Iron") || club.name.includes("Wedge")) {
-            focusIndex = 4; // Accuracy
+            focusIndex = 0; // Accuracy
             return;
         }
     }
 
-    focusIndex = 0; // Standard fallback
+    focusIndex = 4; // Standard fallback
 };
 
 // v4.37.0 Terrain Probe Helper

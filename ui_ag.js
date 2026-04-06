@@ -1,4 +1,4 @@
-// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v5.98.0)
+// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v6.04.0)
 
 // v4.10.0 Scorecard System
 
@@ -458,14 +458,21 @@ window.buildClubhouseMenu = function() {
         }});
 
         const mulToggles = ["Off", "3 Per Round", "Unlimited"];
-        clubhouseMenu.push({ text: `Mulligans: ${mulToggles[wizardMulligans]}`, action: () => {
-            wizardMulligans = (wizardMulligans + 1) % 3; window.buildClubhouseMenu(); window.announceClubhouse(false);
-        }});
+        const isPasture = window.currentCourse && window.currentCourse.name.includes("Pasture");
+        clubhouseMenu.push({
+            text: isPasture ? `Mulligans: Earned on the course` : `Mulligans: ${mulToggles[wizardMulligans]}`,
+            action: isPasture ? () => {} : () => {
+                wizardMulligans = (wizardMulligans + 1) % 3; window.buildClubhouseMenu(); window.announceClubhouse(false);
+            }
+        });
 
         const gimToggles = ["Off", "Manual Only", "Auto Inside 3ft", "Auto Inside 6ft"];
-        clubhouseMenu.push({ text: `Gimmes: ${gimToggles[wizardGimmes]}`, action: () => {
-            wizardGimmes = (wizardGimmes + 1) % 4; window.buildClubhouseMenu(); window.announceClubhouse(false);
-        }});
+        clubhouseMenu.push({
+            text: isPasture ? `Gimmes: Earned on the course` : `Gimmes: ${gimToggles[wizardGimmes]}`,
+            action: isPasture ? () => {} : () => {
+                wizardGimmes = (wizardGimmes + 1) % 4; window.buildClubhouseMenu(); window.announceClubhouse(false);
+            }
+        });
 
         const maxToggles = ["Off", "Double Par", "Snowman (Max 8)"];
         clubhouseMenu.push({ text: `Max Score: ${maxToggles[wizardMaxScore]}`, action: () => {
