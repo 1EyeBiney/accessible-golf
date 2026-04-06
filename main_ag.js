@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.103.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v6.03.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.tournamentGreens = false;
@@ -240,6 +240,13 @@ window.advanceTurn = function(isPuttingTransition = false) {
             window.announce(compMsg);
             window.setCaddyPanelText(compMsg);
             swingState = 6;
+
+            // v6.03.0 Idle Reminder
+            if (!window.idleReminderInterval && !window.isQuickSim) {
+                window.idleReminderInterval = setInterval(() => {
+                    window.announce("Hole complete. Press Enter to go to the next hole.");
+                }, 15000);
+            }
 
             // v4.86.0 Auto-Advance for 4-Bot Simulations
             if (window.isQuickSim && players.every(p => p.isBot) && gameMode !== 'post_round') {
@@ -599,6 +606,7 @@ let lastTimingReport = "No swing data available.";
 let holeTelemetry = [];
 
 function loadHole(holeNumber) {
+    if (window.idleReminderInterval) { clearInterval(window.idleReminderInterval); window.idleReminderInterval = null; }
     try {
         stateTimeouts.forEach(clearTimeout);
         stateTimeouts = [];
@@ -894,6 +902,24 @@ window.loadGame = function() {
         window.hasHeardHoloOrientation = state.hasHeardHoloOrientation || false;
 
         club = clubs[currentClubIndex];
+
+        // v6.03.0 Audio Recovery on Resume
+        if (gameMode === 'course' && window.currentCourse) {
+            window.initAudio();
+            const hd = window.currentCourse.holes[hole - 1];
+            if (hd) {
+                let targetAmbient = hd.bgAmbient;
+                // Check if we saved while on the green
+                let allOnGreen = true;
+                if (typeof players !== 'undefined') {
+                    players.forEach(p => { if (p.currentLie !== 'Green' && p.currentLie !== 'Hole') allOnGreen = false; });
+                }
+                if (allOnGreen && hd.bgAmbientPostGreen) targetAmbient = hd.bgAmbientPostGreen;
+
+                if (typeof window.playEnvironment === 'function') window.playEnvironment(hd.bgMusic, targetAmbient);
+            }
+        }
+
         return true;
     } catch (e) { return false; }
 };

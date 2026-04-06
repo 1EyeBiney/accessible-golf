@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v6.02.0)
-window.AG_VERSION = "v6.02.0";
+// physics_core.js - Math, Wind, and Shot Calculation (v6.03.0)
+window.AG_VERSION = "v6.03.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -91,7 +91,8 @@ window.playScoringAudioSequence = function(strokes, par, vol) {
 window.initPutting = function() {
     // v5.99.0 Practice Range State Lock — block putting transition on the range
     if (gameMode === 'range') return;
-    isPutting = true; swingState = 0; puttState = 0;
+    // v6.03.0 State Integrity Resets
+    isPutting = true; swingState = 0; puttState = 0; stanceAlignment = 0; isChokedDown = false;
     currentClubIndex = clubs.findIndex(c => c.name === "Putter");
     if (currentClubIndex !== -1) club = clubs[currentClubIndex];
     let rawDist = calculateDistanceToPin();
@@ -791,6 +792,11 @@ function calculateShot(autoMiss = false) {
 
     let dynamicLoft = Math.max(0, club.loft + currentStyle.loftMod + ((2 - stanceIndex) * 5));
     
+    // v6.02.1 Hoisted Potential Distance for Spin Decay
+    let chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
+    let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
+    let potentialDist = club.baseDistance * (finalPower / 100) * currentStyle.distMod * lieMod * loftDistMod * chokeMod;
+
     let styleSideSpinMod = currentStyle.name === "Full" ? 1.0 : (currentStyle.distMod * 0.4);
 
     let backspinRPM = Math.max(400, Math.round((club.loft * 150) + (finalPower * 10) + (impactAcc * 7) + ((stanceIndex - 2) * 500) + currentStyle.spinMod));
@@ -842,10 +848,6 @@ function calculateShot(autoMiss = false) {
     let advice = typeof window.getCaddyAdvice === 'function' ? window.getCaddyAdvice() : 'No advice available.';
     lastTimingReport = `[${pName}] Timing Check. Power ${finalPower} percent. Hinge ${Math.abs(hingeDiff)}ms ${hingeWord}. Impact ${Math.abs(impactDiff)}ms ${impactWord}. Side Spin: ${Math.abs(sideSpinRPM)} RPM ${sideSpinShape}. Backspin: ${backspinRPM} RPM, ${deltaStr}.\n[Oracle Says: ${advice}]`;
 
-    let chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
-    let loftDistMod = 1 + ((26 - dynamicLoft) * 0.005);
-
-    let potentialDist = club.baseDistance * (finalPower / 100) * currentStyle.distMod * lieMod * loftDistMod * chokeMod;
     let totalDistance = Math.round(potentialDist * dampening * hingeDistanceMod); // v4.88.0 hingeDistanceMod replaces hinge exponential
 
     let activeRollMod = currentStyle.rollMod;

@@ -1,17 +1,14 @@
-Fairway Frank should be Fairway Fred, make sure his attributes line up
 Gimmes and Mulligans during game setup for The Pasture should only have 1 option: Earned on the course
 On the caddy shot callout following a shot on a hole, TTS is reading out ## that I think is part of the MD, but from a screen reader user perspective, if we are not in an environment where we are specifically looking for MD with hashtags as heading markers, well, if we can remove that from the callout but leave it there for the round report with Shift C and such, that would be ideal.
 
 hole2:
 First LZ is 360 yards out, we need one for standard driver at 250.
 Choke should be reset to normal after usage on a prior shot
-on my 2nd shot, I was hitting out of sand but I think the shot callout on shot 2 indicated that the shot was out of the rough. Pressing L before shot 2 reported sand correctly.
-We need to adjust when the duck sound is played based on the level of the golfer
-on my 3rd shot, that ball, with being so short a distance could just not ever generate that kind of backspin. we may need to look at the swing styles and amount of backspin and momentum and such. We should probably introduce a new style called bump and run and investigate how to best use that, especially with the Touch focus
+on my 2nd shot, I was hitting out of sand but I think the shot callout on shot 2 indicated that the shot was out of the rough. Pressing L before shot 2 
 	
 might think about switching to default ambient background on the green for hole 2.
 
-Should have "Press Enter to Go To next hole" callout every 15 seconds so if a player steps away and comes back they know what to do.
+Should have "Press Enter to Go To next hole" callout every 15 seconds after hole is done so if a player steps away and comes back they know what to do.
 
 Hole 3:
 We need to work on the Hole callout, nothing this was done before we really started dedeveloping holes so the initial callout doe not have the hole name or even mention the free chicken and such. we may need to brainstorm a backstory for the first 3 holes like we were doing over the rest of the course. Check this stuff for holes 1 through 3.

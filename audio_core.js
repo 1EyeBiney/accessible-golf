@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v6.01.0)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v6.03.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -7,11 +7,13 @@ const CONTINUOUS_GAIN_BOOST = 1.4;
 
 // --- MARQUEE ANNOUNCER (v5.23.0) ---
 
+// v6.03.0 TTS Sanitization (Strip Markdown)
 window.announce = function(msg) {
     const ariaBox = document.getElementById('aria-announce');
-    if (ariaBox) ariaBox.innerText = msg;
+    const spokenMsg = msg.replace(/[#*]/g, '');
+    if (ariaBox) ariaBox.innerText = spokenMsg;
     
-    // Push the same text to the visual marquee
+    // Push the original formatted text to the visual marquee
     const marquee = document.getElementById('marquee-text');
     if (marquee) {
         marquee.innerText = msg;
