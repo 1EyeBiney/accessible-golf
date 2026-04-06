@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.104.0)
-window.AG_VERSION = "v5.65.0";
+// physics_core.js - Math, Wind, and Shot Calculation (v6.01.0)
+window.AG_VERSION = "v6.01.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -1259,9 +1259,66 @@ function calculateShot(autoMiss = false) {
     }
 
     // v5.65.0 Duck Mishap Intercept (v5.84.3: guarded by skipDuckEvent set in Acorn Dome)
+    // v6.01.0 Extended with Dynamic Character Voice Registry
     if (accuracyScore < 80 && !quick && !window.skipDuckEvent) {
         if (typeof window.triggerDuckEvent === 'function') window.triggerDuckEvent();
-    }
+    } else {
+        const flushThresh = 90;
+        let pName = typeof players !== 'undefined' && players.length > 0 ? players[currentPlayerIndex].name : "Player";
+        let voicePrefix = typeof window.audioVoices !== 'undefined' ? window.audioVoices[pName] : null;
+        
+        if (voicePrefix) {
+            let isFlushed = accuracyScore >= flushThresh;
+            
+            // Initialize personal grab bags if they don't exist yet
+            if (typeof window.botAudioBags === 'undefined') window.botAudioBags = {};
+            if (!window.botAudioBags[pName]) {
+                window.botAudioBags[pName] = {
+                    dartsGood: [1,2,3,4,5,6].map(n => `${voicePrefix}_gdart${n}`),
+                    dartsAverage: [1,2,3,4,5,6].map(n => `${voicePrefix}_adart${n}`),
+                    approachesGood: [1,2,3,4,5,6].map(n => `${voicePrefix}_gapproach${n}`),
+                    approachesAverage: [1,2,3,4,5,6].map(n => `${voicePrefix}_aapproach${n}`),
+                    drivesGood: [1,2,3,4,5,6].map(n => `${voicePrefix}_gdrive${n}`),
+                    drivesAverage: [1,2,3,4,5,6].map(n => `${voicePrefix}_adrive${n}`)
+                };
+            }
+            
+            let myBags = window.botAudioBags[pName];
+            let activeBagName = null;
+            let finalDistToPin = Math.sqrt(Math.pow(ballX - pinX, 2) + Math.pow(ballY - pinY, 2));
+            
+            // 1. Darts (< 8 yards to pin)
+            if (finalDistToPin <= 8 && !inWater && currentLie !== 'Sand' && currentLie !== 'Rough' && currentLie !== 'Mud' && currentLie !== 'Manure') {
+                activeBagName = isFlushed ? 'dartsGood' : 'dartsAverage';
+            } 
+            // 2. Approaches (> 80 yards out, lands safely on green)
+            else if (distanceToPin >= 80 && currentLie === 'Green') {
+                activeBagName = isFlushed ? 'approachesGood' : 'approachesAverage';
+            }
+            // 3. Drives (Stroke 1, lands in fairway)
+            else if (strokes === 1 && currentLie === 'Fairway') {
+                activeBagName = isFlushed ? 'drivesGood' : 'drivesAverage';
+            }
+
+            if (activeBagName) {
+                let bag = myBags[activeBagName];
+                bag.sort(() => Math.random() - 0.5);
+                let audioFile = bag.pop();
+                
+                if (bag.length === 0) {
+                    // Dynamically refill the empty bag
+                    let fileKey = activeBagName.includes('dart') ? 'dart' : activeBagName.includes('approach') ? 'approach' : 'drive';
+                    let tierKey = activeBagName.includes('Good') ? 'g' : 'a';
+                    myBags[activeBagName] = [1,2,3,4,5,6].map(n => `${voicePrefix}_${tierKey}${fileKey}${n}`);
+                }
+                
+                let vol = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
+                let commentAudio = new Audio(`audio/bots/${audioFile}.mp3`);
+                commentAudio.volume = vol;
+                commentAudio.play().catch(e=>{});
+            }
+        }
+    } // Close anticipatory audio else block
 
     // v4.31.3 Live 3D Audio Flight Injection
     // Calculate final lateral drift (35 yards offline = 100% hard pan into one ear)

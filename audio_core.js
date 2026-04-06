@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.103.1)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v6.01.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -409,6 +409,13 @@ window.waitForDuckToClear = function(callback) {
         callback();
     }
 };
+
+// v6.01.0 Dynamic Character Voice Registry
+window.audioVoices = {
+    "Mulligan Moe": "mm"
+    // Add future characters here (e.g., "Dusty Bunkers": "db", "Fairway Fred": "ff")
+};
+window.botAudioBags = {}; // Tracks the shuffled state for each character
 
 // --- ENVIRONMENTAL AUDIO (v5.23.0) ---
 
