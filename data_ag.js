@@ -1,4 +1,4 @@
-﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v6.01.0)
+﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v6.02.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -13,6 +13,7 @@ const shotStyles = [
     { name: "Half Pitch", distMod: 0.35, loftMod: 5, spinMod: 1000, rollMod: 0.7, windMod: 0.25 },
     { name: "Chip", distMod: 0.25, loftMod: -15, spinMod: -500, rollMod: 2.5, windMod: 0.25 },
     { name: "Short Chip", distMod: 0.10, loftMod: -20, spinMod: -800, rollMod: 3.0, windMod: 0.25 },
+    { name: "Bump & Run", distMod: 0.40, loftMod: -25, spinMod: -1500, rollMod: 3.5, windMod: 0.15 },
     { name: "Flop", distMod: 0.20, loftMod: 25, spinMod: 3000, rollMod: 0.1, windMod: 0.50 }
 ];
 

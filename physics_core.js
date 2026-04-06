@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v6.01.0)
-window.AG_VERSION = "v6.01.0";
+// physics_core.js - Math, Wind, and Shot Calculation (v6.02.0)
+window.AG_VERSION = "v6.02.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -804,6 +804,11 @@ function calculateShot(autoMiss = false) {
     }
     // Spin Focus (Index 3)
     if (focusIndex === 3) backspinRPM += (2500 * focusEffect);
+    // v6.02.0 Kinetic Spin Decay (Distance-based Clubhead Speed)
+    if (currentStyle.name !== "Flop") {
+        let energyScale = Math.max(0.1, Math.min(1.0, potentialDist / 50.0));
+        backspinRPM = Math.round(backspinRPM * energyScale);
+    }
     // 2. Deterministic Side Spin (Impact directly drives curve)
     // Negative impact (early) = Hook (-). Positive impact (late) = Slice (+).
     let spinMultiplier = 15 * diffMod;
@@ -1908,6 +1913,11 @@ window.getCaddyAdvice = function() {
             let totalDist = baseCarry * style.distMod * loftDistMod * lieMultiplier;
             
             let backspinRPM = Math.max(400, Math.round((simClub.loft * 150) + 1000 + ((simStance - 2) * 500) + style.spinMod));
+                    // v6.02.0 Kinetic Spin Decay
+                    if (style.name !== "Flop") {
+                        let energyScale = Math.max(0.1, Math.min(1.0, baseCarry / 50.0));
+                        backspinRPM = Math.round(backspinRPM * energyScale);
+                    }
             let gyroMod = Math.max(0.6, Math.min(1.3, 1 - ((backspinRPM - 4000) / 10000)));
             let spinRollMod = Math.max(0.1, 1 - ((backspinRPM - 4000) / 10000));
             let rollDist = totalDist * simClub.rollPct * style.rollMod * spinRollMod;
@@ -2114,6 +2124,11 @@ window.getOracleBlueprint = function() {
                     }
                     let fractionalDist = totalDist * (requiredPower / 100);
                     let backspinRPM = Math.max(400, Math.round((simClub.loft * 150) + 1000 + ((simStance - 2) * 500) + style.spinMod));
+                        // v6.02.0 Kinetic Spin Decay
+                        if (style.name !== "Flop") {
+                            let energyScale = Math.max(0.1, Math.min(1.0, baseCarry / 50.0));
+                            backspinRPM = Math.round(backspinRPM * energyScale);
+                        }
                     let gyroMod = Math.max(0.6, Math.min(1.3, 1 - ((backspinRPM - 4000) / 10000)));
 
                     let hangTime = Math.min(6, Math.max(0.5, (fractionalDist / 60) + (dynamicLoft / 15)));
