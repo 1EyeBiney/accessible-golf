@@ -1,4 +1,4 @@
-﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v5.86.0)
+﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v6.01.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -160,3 +160,40 @@ const helpMenuText = [
     { text: "Control + Enter: Fast-forwards through Clubhouse setup menus.", heading: false },
     { text: "Q: Opens the Quit and Save menu.", heading: false }
 ];
+
+// v6.01.0 - Roster Presets (restored after data_ag.js truncation)
+const rosterPresets = [
+    {
+        name: "Friends Foursome",
+        count: 4,
+        bots: [
+            { name: "Shankin' Shawn", skill: 0, iBias: 80,  hBias: -40, focus: 0, ball: 5 },
+            { name: "Mulligan Moe",   skill: 1, iBias: 35,  hBias: 0,   focus: 1, ball: 1 },
+            { name: "Tour-Pro Ted",   skill: 3, iBias: 0,   hBias: 0,   focus: 3, ball: 0 }
+        ]
+    },
+    {
+        name: "4 Bots - Foursome",
+        count: 4,
+        bots: [
+            { name: "Shankin' Shawn", skill: 0, iBias: 80,  hBias: -40, focus: 0, ball: 5 },
+            { name: "Dusty Bunkers",  skill: 1, iBias: 0,   hBias: 0,   focus: 0, ball: 2 },
+            { name: "Fairway Fred",   skill: 1, iBias: -15, hBias: 45,  focus: 4, ball: 4 },
+            { name: "Tour-Pro Ted",   skill: 3, iBias: 0,   hBias: 0,   focus: 3, ball: 0 }
+        ]
+    },
+    {
+        name: "Solo",
+        count: 1,
+        bots: []
+    },
+    {
+        name: "1v1 vs Moe",
+        count: 2,
+        bots: [
+            { name: "Mulligan Moe",   skill: 1, iBias: 35,  hBias: 0,   focus: 1, ball: 1 }
+        ]
+    }
+];
+
+let setupRosterIndex = 0;
