@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.95.0)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v5.103.1)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -679,6 +679,7 @@ window.playClubhouseMusic = function(room) {
     window.currentClubhouseRoom = room;
     
     let playNext = () => {
+        if (window.currentClubhouseRoom !== room) return; // v5.103.1 Prevent orphaned overlapping tracks
         let trackList = room === 'cafe' ? window.cafeTracks : window.voxTracks;
         let bagName = room + 'Bag';
         if (!window[bagName] || window[bagName].length === 0) {

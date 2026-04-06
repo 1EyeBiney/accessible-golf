@@ -1,8 +1,10 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v5.101.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v5.103.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.tournamentGreens = false;
 let isPracticeSwing = false;
+// v5.103.0 Swing Control Mechanic (hold | tap)
+window.swingControlMode = 'hold';
 let devPower = false, devHinge = false, devImpact = false;
 let pacingModeIndex = 0; // 0: Fast, 1: Medium, 2: Slow, 3: Manual
 let pacingModes = ["Fast", "Medium", "Slow", "Manual", "Simulate"];

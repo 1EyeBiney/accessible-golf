@@ -1,4 +1,4 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v5.99.0)
+// physics_core.js - Math, Wind, and Shot Calculation (v5.104.0)
 window.AG_VERSION = "v5.65.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
@@ -1636,6 +1636,11 @@ window.autoEquipBestClub = function() {
     }
     currentClubIndex = bestClubIndex;
     club = clubs[currentClubIndex];
+    // v5.104.0 Auto-Tee for Range
+    if (typeof gameMode !== 'undefined' && gameMode === 'range') {
+        if (club.name === 'Driver') { rangeLie = 'Tee'; currentLie = 'Tee'; }
+        else if (typeof rangeLie !== 'undefined' && rangeLie === 'Tee') { rangeLie = 'Fairway'; currentLie = 'Fairway'; }
+    }
     if (typeof window.autoSetFocus === 'function') window.autoSetFocus();
     window.updateDashboard();
 };

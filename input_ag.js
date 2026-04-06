@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.100.1)
+// input_ag.js - Keyboard Controls and Event Listeners (v5.104.0)
 
 // v5.51.0 Swing Input Failsafe & Cooldown
 window.isSwingInitializing = false;
@@ -523,6 +523,7 @@ window.addEventListener('keydown', (e) => {
             document.getElementById('swing-meter').style.display = 'none';
             window.announce("Round saved.");
             window.buildClubhouseMenu();
+            if (typeof window.triggerDoorTransition === 'function') window.triggerDoorTransition('vox');
         } else if (e.code === 'KeyA') {
             confirmingQuit = false;
             window.clearSave(); // Wipe the save state
@@ -532,6 +533,7 @@ window.addEventListener('keydown', (e) => {
             document.getElementById('swing-meter').style.display = 'none';
             window.announce("Round abandoned.");
             window.buildClubhouseMenu();
+            if (typeof window.triggerDoorTransition === 'function') window.triggerDoorTransition('vox');
         } else if (e.code === 'Escape') {
             if (typeof window.playGolfSound === 'function') window.playGolfSound('bunker_33');
             confirmingQuit = false;
@@ -859,6 +861,19 @@ window.addEventListener('keydown', (e) => {
             }
             return;
         }
+        // v5.103.1 Classic 3-Tap Toggle (relocated from clubhouse block — fires in swingState === 0)
+        if (e.code === 'KeyK' && !e.shiftKey) {
+            e.preventDefault();
+            window.swingControlMode = window.swingControlMode === 'hold' ? 'tap' : 'hold';
+            let msg = window.swingControlMode === 'hold' ?
+                "Swing Control Style: Pro Hold. Press Down Arrow to start backswing, release to set power, and press again to strike." :
+                "Swing Control Style: Classic 3-Tap. Press Down Arrow to start backswing, press again to set power, and press a third time to strike.";
+            window.announce(msg);
+            let vis = document.getElementById('visual-output');
+            if (vis) vis.innerText = msg;
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_07');
+            return;
+        }
         if (e.code === 'KeyL') {
             e.preventDefault();
             if (e.shiftKey && (gameMode === 'range' || gameMode === 'chipping')) {
@@ -868,9 +883,15 @@ window.addEventListener('keydown', (e) => {
                 let msg = `Target terrain set to ${rangeTargetLie}.`;
                 window.announce(msg);
                 document.getElementById('visual-output').innerText = msg;
+            // v5.104.0 Range Lie Cycle
+            } else if (gameMode === 'range' || gameMode === 'chipping') {
+                const baseLies = ['Tee', 'Fairway', 'Light Rough', 'Rough', 'Sand', 'Pine Needles', 'Mud'];
+                let idx = baseLies.indexOf(typeof rangeLie !== 'undefined' ? rangeLie : 'Fairway');
+                rangeLie = baseLies[(idx + 1) % baseLies.length];
+                currentLie = rangeLie; // Sync for physics and Oracle
+                window.announce(`Lie changed to ${rangeLie}.`);
             } else {
-                let activeLie = gameMode === 'range' ? rangeLie : currentLie;
-                window.announce(`Ball is on the ${activeLie}.`);
+                window.announce(`Ball is on the ${currentLie}.`);
             }
             window.updateDashboard();
             return;
@@ -1114,6 +1135,13 @@ window.addEventListener('keydown', (e) => {
             window.isSwingInitializing = true;
             setTimeout(() => { window.isSwingInitializing = false; }, 300);
             startBackswing(false);
+        } else if ((swingState === 1 || swingState === 2) && window.swingControlMode === 'tap') {
+            startDownswing();
+            // Replicate Psychological Warfare Triggers for Tap Mode
+            if (typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && currentLie !== "Green" && currentLie !== "Hole") {
+                if (hole === 7 && typeof window.playGoatInterrupt === 'function') window.playGoatInterrupt();
+                else if (hole === 16 && typeof window.playMarquisInterrupt === 'function') window.playMarquisInterrupt();
+            }
         } else if (swingState === 4) {
             if (typeof calculateShot === 'function') calculateShot(false); 
         }
@@ -1138,6 +1166,8 @@ window.addEventListener('keydown', (e) => {
             window.isSwingInitializing = true;
             setTimeout(() => { window.isSwingInitializing = false; }, 300);
             startBackswing(true);
+        } else if ((swingState === 1 || swingState === 2) && window.swingControlMode === 'tap') {
+            startDownswing();
         } else if (swingState === 4) {
             lockedImpactTime = performance.now() - impactStartTime;
             if (typeof window.evaluatePracticeSwing === 'function') window.evaluatePracticeSwing();
@@ -1291,6 +1321,11 @@ window.addEventListener('keydown', (e) => {
                 }
 
                 if (gameMode === 'range' && pinY > 0) { pinY = club.baseDistance; } // Preserves custom offsets
+                // v5.104.0 Auto-Tee
+                if (gameMode === 'range') {
+                    if (club.name === 'Driver') { rangeLie = 'Tee'; currentLie = 'Tee'; }
+                    else if (typeof rangeLie !== 'undefined' && rangeLie === 'Tee') { rangeLie = 'Fairway'; currentLie = 'Fairway'; }
+                }
                 if (typeof window.autoSetFocus === 'function') window.autoSetFocus();
                 const setupReport = getSetupReport();
                 window.announce(setupReport); document.getElementById('visual-output').innerText = setupReport;
@@ -1309,6 +1344,11 @@ window.addEventListener('keydown', (e) => {
                 }
 
                 if (gameMode === 'range' && pinY > 0) { pinY = club.baseDistance; } // Preserves custom offsets
+                // v5.104.0 Auto-Tee
+                if (gameMode === 'range') {
+                    if (club.name === 'Driver') { rangeLie = 'Tee'; currentLie = 'Tee'; }
+                    else if (typeof rangeLie !== 'undefined' && rangeLie === 'Tee') { rangeLie = 'Fairway'; currentLie = 'Fairway'; }
+                }
                 if (typeof window.autoSetFocus === 'function') window.autoSetFocus();
                 const setupReport = getSetupReport();
                 window.announce(setupReport); document.getElementById('visual-output').innerText = setupReport;
@@ -1520,7 +1560,9 @@ window.addEventListener('keydown', (e) => {
 
 window.addEventListener('keyup', (e) => {
     if ((e.code === 'ArrowDown' || e.code === 'ArrowUp') && (swingState === 1 || swingState === 2)) {
-        e.preventDefault(); startDownswing();
+        e.preventDefault(); 
+        if (window.swingControlMode === 'tap') return; // v5.103.0 Bypass for 3-Tap Mode
+        startDownswing();
         // v5.86.0 Hole 7 & Hole 16 Psychological Warfare
         if (typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && currentLie !== "Green" && currentLie !== "Hole") {
             if (hole === 7 && typeof window.playGoatInterrupt === 'function') window.playGoatInterrupt();
@@ -1609,7 +1651,7 @@ window.getKeyDescription = function(code, shift, ctrl) {
         'Tab': "Provides a quick summary of hole, stroke, distance, and lie.",
         'KeyT': "Provides a full distance and targeting report.",
         'KeyW': shift ? "Cycles wind conditions in practice modes." : "Reads the current wind speed and direction.",
-        'KeyK': shift ? "Quick-loads the Tour Pro Foursome." : "Unassigned key.",
+        'KeyK': shift ? "Quick-loads the Tour Pro Foursome." : "Toggles between Pro Hold and Classic 3-Tap swing controls.",
         'KeyL': shift ? "On the Holo Range, cycles target terrain. In clubhouse, loads Sim Roster." : "Announces current lie.",
         'KeyO': gameMode === 'range' ? "Holo Range: Cycles the Object Manager." : "Unassigned key.",
         'KeyA': shift ? "Cycles the Caddy skill level." : "Asks the Oracle Caddy for a strategic shot blueprint.",

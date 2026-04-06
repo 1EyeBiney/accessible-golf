@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accessible Golf Engine (v5.101.0)</title>
+    <title>Accessible Golf Engine (v5.104.0)</title>
     <style>
         body { font-family: sans-serif; padding: 2rem; background-color: #121212; color: #ffffff; max-width: 800px; margin: auto; line-height: 1.6; display: flex; flex-direction: column; align-items: center; }
         h1 { color: #4CAF50; margin-bottom: 0.5rem; }
@@ -24,13 +24,13 @@
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     </style>
 </head>
-<body>
+<body role="application">
 
     <h1>Accessible Golf Engine</h1>
     <div class="version">Modular Codebase v5.31.2</div>
 
     <button id="initBtn" autofocus onclick="initGame()">Press Enter to Begin</button>
-    <div id="game-container" tabindex="0" role="application" aria-label="Golf Swing Engine">
+    <div id="game-container" tabindex="0" aria-label="Golf Swing Engine">
         
         <div id="hud-top" style="display: none; width: 100%;">
             <div class="marquee-container" aria-hidden="true">
