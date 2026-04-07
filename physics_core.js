@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v6.16.0)
-window.AG_VERSION = "v6.16.0";
+// physics_core.js - Math, Wind, and Shot Calculation (v6.18.0)
+window.AG_VERSION = "v6.18.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -680,23 +680,35 @@ function calculateShot(autoMiss = false) {
             finalPower = Math.max(0, finalPower - yardPenaltyPercent);
         }
 
-        // v6.14.0 Beautiful Bill Phase 2 (God Mode)
-        if (pName === "Beautiful Bill" && typeof hole !== 'undefined' && hole >= 16) {
+        // v6.18.0 Beautiful Bill Phase 2 (Unbeatable God Mode)
+        if (pName === "Beautiful Bill" && typeof hole !== 'undefined' && hole >= 14) {
             let target = players.find(p => !p.isBot) || players.find(p => p.name === "Mulligan Moe");
             if (target) {
                 let getScore = (p) => p.strokes + p.roundData.reduce((sum, r) => sum + r.strokes, 0);
                 let billScore = getScore(players[currentPlayerIndex]);
                 let targetScore = getScore(target);
-                // If Bill is tied or losing on the final 3 holes
-                if (billScore >= targetScore) {
-                    impactDiff = 0; // Absolute Tour-Pro Perfection
-                    hingeDiff = 0;  // Absolute Touch Perfection
+                
+                // Activate if Bill is trailing, tied, or winning by only 1 stroke
+                if (billScore >= targetScore - 1) {
+                    window.billGodModeActive = true;
+                    impactDiff = 0; 
+                    hingeDiff = 0;  
+                    
                     // Mathematically lock power to exact pin distance
                     let dist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : club.distance;
                     if (dist <= club.distance) {
                         finalPower = (dist / club.distance) * 100;
                     }
-                    window.activeCaptureRadius = 500; // Engage giant magnet cup
+                    
+                    // Temporarily store and nullify wind for zero dispersion
+                    if (typeof window._tempWindX === 'undefined') {
+                        window._tempWindX = windX;
+                        window._tempWindY = windY;
+                    }
+                    windX = 0; 
+                    windY = 0;
+                } else {
+                    window.billGodModeActive = false;
                 }
             }
         }
@@ -2284,3 +2296,40 @@ window.getOracleBlueprint = function() {
         return best || { clubIndex: 0, stanceIndex: 2, styleIndex: 0, power: 100, aimDeg: 0 };
     }
 };
+
+// v6.18.0 Beautiful Bill God Mode Watchdog
+if (!window.billWatchdogActive) {
+    window.billWatchdogActive = true;
+    setInterval(() => {
+        if (typeof players !== 'undefined' && players.length > 0 && typeof currentPlayerIndex !== 'undefined') {
+            let p = players[currentPlayerIndex];
+            
+            // Safely restore wind when Bill's shot is over or God Mode is off
+            if (typeof window._tempWindX !== 'undefined') {
+                if (p.name !== "Beautiful Bill" || !window.billGodModeActive || (typeof swingState !== 'undefined' && swingState === 0)) {
+                    windX = window._tempWindX;
+                    windY = window._tempWindY;
+                    window._tempWindX = undefined;
+                    window._tempWindY = undefined;
+                }
+            }
+            
+            if (p.name === "Beautiful Bill" && window.billGodModeActive) {
+                window.activeCaptureRadius = 5000; // Giant 400-foot black hole cup
+                
+                // Zero out Putting AI variables
+                p.botImpact = 0;
+                p.botHinge = 0;
+                
+                if (typeof isPutting !== 'undefined' && isPutting) {
+                    if (typeof aimAngle !== 'undefined') aimAngle = 0; // Ignore breaks
+                }
+            } else {
+                // Reset magnet cup if God Mode is off so humans don't cheat
+                if (typeof window.activeCaptureRadius !== 'undefined' && window.activeCaptureRadius === 5000) {
+                    window.activeCaptureRadius = 5.4; 
+                }
+            }
+        }
+    }, 50);
+}

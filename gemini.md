@@ -1185,3 +1185,9 @@ Course Data Architecture: Core game data (clubs, wind, green contours) lives in 
 
 ### v6.17.0 Engine Update (Custom Bot Voice Registries)
 - **Voice Registry Expansion (`audio_core.js`):** Three new characters added to `window.audioVoices`: `"Mendi Dart": "me"`, `"Fallon the Blade": "fb"`, `"Beautiful Bill": "bb"`. Their 2-letter prefixes wire their custom MP3 audio bags into the existing grab-bag commentary system with no changes to engine logic required. Header bumped to v6.17.0.
+
+### v6.18.0 Engine Update (Beautiful Bill — Unbeatable God Mode Expansion)
+- **God Mode Expansion (`physics_core.js`):** The `v6.14.0 Beautiful Bill Phase 2` block is replaced with a fully upgraded `v6.18.0 Unbeatable God Mode`. Trigger hole drops from 16 to **14**, giving Bill 5 comeback holes instead of 3. Activation threshold widens to `billScore >= targetScore - 1` (triggers even when Bill leads by 1), vs. the old exact-tie condition. `window.billGodModeActive` flag is now explicitly set/cleared for use by the watchdog.
+- **Dispersion Nullifier (`physics_core.js`):** On God Mode activation, `windX` and `windY` are stashed in `window._tempWindX/Y` and zeroed out before shot physics run, ensuring zero lateral or carry dispersion from wind.
+- **God Mode Watchdog (`physics_core.js`):** A `setInterval` (50ms) watchdog is injected at the bottom of the file, guarded by `window.billWatchdogActive` to prevent duplicate registration. The watchdog: (1) restores stashed wind the moment Bill's turn ends or God Mode deactivates; (2) locks `window.activeCaptureRadius = 5000` (a ~400-foot black hole cup) for all of Bill's God Mode shots; (3) zeroes `p.botImpact` and `p.botHinge` on every tick so the Putting AI cannot introduce error; (4) forces `aimAngle = 0` during putting to ignore breaks; (5) resets `activeCaptureRadius` back to `5.4` when God Mode is off so human players are unaffected.
+- **Header and `window.AG_VERSION` bumped to v6.18.0:** `physics_core.js`.
