@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v6.12.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v6.13.0)
 
 // v5.51.0 Swing Input Failsafe & Cooldown
 window.isSwingInitializing = false;
@@ -438,20 +438,20 @@ window.addEventListener('keydown', (e) => {
             return;
         }
 
-        // v6.12.0 Global 4F Quick Load (Mendi, Fallon, Fred, Ted)
+        // v6.13.0 Global 4F Quick Load (Moe, Mendi, Fallon, Bill)
         if (e.shiftKey && e.code === 'KeyL') {
             e.preventDefault();
             wizardRoster = [
+                { name: "Mulligan Moe", isBot: true, skill: 1, iBias: 35, hBias: 0, focus: 1, ball: 1 },
                 { name: "Mendi Dart", isBot: true, skill: 1, iBias: 0, hBias: 0, focus: 5, ball: 3 },
                 { name: "Fallon the Blade", isBot: true, skill: 1, iBias: 0, hBias: 0, focus: 0, ball: 3 },
-                { name: "Fairway Fred", isBot: true, skill: 1, iBias: -15, hBias: 45, focus: 0, ball: 4 },
-                { name: "Tour-Pro Ted", isBot: true, skill: 3, iBias: 0, hBias: 0, focus: 3, ball: 0 }
+                { name: "Beautiful Bill", isBot: true, skill: 3, iBias: 0, hBias: 0, focus: 4, ball: 0 }
             ];
             wizardSize = 4;
             clubhouseState = 'course_quick';
             clubhouseIndex = wizardCourse; 
             if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_02');
-            window.announce("Foursome loaded: Mendi, Fallon, Fred, and Ted. Select a course.");
+            window.announce("Foursome loaded: Moe, Mendi, Fallon, and Bill. Select a course.");
             window.buildClubhouseMenu(); window.announceClubhouse(false);
             return;
         }

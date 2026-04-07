@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v6.12.0)
-window.AG_VERSION = "v6.12.0";
+// physics_core.js - Math, Wind, and Shot Calculation (v6.13.0)
+window.AG_VERSION = "v6.13.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -669,6 +669,23 @@ function calculateShot(autoMiss = false) {
             impactDiff = (Math.random() * 10) - 5; // Force +/- 5ms perfection
         } else if (pName === "Fallon the Blade" && club && (club.name === "4 Iron" || club.name === "5 Iron" || club.name === "6 Iron")) {
             impactDiff = (Math.random() * 10) - 5; // Force +/- 5ms perfection
+        }
+    }
+
+    // v6.13.0 Beautiful Bill Phase 1 (Sandbagger)
+    if (typeof players !== 'undefined' && players[currentPlayerIndex]) {
+        let pName = players[currentPlayerIndex].name;
+        if (pName === "Beautiful Bill" && typeof hole !== 'undefined' && hole < 16) {
+            let target = players.find(p => !p.isBot) || players.find(p => p.name === "Mulligan Moe");
+            if (target) {
+                let getScore = (p) => p.strokes + p.roundData.reduce((sum, r) => sum + r.strokes, 0);
+                let billScore = getScore(players[currentPlayerIndex]);
+                let targetScore = getScore(target);
+                // If Bill is winning by 2 or more strokes (lower score is winning)
+                if (billScore <= targetScore - 2) {
+                    impactDiff = Math.random() > 0.5 ? 85 : -85; // Massive intentional penalty
+                }
+            }
         }
     }
 

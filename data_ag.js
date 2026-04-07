@@ -1,4 +1,4 @@
-﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v6.12.0)
+﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v6.13.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -177,10 +177,10 @@ const rosterPresets = [
         name: "4 Bots - Foursome",
         count: 4,
         bots: [
-            { name: "Mendi Dart",     skill: 1, iBias: 0,   hBias: 0,   focus: 5, ball: 3 },
-            { name: "Fallon the Blade", skill: 1, iBias: 0, hBias: 0,   focus: 0, ball: 3 },
-            { name: "Fairway Fred",   skill: 1, iBias: -15, hBias: 45,  focus: 0, ball: 4 },
-            { name: "Tour-Pro Ted",   skill: 3, iBias: 0,   hBias: 0,   focus: 3, ball: 0 }
+            { name: "Mulligan Moe",     skill: 1, iBias: 35,  hBias: 0,   focus: 1, ball: 1 },
+            { name: "Mendi Dart",       skill: 1, iBias: 0,   hBias: 0,   focus: 5, ball: 3 },
+            { name: "Fallon the Blade", skill: 1, iBias: 0,   hBias: 0,   focus: 0, ball: 3 },
+            { name: "Beautiful Bill",   skill: 3, iBias: 0,   hBias: 0,   focus: 4, ball: 0 }
         ]
     },
     {

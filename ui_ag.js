@@ -1,4 +1,4 @@
-// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v6.12.0)
+// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v6.13.0)
 
 // v4.10.0 Scorecard System
 
@@ -422,6 +422,10 @@ window.buildClubhouseMenu = function() {
         }});
     }
     else if (clubhouseState === 'roster_bot_tour') {
+        clubhouseMenu.push({ text: "Beautiful Bill (The Legend)", action: () => {
+            wizardRoster[wizardSlot] = { name: "Beautiful Bill", isBot: true, skill: 3, iBias: 0, hBias: 0, focus: 4, ball: 0 };
+            clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
+        }});
         clubhouseMenu.push({ text: "Tour-Pro Ted", action: () => {
             wizardRoster[wizardSlot] = { name: "Tour-Pro Ted", isBot: true, skill: 3, iBias: 0, hBias: 0, focus: 3, ball: 0 };
             clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
