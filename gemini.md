@@ -1105,3 +1105,13 @@ Course Data Architecture: Core game data (clubs, wind, green contours) lives in 
 - **Scope:** Clean alignment and promotion of the Auto-Focus logic to a stable named version after the v6.04.1 emergency hotfix.
 - **Fix (`main_ag.js`):** `window.autoSetFocus` internal comment updated from `// v6.04.1 Fix` to `// v6.05.0 Fix`, confirming the corrected index assignments (Accuracy=0, Power=1, Recovery=2, Touch=5, Standard=4) are canonical and intentional.
 - **Header bumped to v6.05.0:** `main_ag.js`.
+
+### v6.06.0 Engine Update (Hazard Polish, Caddy Mud Logic, Long-Putt Dispersion)
+- **Per-Shot State Resets (`physics_core.js`):** `stanceAlignment` and `isChokedDown` (both global and per-player) are now explicitly reset to `0`/`false` at the end of every shot commitment. Injected in two places: (1) right before `playNextPuttStep()` at the end of the putting block, and (2) inside the `catch` block at the bottom of `calculateShot`, ensuring error-path recovery also clears modifier state.
+- **Long Putt Dispersion (`physics_core.js`):** Introduced `dispersionMultiplier` and `hingePenalty` variables in the putting physics block (after `absHinge` is computed). For putts beyond 15 yards, `dispersionMultiplier` scales linearly (`1.0 + (dist - 15) * 0.1`), amplifying the effective `hingePenalty` from poor tempo timing — making long-range putting proportionally less forgiving of bad hinge rhythm.
+- **Caddy & Oracle Mud Logic (`physics_core.js`):** Added `else if (currentLie === 'Mud' || currentLie === 'Manure') lieMultiplier = 0.60;` to the `lieMultiplier` chain in both `window.getCaddyAdvice` (Part 2 Fairway Simulation) and `window.getOracleBlueprint` (Fairway branch). This aligns the caddy's distance text advice and the oracle's club selection math with the `0.50–0.70` penalty already applied by the main shot engine.
+- **Pasture Hole 5 Fixes (`courses/course_pasture.js`):**
+  - **Ghost Canopy removed:** Deleted the `trees: [{ name: "The Chicken Coop", ... }]` array that was causing a phantom collision object over the fairway.
+  - **Post-green audio:** Added `bgAmbientPostGreen: 'audio/courses/pasture/am_farm1.mp3'` so the ambient track transitions correctly after the hole is completed.
+  - **Hazards rewritten and sorted by distance:** Replaced the old hazard list with three distance-ordered entries: `Chicken Coop` at 160y (the actual obstacle at the dogleg corner), `Bunker` at 290y, and a `Spectating / Free Chickens` marker at 300y.
+- **Headers bumped to v6.06.0:** `physics_core.js`.

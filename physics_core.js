@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v6.04.0)
-window.AG_VERSION = "v6.04.0";
+// physics_core.js - Math, Wind, and Shot Calculation (v6.06.0)
+window.AG_VERSION = "v6.06.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -315,6 +315,9 @@ function calculateShot(autoMiss = false) {
         // v4.42.0 Difficulty Scaling & Risk/Reward Focus (Putting)
         let diffScale = typeof difficultyLevels !== 'undefined' ? difficultyLevels[difficultyIndex] : { impactMod: 1.0, hingeMod: 1.0, reflexBuffer: 105, dispersionMod: 1.0 };
         let absHinge = Math.abs(hingeDiff);
+        // v6.06.0 Long Putt Dispersion
+        let dispersionMultiplier = puttTargetDist > 15 ? 1.0 + ((puttTargetDist - 15) * 0.1) : 1.0;
+        let hingePenalty = (Math.abs(hingeDiff) / 100) * 1.5 * dispersionMultiplier;
         let focusEffect = 0;
         let p50 = 50 * diffScale.hingeMod;
         let p150 = 150 * diffScale.hingeMod;
@@ -607,6 +610,14 @@ function calculateShot(autoMiss = false) {
 
         // v4.8.0 Putter Strike Sound
         if (typeof window.playTone === 'function') window.playTone(800, 'triangle', 0.05, 0.8);
+
+        // v6.06.0 Per-Shot State Reset
+        stanceAlignment = 0;
+        isChokedDown = false;
+        if (typeof players !== 'undefined' && players[currentPlayerIndex]) {
+            players[currentPlayerIndex].stanceAlignment = 0;
+            players[currentPlayerIndex].isChokedDown = false;
+        }
 
         playNextPuttStep(); // Trigger the suspense
         return; // EXIT SHOT CALCULATION
@@ -1648,6 +1659,13 @@ function calculateShot(autoMiss = false) {
             const fallbackMsg = "Shot resolution recovered from an error. Input restored.";
             window.announce(fallbackMsg);
             document.getElementById('visual-output').innerText = fallbackMsg;
+            // v6.06.0 Per-Shot State Reset
+            stanceAlignment = 0;
+            isChokedDown = false;
+            if (typeof players !== 'undefined' && players[currentPlayerIndex]) {
+                players[currentPlayerIndex].stanceAlignment = 0;
+                players[currentPlayerIndex].isChokedDown = false;
+            }
             window.updateDashboard();
         }
 
@@ -1886,6 +1904,7 @@ window.getCaddyAdvice = function() {
     if (currentLie === 'Sand') lieMultiplier = 0.70;
     else if (currentLie === 'Pine Needles') lieMultiplier = 0.90;
     else if (currentLie === 'Packed Earth') lieMultiplier = 0.95;
+    else if (currentLie === 'Mud' || currentLie === 'Manure') lieMultiplier = 0.60; // v6.06.0 Mud Logic
     else if (currentLie.includes('Rough')) {
         let rIndex = typeof roughConditionIndex !== 'undefined' ? roughConditionIndex : 1;
         lieMultiplier = (typeof roughConditions !== 'undefined' && roughConditions[rIndex]) ? (roughConditions[rIndex].penalty + 0.025) : 0.875;
@@ -2084,6 +2103,7 @@ window.getOracleBlueprint = function() {
         if (currentLie === 'Sand') lieMultiplier = 0.70;
         else if (currentLie === 'Pine Needles') lieMultiplier = 0.90;
         else if (currentLie === 'Packed Earth') lieMultiplier = 0.95;
+        else if (currentLie === 'Mud' || currentLie === 'Manure') lieMultiplier = 0.60; // v6.06.0 Mud Logic
         else if (currentLie.includes('Rough')) {
             let rIndex = typeof roughConditionIndex !== 'undefined' ? roughConditionIndex : 1;
             lieMultiplier = (typeof roughConditions !== 'undefined' && roughConditions[rIndex]) ? (roughConditions[rIndex].penalty + 0.025) : 0.875;

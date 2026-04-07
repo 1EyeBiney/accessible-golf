@@ -51,13 +51,11 @@ window.courses.push({
             fairwayDescription: "A dogleg right that hinges around a 40-foot coop. The surrounding packed earth gives massive roll-outs, so account for the extra skip when approaching the crowned green.",
             bgMusic: 'audio/courses/pasture/mu_pasture5.mp3',
             bgAmbient: 'audio/courses/pasture/am_coop1.mp3',
-            trees: [
-                { name: "The Chicken Coop", x: 25, y: 260, radius: 15, height: 40 }
-            ],
+            bgAmbientPostGreen: 'audio/courses/pasture/am_farm1.mp3',
             hazards: [
-                { type: "Bunker", distance: 440, depth: 15, offset: 15, width: 20 },
-                { type: "Chicken Flock" },
-                { type: "Free-Range Flock (Spectating)", distance: 480, offset: -45 }
+                { type: "Chicken Coop", distance: 160, depth: 15, offset: -20, width: 25 },
+                { type: "Bunker", distance: 290, depth: 15, offset: -15, width: 20 },
+                { type: "Spectating", distance: 300, depth: 5, offset: 25, width: 5, name: "Free Chickens" }
             ],
             landingZones: [{ name: "Safe Left Fairway", x: -15, y: 260 }, { name: "Aggressive Corner Cut", x: 15, y: 310 }],
             zones: [{x:-15, y:260, w:30, h:30}, {x:15, y:310, w:30, h:30}]
