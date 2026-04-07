@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v6.21.1)
-window.AG_VERSION = "v6.21.1";
+// physics_core.js - Math, Wind, and Shot Calculation (v6.21.2)
+window.AG_VERSION = "v6.21.2";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -1563,11 +1563,13 @@ function calculateShot(autoMiss = false) {
             }
 
             const chokeStr = typeof isChokedDown !== 'undefined' && isChokedDown ? " (Choked 90%)" : "";
+            // v6.21.2 Bill the Legend Telemetry Override
+            let displayClub = (pName === "Bill the Legend") ? "Ralph" : club.name;
             // v6.07.0 Telemetry Float Sanitization
-            const shotBroadcast = `### ${pName}\n**Club:** ${club.name}\n**Result:** ${roughDesc}${shotDesc} ${windDesc} Carries ${Math.round(carryDistance)}, rolls ${Math.round(rollDistance)} forward and ${kickDesc} for a total of ${Math.round(totalDistance)}. ${proximityDesc}`;
+            const shotBroadcast = `### ${pName}\n**Club:** ${displayClub}\n**Result:** ${roughDesc}${shotDesc} ${windDesc} Carries ${Math.round(carryDistance)}, rolls ${Math.round(rollDistance)} forward and ${kickDesc} for a total of ${Math.round(totalDistance)}. ${proximityDesc}`;
             let envMetrics = (typeof synthTreeActive !== 'undefined' && synthTreeActive) ? `* **Environment:** Synth Tree at ${synthTreeDist}y, X:${synthTreeX}, Height:${Math.round(synthTreeHeight)}ft\n` : "";
             const execMetrics = `* **Execution:** Power ${Math.round(finalPower)}%. Hinge Diff ${Math.round(hingeDiff)}ms. Impact Offset ${Math.round(impactDiff)}ms. Accuracy Score ${Math.round(accuracyScore)}%. Backspin: ${Math.round(backspinRPM)} RPM. Side Spin: ${Math.round(sideSpinRPM)} RPM (${sideSpinShape}).\n${treeCollisionReport}`;
-            const metrics = `**Telemetry**\n* **Setup:** ${club.name}${chokeStr} | Style: ${currentStyle.name} | Focus: ${focusModes[focusIndex].name} | Stance: ${stanceNames[stanceIndex]} / ${alignmentNames[stanceAlignment + 2]} | Aim: ${aimAngle}° | Wind: Y:${windY} X:${windX}\n${envMetrics}${execMetrics}`;
+            const metrics = `**Telemetry**\n* **Setup:** ${displayClub}${chokeStr} | Style: ${currentStyle.name} | Focus: ${focusModes[focusIndex].name} | Stance: ${stanceNames[stanceIndex]} / ${alignmentNames[stanceAlignment + 2]} | Aim: ${aimAngle}° | Wind: Y:${windY} X:${windX}\n${envMetrics}${execMetrics}`;
 
             if (gameMode === 'chipping') {
                 let finalProximity = distanceToPin;

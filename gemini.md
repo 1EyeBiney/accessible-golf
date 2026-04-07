@@ -1186,6 +1186,15 @@ Course Data Architecture: Core game data (clubs, wind, green contours) lives in 
 ### v6.17.0 Engine Update (Custom Bot Voice Registries)
 - **Voice Registry Expansion (`audio_core.js`):** Three new characters added to `window.audioVoices`: `"Mendi Dart": "me"`, `"Fallon the Blade": "fb"`, `"Beautiful Bill": "bb"`. Their 2-letter prefixes wire their custom MP3 audio bags into the existing grab-bag commentary system with no changes to engine logic required. Header bumped to v6.17.0.
 
+### v6.21.2 Hotfix (Bill the Legend — Post-Shot Telemetry Club Name Override)
+- **Telemetry Patch (`physics_core.js`):** Injected `let displayClub = (pName === "Bill the Legend") ? "Ralph" : club.name;` immediately before the telemetry assembly block in `calculateShot`. Both `shotBroadcast` (the Caddy narrative header) and `metrics` (the Telemetry Setup line) now reference `displayClub`, so "Ralph" appears in all post-shot readouts for Bill the Legend. Header and `window.AG_VERSION` bumped to v6.21.2.
+
+### v6.21.1 Hotfix (Bill the Legend — Pre-Shot Caddy Club Name Override)
+- **Setup Report Patch (`physics_core.js`):** Injected `let displayClub` override at the top of `getSetupReport()`. All five lie-condition return strings updated to use `displayClub` instead of `club.name`, so "Ralph" appears in every pre-shot caddy readout for Bill the Legend. Header and `window.AG_VERSION` bumped to v6.21.1.
+
+### v6.21.0 Engine Update (Bill the Legend — Dashboard Club Name Override)
+- **Dashboard Override (`ui_ag.js`):** Injected `displayClub` variable in `window.updateDashboard`. When the active player is `"Bill the Legend"`, the dashboard displays `"Ralph"` instead of the real club name. Physics and AI club selection are entirely unaffected. Header bumped to v6.21.0.
+
 ### v6.20.0 Engine Update (Global Rename — Beautiful Bill → Bill the Legend)
 - **Global Rename:** "Beautiful Bill" renamed to **"Bill the Legend"** across all five files. Name string updated in roster UI, data presets, quick-load macro, God Mode physics trigger, God Mode watchdog (both name checks), and voice registry.
 - **Voice Prefix Updated (`audio_core.js`):** `"Beautiful Bill": "bb"` replaced with `"Bill the Legend": "bl"` in `window.audioVoices`. Header bumped to v6.20.0.
