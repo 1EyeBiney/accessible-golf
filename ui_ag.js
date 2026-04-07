@@ -1,4 +1,4 @@
-// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v6.11.0)
+// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v6.12.0)
 
 // v4.10.0 Scorecard System
 
@@ -407,6 +407,14 @@ window.buildClubhouseMenu = function() {
         }});
         clubhouseMenu.push({ text: "Dusty Bunkers", action: () => {
             wizardRoster[wizardSlot] = { name: "Dusty Bunkers", isBot: true, skill: 1, iBias: 0, hBias: 0, focus: 0, ball: 2 };
+            clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
+        }});
+        clubhouseMenu.push({ text: "Mendi Dart", action: () => {
+            wizardRoster[wizardSlot] = { name: "Mendi Dart", isBot: true, skill: 1, iBias: 0, hBias: 0, focus: 5, ball: 3 };
+            clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
+        }});
+        clubhouseMenu.push({ text: "Fallon the Blade", action: () => {
+            wizardRoster[wizardSlot] = { name: "Fallon the Blade", isBot: true, skill: 1, iBias: 0, hBias: 0, focus: 0, ball: 3 };
             clubhouseState = 'roster'; clubhouseIndex = wizardSlot; window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
         clubhouseMenu.push({ text: "Back (Escape)", action: () => {

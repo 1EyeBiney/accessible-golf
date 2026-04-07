@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v6.07.0)
-window.AG_VERSION = "v6.07.0";
+// physics_core.js - Math, Wind, and Shot Calculation (v6.12.0)
+window.AG_VERSION = "v6.12.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -660,6 +660,17 @@ function calculateShot(autoMiss = false) {
     let impactDiff = isBotTurn ? players[currentPlayerIndex].botImpact : (devImpact ? 0 : Math.round((performance.now() - impactStartTime) - dropDurationMs));
     let hingeDiff = isBotTurn ? players[currentPlayerIndex].botHinge : (devHinge ? 0 : Math.round(hingeTimeDown - hingeTimeBack));
     if (isBotTurn) finalPower = players[currentPlayerIndex].botPower;
+
+    // v6.12.0 Sniper Clamps
+    if (typeof players !== 'undefined' && players[currentPlayerIndex]) {
+        let pName = players[currentPlayerIndex].name;
+        let dist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 0;
+        if (pName === "Mendi Dart" && dist >= 20 && dist <= 100) {
+            impactDiff = (Math.random() * 10) - 5; // Force +/- 5ms perfection
+        } else if (pName === "Fallon the Blade" && club && (club.name === "4 Iron" || club.name === "5 Iron" || club.name === "6 Iron")) {
+            impactDiff = (Math.random() * 10) - 5; // Force +/- 5ms perfection
+        }
+    }
 
     // v4.42.0 Difficulty Scaling (Fairway)
     let diffScale = typeof difficultyLevels !== 'undefined' ? difficultyLevels[difficultyIndex] : { impactMod: 1.0, hingeMod: 1.0, reflexBuffer: 105, dispersionMod: 1.0 };
@@ -2226,6 +2237,11 @@ window.getOracleBlueprint = function() {
                         // Phil the Thrill: Ignores hazard danger on long shots, favors flops (Pitch) around greens
                         if (club.name.includes("Wood") && requiredPower > 90) adjustedMiss -= (miss * 0.75); 
                         if (requiredPower < 60 && sIdx === 1) adjustedMiss -= 35; 
+                    } else if (pName === "Mendi Dart") {
+                        let currentDist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 0;
+                        if (currentDist >= 20 && currentDist <= 100) adjustedMiss -= 40; // Lethal wedge zone
+                    } else if (pName === "Fallon the Blade") {
+                        if (club.name === "4 Iron" || club.name === "5 Iron" || club.name === "6 Iron") adjustedMiss -= 40; // Lethal long irons
                     }
                     // ----------------------------------
 
