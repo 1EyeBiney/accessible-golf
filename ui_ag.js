@@ -1,4 +1,4 @@
-// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v6.20.0)
+// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v6.21.0)
 
 // v4.10.0 Scorecard System
 
@@ -41,7 +41,10 @@ window.updateDashboard = function() {
     // 3. Equipment Info
     let style = shotStyles[shotStyleIndex];
     let gripStr = isChokedDown ? "(Choked 90%)" : "(Full Grip)";
-    document.getElementById('dash-club').innerText = `${club.name} ${gripStr}\n${style.name} Swing`;
+    // v6.21.0 Bill the Legend Club Name Override
+    let activePName = typeof players !== 'undefined' && players.length > 0 ? players[currentPlayerIndex].name : "";
+    let displayClub = (activePName === "Bill the Legend") ? "Ralph" : club.name;
+    document.getElementById('dash-club').innerText = `${displayClub} ${gripStr}\n${style.name} Swing`;
     
     // 4. Setup Info
     let aimStr = aimAngle === 0 ? "Center" : `${Math.abs(aimAngle)}° ${aimAngle < 0 ? 'Left' : 'Right'}`;

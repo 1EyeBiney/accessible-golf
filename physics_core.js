@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v6.20.0)
-window.AG_VERSION = "v6.20.0";
+// physics_core.js - Math, Wind, and Shot Calculation (v6.21.1)
+window.AG_VERSION = "v6.21.1";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -188,6 +188,9 @@ function getStanceReport() {
 
 function getSetupReport() {
     window.applyDivergentWind();
+    // v6.21.1 Bill the Legend Club Name Override
+    let activePName = typeof players !== 'undefined' && players.length > 0 ? players[currentPlayerIndex].name : "";
+    let displayClub = (activePName === "Bill the Legend") ? "Ralph" : club.name;
     const style = shotStyles[shotStyleIndex];
     const chokeMod = typeof isChokedDown !== 'undefined' && isChokedDown ? 0.9 : 1.0;
 
@@ -202,21 +205,21 @@ function getSetupReport() {
     if (gameMode === 'course' && currentLie === 'Sand') {
         const minTotal = Math.round(baseTotal * 0.60);
         const maxTotal = Math.round(baseTotal * 0.80);
-        return `${club.name}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. In the sand. Style: ${style.name}. Focus: ${focusName}.`;
+        return `${displayClub}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. In the sand. Style: ${style.name}. Focus: ${focusName}.`;
     } else if ((gameMode === 'course' && currentLie === 'Light Rough') || (gameMode === 'range' && rangeLie === 'Rough')) {
         const minTotal = Math.round(baseTotal * 0.85);
         const maxTotal = Math.round(baseTotal * 0.95);
-        return `${club.name}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. In the rough. Style: ${style.name}. Focus: ${focusName}.`;
+        return `${displayClub}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. In the rough. Style: ${style.name}. Focus: ${focusName}.`;
     } else if (gameMode === 'course' && (currentLie === 'Mud' || currentLie === 'Manure')) {
         const minTotal = Math.round(baseTotal * 0.50);
         const maxTotal = Math.round(baseTotal * 0.70);
-        return `${club.name}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. Buried in thick mud. Massive dispersion. Style: ${style.name}. Focus: ${focusName}.`;
+        return `${displayClub}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. Buried in thick mud. Massive dispersion. Style: ${style.name}. Focus: ${focusName}.`;
     } else if (gameMode === 'course' && currentLie === 'Packed Earth') {
         const minTotal = Math.round(baseTotal * 0.95);
         const maxTotal = Math.round(baseTotal * 1.00);
-        return `${club.name}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. Hard, packed dirt. Style: ${style.name}. Focus: ${focusName}.`;
+        return `${displayClub}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. Hard, packed dirt. Style: ${style.name}. Focus: ${focusName}.`;
     } else {
-        return `${club.name}. ${gripReport}100% power hits ${Math.round(baseTotal)} yards. Style: ${style.name}. Focus: ${focusName}.`;
+        return `${displayClub}. ${gripReport}100% power hits ${Math.round(baseTotal)} yards. Style: ${style.name}. Focus: ${focusName}.`;
     }
 }
 
