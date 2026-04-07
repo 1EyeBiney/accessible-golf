@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v6.13.0)
-window.AG_VERSION = "v6.13.0";
+// physics_core.js - Math, Wind, and Shot Calculation (v6.14.0)
+window.AG_VERSION = "v6.14.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -684,6 +684,36 @@ function calculateShot(autoMiss = false) {
                 // If Bill is winning by 2 or more strokes (lower score is winning)
                 if (billScore <= targetScore - 2) {
                     impactDiff = Math.random() > 0.5 ? 85 : -85; // Massive intentional penalty
+                }
+            }
+        }
+    }
+
+    // v6.14.0 Mendi Dart Driver Nerf
+    if (typeof players !== 'undefined' && players[currentPlayerIndex]) {
+        let pName = players[currentPlayerIndex].name;
+        if (pName === "Mendi Dart" && club && club.name === "Driver") {
+            let yardPenaltyPercent = (20 / (club.distance || 260)) * 100;
+            finalPower = Math.max(0, finalPower - yardPenaltyPercent);
+        }
+
+        // v6.14.0 Beautiful Bill Phase 2 (God Mode)
+        if (pName === "Beautiful Bill" && typeof hole !== 'undefined' && hole >= 16) {
+            let target = players.find(p => !p.isBot) || players.find(p => p.name === "Mulligan Moe");
+            if (target) {
+                let getScore = (p) => p.strokes + p.roundData.reduce((sum, r) => sum + r.strokes, 0);
+                let billScore = getScore(players[currentPlayerIndex]);
+                let targetScore = getScore(target);
+                // If Bill is tied or losing on the final 3 holes
+                if (billScore >= targetScore) {
+                    impactDiff = 0; // Absolute Tour-Pro Perfection
+                    hingeDiff = 0;  // Absolute Touch Perfection
+                    // Mathematically lock power to exact pin distance
+                    let dist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : club.distance;
+                    if (dist <= club.distance) {
+                        finalPower = (dist / club.distance) * 100;
+                    }
+                    window.activeCaptureRadius = 500; // Engage giant magnet cup
                 }
             }
         }
