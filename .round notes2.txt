@@ -1,23 +1,9 @@
-move auto-loadGame from initGame (completed); Update main_ag.js header to v6.09.1 (completed); Update gemini.md changelog (completed)
-**v6.09.1 applied to
-.** Two bugs fixed:
-**Bug 1 —
-corrupting state (line 929):**
-called
-with no args. The function's first line is
-, so passing undefined stomped the just-restored
-, then immediately crashed on
-. That TypeError was caught by
-'s try/catch, but left
-— a ticking time bomb for anything downstream that touched
-.
-Fix:
-.
-Bug 2 — auto-load at boot freezing the init screen (line 966):
-The legacy
-call in
-was left over from the v5.0.5 single-slot design. With the corrupted state from Bug 1,
-or
-could throw inside
-(which has no try/catch), leaving the button visible and unresponsive.
-Fix: Removed the auto-load. Saves are now loaded exclusively through Clubhouse → Resume Session, by design.
+I have 4 new audio assets that are ambient music MP3s that should join the grab bag rotation for ambient music played in the clubhouse 
+These are located in  /audio/clubhouse/all_that_vox folder with the other songs for this grab bag.
+The new assets are named:
+champions_of_the_first_tee.mp3
+fairways_and_fringe.mp3
+open_faced_club_sandwish.mp3
+peaceful_back_nine.mp3
+
+use version 6.15 and add those in to the ambient music rotation please

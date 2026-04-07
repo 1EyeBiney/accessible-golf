@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v6.11.0)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v6.15.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -675,7 +675,7 @@ window.hotSwapAmbient = function(targetAmbient) {
 };
 
 // v5.93.0 Clubhouse Acoustic Rooms & Transitions
-window.voxTracks = ['a_toast_in_the_trophy_room', 'a_walk_to_the_first_tee', 'mulligans_off_the_first_tee', 'the_fairway_awaits', 'thursday_at_the_club', 'velvet_greens_and_sandy_beaches'];
+window.voxTracks = ['a_toast_in_the_trophy_room', 'a_walk_to_the_first_tee', 'mulligans_off_the_first_tee', 'the_fairway_awaits', 'thursday_at_the_club', 'velvet_greens_and_sandy_beaches', 'champions_of_the_first_tee', 'fairways_and_fringe', 'open_faced_club_sandwish', 'peaceful_back_nine'];
 window.cafeTracks = ['cream_and_crashes', 'crumbs_in_the_mainframe', 'espresso_yourself', 'to_whom_it_may_accordian'];
 window.currentClubhouseRoom = null;
 window.clubhouseAudio = null;
