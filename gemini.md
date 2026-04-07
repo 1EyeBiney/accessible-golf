@@ -1124,3 +1124,10 @@ Course Data Architecture: Core game data (clubs, wind, green contours) lives in 
 - **Fairway Timing Report (`physics_core.js`):** `lastTimingReport` (fairway path) now applies `Math.round()` to `finalPower`, `hingeDiff`, `impactDiff`, `sideSpinRPM`, and `backspinRPM`. Marked `// v6.07.0 Float sanitization`.
 - **Fairway Shot Broadcast & Exec Metrics (`physics_core.js`):** `shotBroadcast` now wraps `carryDistance`, `rollDistance`, and `totalDistance` in `Math.round()`. `execMetrics` now wraps `finalPower`, `hingeDiff`, `impactDiff`, `accuracyScore`, `backspinRPM`, and `sideSpinRPM` in `Math.round()`. Marked `// v6.07.0 Telemetry Float Sanitization`.
 - **Header bumped to v6.07.0:** `physics_core.js`.
+
+### v6.08.0 Engine Update (Save Isolation, State Sync, Audio Bleed Fix)
+- **Sandbox Isolation (`main_ag.js`):** `window.saveGame` now returns immediately when `gameMode !== 'course'`. This prevents practice range, putting green, chipping, and bot simulation sessions from overwriting the player's course save slot. The guard is the first statement inside the function body.
+- **Pre-Save Player Sync (`main_ag.js`):** `window.saveGame` now calls `window.saveActivePlayer()` (if defined) before serializing state, ensuring the active player's per-round stats are flushed into the `players` array before the snapshot is taken.
+- **Resume State Sync (`main_ag.js`):** `window.loadGame` now calls `window.loadActivePlayer()` (if defined) immediately before the v6.03.0 Audio Recovery block, re-populating live per-player UI state from the restored `players` array after the save is deserialized.
+- **Audio Bleed Fix (`main_ag.js`):** Inside the v6.03.0 Audio Recovery block in `window.loadGame`, `window.stopClubhouseMusic()` is now called before `window.initAudio()`. This stops any clubhouse or menu music that may have been playing when the player chose "Resume Game", preventing two audio sources from running simultaneously on course load.
+- **Header bumped to v6.08.0:** `main_ag.js`.
