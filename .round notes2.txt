@@ -1,0 +1,23 @@
+move auto-loadGame from initGame (completed); Update main_ag.js header to v6.09.1 (completed); Update gemini.md changelog (completed)
+**v6.09.1 applied to
+.** Two bugs fixed:
+**Bug 1 —
+corrupting state (line 929):**
+called
+with no args. The function's first line is
+, so passing undefined stomped the just-restored
+, then immediately crashed on
+. That TypeError was caught by
+'s try/catch, but left
+— a ticking time bomb for anything downstream that touched
+.
+Fix:
+.
+Bug 2 — auto-load at boot freezing the init screen (line 966):
+The legacy
+call in
+was left over from the v5.0.5 single-slot design. With the corrupted state from Bug 1,
+or
+could throw inside
+(which has no try/catch), leaving the button visible and unresponsive.
+Fix: Removed the auto-load. Saves are now loaded exclusively through Clubhouse → Resume Session, by design.
