@@ -1115,3 +1115,12 @@ Course Data Architecture: Core game data (clubs, wind, green contours) lives in 
   - **Post-green audio:** Added `bgAmbientPostGreen: 'audio/courses/pasture/am_farm1.mp3'` so the ambient track transitions correctly after the hole is completed.
   - **Hazards rewritten and sorted by distance:** Replaced the old hazard list with three distance-ordered entries: `Chicken Coop` at 160y (the actual obstacle at the dogleg corner), `Bunker` at 290y, and a `Spectating / Free Chickens` marker at 300y.
 - **Headers bumped to v6.06.0:** `physics_core.js`.
+
+### v6.07.0 Engine Update (Telemetry Float Sanitization)
+- **Scope:** Eliminated raw floating-point numbers leaking into all player-facing telemetry strings across the putting and fairway shot paths.
+- **Oracle Putting Pace Display (`physics_core.js`):** `paceDisplay` in `window.getCaddyAdvice` Part 1 now uses `Number(bestPace).toFixed(1)` for non-short putts, replacing the raw `${bestPace}` interpolation that could emit long decimals (e.g. `3.3300000000000003`).
+- **Putting Broadcast (`physics_core.js`):** `baseBroadcast` now uses `Math.round(finalPower)` instead of raw `finalPower`.
+- **Putting Diagnostics Block (`physics_core.js`):** `advancedTelemetry` now wraps `finalPower`, `impactDiff`, and `hingeDiff` in `Math.round()`. `lastTimingReport` (putting path) now uses `Math.round(finalPower)`, `Math.abs(Math.round(hingeDiff))`, and `Math.abs(Math.round(impactDiff))`.
+- **Fairway Timing Report (`physics_core.js`):** `lastTimingReport` (fairway path) now applies `Math.round()` to `finalPower`, `hingeDiff`, `impactDiff`, `sideSpinRPM`, and `backspinRPM`. Marked `// v6.07.0 Float sanitization`.
+- **Fairway Shot Broadcast & Exec Metrics (`physics_core.js`):** `shotBroadcast` now wraps `carryDistance`, `rollDistance`, and `totalDistance` in `Math.round()`. `execMetrics` now wraps `finalPower`, `hingeDiff`, `impactDiff`, `accuracyScore`, `backspinRPM`, and `sideSpinRPM` in `Math.round()`. Marked `// v6.07.0 Telemetry Float Sanitization`.
+- **Header bumped to v6.07.0:** `physics_core.js`.

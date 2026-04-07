@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v6.06.0)
-window.AG_VERSION = "v6.06.0";
+// physics_core.js - Math, Wind, and Shot Calculation (v6.07.0)
+window.AG_VERSION = "v6.07.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -350,7 +350,7 @@ function calculateShot(autoMiss = false) {
         let displayTargetYds = Number.isInteger(puttTargetDist) ? puttTargetDist : puttTargetDist.toFixed(1);
         // v4.45.1 Telemetry Ownership (Putting)
         let pName = typeof players !== 'undefined' && players.length > 0 ? players[currentPlayerIndex].name : "Player";
-        let baseBroadcast = `[${pName}] Putt: ${finalPower}% Power. Target was ${displayTargetYds}y.`;
+        let baseBroadcast = `[${pName}] Putt: ${Math.round(finalPower)}% Power. Target was ${displayTargetYds}y.`;
         let broadcast = "";
 
         // v4.4.0 Gravity Engine (Step Simulation)
@@ -573,12 +573,12 @@ function calculateShot(autoMiss = false) {
             let targDistDisp = isShortTarget ? Math.round(puttTargetDist * 3) : Math.round(puttTargetDist);
             let aimDisp = aimAngle === 0 ? "Straight" : `${Math.abs(aimAngle)}° ${aimAngle < 0 ? 'Left' : 'Right'}`;
 
-            let advancedTelemetry = `\n\n[Putting Diagnostics]\nTarget Cursor: ${targDistDisp} ${targUnit}, Aim: ${aimDisp}\nAuto-Read: ${autoGreenRead}\nOracle Says: ${autoOracle}\nExecution: Power ${finalPower}%, Impact ${impactDiff}ms, Touch (Hinge) ${hingeDiff}ms\nTouch Magnetism: ${tempoBonus.toFixed(2)}x Multiplier\nEffective Hole Radius: ${(activeHoleRadius * 36).toFixed(1)} inches (Base: ${(baseHoleRadius * 36).toFixed(1)}in)\nSlope Dampener: ${(slopeDampener * 100).toFixed(0)}% applied (100% = Full Break)\nAccuracy Score: ${Math.round(accuracyScore)}/100`;
+            let advancedTelemetry = `\n\n[Putting Diagnostics]\nTarget Cursor: ${targDistDisp} ${targUnit}, Aim: ${aimDisp}\nAuto-Read: ${autoGreenRead}\nOracle Says: ${autoOracle}\nExecution: Power ${Math.round(finalPower)}%, Impact ${Math.round(impactDiff)}ms, Touch (Hinge) ${Math.round(hingeDiff)}ms\nTouch Magnetism: ${tempoBonus.toFixed(2)}x Multiplier\nEffective Hole Radius: ${(activeHoleRadius * 36).toFixed(1)} inches (Base: ${(baseHoleRadius * 36).toFixed(1)}in)\nSlope Dampener: ${(slopeDampener * 100).toFixed(0)}% applied (100% = Full Break)\nAccuracy Score: ${Math.round(accuracyScore)}/100`;
 
             // v4.43.0 Putting Timing Report
             let hingeWord = hingeDiff < 0 ? 'early' : hingeDiff > 0 ? 'late' : 'perfect';
             let impactWord = impactDiff < 0 ? 'early' : impactDiff > 0 ? 'late' : 'perfect';
-            lastTimingReport = `[${pName}] Putting Diagnostics. Power ${finalPower} percent. Touch tempo ${Math.abs(hingeDiff)}ms ${hingeWord}. Impact ${Math.abs(impactDiff)}ms ${impactWord}.`;
+            lastTimingReport = `[${pName}] Putting Diagnostics. Power ${Math.round(finalPower)} percent. Touch tempo ${Math.abs(Math.round(hingeDiff))}ms ${hingeWord}. Impact ${Math.abs(Math.round(impactDiff))}ms ${impactWord}.`;
 
             let delayAnnounceMs = 0;
             if (isHoleComplete && !quick) {
@@ -857,7 +857,8 @@ function calculateShot(autoMiss = false) {
     // v4.45.1 Telemetry Ownership (Fairway)
     let pName = typeof players !== 'undefined' && players.length > 0 ? players[currentPlayerIndex].name : "Player";
     let advice = typeof window.getCaddyAdvice === 'function' ? window.getCaddyAdvice() : 'No advice available.';
-    lastTimingReport = `[${pName}] Timing Check. Power ${finalPower} percent. Hinge ${Math.abs(hingeDiff)}ms ${hingeWord}. Impact ${Math.abs(impactDiff)}ms ${impactWord}. Side Spin: ${Math.abs(sideSpinRPM)} RPM ${sideSpinShape}. Backspin: ${backspinRPM} RPM, ${deltaStr}.\n[Oracle Says: ${advice}]`;
+    // v6.07.0 Float sanitization
+    lastTimingReport = `[${pName}] Timing Check. Power ${Math.round(finalPower)} percent. Hinge ${Math.abs(Math.round(hingeDiff))}ms ${hingeWord}. Impact ${Math.abs(Math.round(impactDiff))}ms ${impactWord}. Side Spin: ${Math.abs(Math.round(sideSpinRPM))} RPM ${sideSpinShape}. Backspin: ${Math.round(backspinRPM)} RPM, ${deltaStr}.\n[Oracle Says: ${advice}]`;
 
     let totalDistance = Math.round(potentialDist * dampening * hingeDistanceMod); // v4.88.0 hingeDistanceMod replaces hinge exponential
 
@@ -1506,9 +1507,10 @@ function calculateShot(autoMiss = false) {
             }
 
             const chokeStr = typeof isChokedDown !== 'undefined' && isChokedDown ? " (Choked 90%)" : "";
-            const shotBroadcast = `### ${pName}\n**Club:** ${club.name}\n**Result:** ${roughDesc}${shotDesc} ${windDesc} Carries ${carryDistance}, rolls ${rollDistance} forward and ${kickDesc} for a total of ${totalDistance}. ${proximityDesc}`;
+            // v6.07.0 Telemetry Float Sanitization
+            const shotBroadcast = `### ${pName}\n**Club:** ${club.name}\n**Result:** ${roughDesc}${shotDesc} ${windDesc} Carries ${Math.round(carryDistance)}, rolls ${Math.round(rollDistance)} forward and ${kickDesc} for a total of ${Math.round(totalDistance)}. ${proximityDesc}`;
             let envMetrics = (typeof synthTreeActive !== 'undefined' && synthTreeActive) ? `* **Environment:** Synth Tree at ${synthTreeDist}y, X:${synthTreeX}, Height:${Math.round(synthTreeHeight)}ft\n` : "";
-            const execMetrics = `* **Execution:** Power ${finalPower}%. Hinge Diff ${hingeDiff}ms. Impact Offset ${impactDiff}ms. Accuracy Score ${accuracyScore}%. Backspin: ${backspinRPM} RPM. Side Spin: ${sideSpinRPM} RPM (${sideSpinShape}).\n${treeCollisionReport}`;
+            const execMetrics = `* **Execution:** Power ${Math.round(finalPower)}%. Hinge Diff ${Math.round(hingeDiff)}ms. Impact Offset ${Math.round(impactDiff)}ms. Accuracy Score ${Math.round(accuracyScore)}%. Backspin: ${Math.round(backspinRPM)} RPM. Side Spin: ${Math.round(sideSpinRPM)} RPM (${sideSpinShape}).\n${treeCollisionReport}`;
             const metrics = `**Telemetry**\n* **Setup:** ${club.name}${chokeStr} | Style: ${currentStyle.name} | Focus: ${focusModes[focusIndex].name} | Stance: ${stanceNames[stanceIndex]} / ${alignmentNames[stanceAlignment + 2]} | Aim: ${aimAngle}° | Wind: Y:${windY} X:${windX}\n${envMetrics}${execMetrics}`;
 
             if (gameMode === 'chipping') {
@@ -1853,7 +1855,7 @@ window.getCaddyAdvice = function() {
             let aimText = absAim < 0.1 ? "aim straight" : `aim ${absAim.toFixed(1)} degrees ${bestAim < 0 ? 'Left' : 'Right'}`;
             let isShort = distToPin <= 5.0;
             let unit = isShort ? "feet" : "yards";
-            let paceDisplay = isShort ? `${Math.round(bestPace * 3)}` : `${bestPace}`;
+            let paceDisplay = isShort ? `${Math.round(bestPace * 3)}` : `${Number(bestPace).toFixed(1)}`;
             let distDisplay = isShort ? `${Math.round(distToPin * 3)}` : `${Math.round(distToPin)}`;
             return `[Oracle Putting]: ${distDisplay} ${unit}. To sink it with perfect timing, ${aimText} and hit it with ${paceDisplay} ${unit} of pace.`;
         } else {
