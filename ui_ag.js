@@ -1,4 +1,4 @@
-// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v6.04.0)
+// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v6.09.0)
 
 // v4.10.0 Scorecard System
 
@@ -262,6 +262,7 @@ window.buildClubhouseMenu = function() {
                 window.announce("Resuming round. Hole " + hole + ".");
             }});
         }
+        clubhouseMenu.push({ text: "Resume Session", action: () => { clubhouseState = 'resume'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(); } });
         clubhouseMenu.push({ text: "Start New Game", action: () => {
             clubhouseState = 'course'; clubhouseIndex = 0;
             window.buildClubhouseMenu(); window.announceClubhouse(true);
@@ -518,6 +519,29 @@ window.buildClubhouseMenu = function() {
             window.buildClubhouseMenu(); window.announceClubhouse(true);
         }});
     }
+    // v6.09.0 Resume Session Sub-Menu
+    else if (clubhouseState === 'resume') {
+        for (let i = 1; i <= 3; i++) {
+            let infoText = typeof window.getSaveSlotInfo === 'function' ? window.getSaveSlotInfo(i) : `Slot ${i}`;
+            clubhouseMenu.push({ 
+                text: infoText, 
+                action: ((slotNum) => () => {
+                    if (typeof window.loadGame === 'function' && window.loadGame(slotNum)) {
+                        clubhouseState = 'root';
+                        document.getElementById('hud-top').style.display = 'block';
+                        document.getElementById('dashboard-panel').style.display = 'block';
+                        if (typeof window.updateDashboard === 'function') window.updateDashboard();
+                        let distMsg = typeof calculateDistanceToPin === 'function' ? `${Math.round(calculateDistanceToPin())} yards to pin.` : "";
+                        let pName = typeof players !== 'undefined' && players[currentPlayerIndex] ? players[currentPlayerIndex].name : "Player";
+                        window.announce(`Game resumed from Slot ${slotNum}. ${pName}'s turn. ${distMsg}`);
+                    } else {
+                        window.announce(`Slot ${slotNum} is empty or corrupted.`);
+                    }
+                })(i)
+            });
+        }
+        clubhouseMenu.push({ text: "Back (Escape)", action: () => { clubhouseState = 'root'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(); } });
+    }
     window.menuOptions = clubhouseMenu;
     window.menuIndex = clubhouseIndex;
 };
@@ -540,6 +564,7 @@ window.announceClubhouse = function(isInit = true) {
         else if (clubhouseState === 'roster_bot_amateur') prefix = "Select Amateur Bot. ";
         else if (clubhouseState === 'roster_bot_tour') prefix = "Select Tour Pro Bot. ";
         else if (clubhouseState === 'settings') prefix = "Round Setup. ";
+        else if (clubhouseState === 'resume') prefix = "Resume Session. Select a save slot. ";
     }
     let msg = prefix + window.menuOptions[window.menuIndex].text;
     window.announce(msg);

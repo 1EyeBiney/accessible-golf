@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v5.104.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v6.09.0)
 
 // v5.51.0 Swing Input Failsafe & Cooldown
 window.isSwingInitializing = false;
@@ -512,18 +512,48 @@ window.addEventListener('keydown', (e) => {
     }
 
     // v4.13.0 Context-Sensitive Quit Confirmation
+    // v6.09.0 Save Slot Confirmation Flow
+    if (window.saveSlotConfirm !== null) {
+        e.preventDefault();
+        if (e.code === 'KeyY') {
+            if (typeof window.saveGame === 'function') window.saveGame(window.saveSlotConfirm);
+            if (typeof window.stopAllCourseAudio === 'function') window.stopAllCourseAudio();
+            gameMode = 'clubhouse';
+            window.saveSlotConfirm = null;
+            window.saveSlotSelection = false;
+            if (typeof window.buildClubhouseMenu === 'function') window.buildClubhouseMenu();
+            if (typeof window.triggerDoorTransition === 'function') window.triggerDoorTransition('vox');
+            window.announce("Game saved. Returning to Clubhouse.");
+        } else if (e.code === 'KeyN') {
+            window.saveSlotConfirm = null;
+            window.saveSlotSelection = true;
+            window.announce("Save cancelled. Select save slot: Press 1, 2, or 3, or Escape to resume playing.");
+        }
+        return;
+    }
+
+    if (window.saveSlotSelection) {
+        e.preventDefault();
+        if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3' || e.code === 'Numpad1' || e.code === 'Numpad2' || e.code === 'Numpad3') {
+            let slot = parseInt(e.key);
+            let info = typeof window.getSaveSlotInfo === 'function' ? window.getSaveSlotInfo(slot) : `Slot ${slot}`;
+            window.saveSlotConfirm = slot;
+            window.saveSlotSelection = false;
+            window.announce(`${info}. Press Y to confirm overwrite, or N to cancel.`);
+        } else if (e.code === 'Escape' || e.code === 'KeyQ') {
+            window.saveSlotSelection = false;
+            confirmingQuit = false;
+            window.announce("Save cancelled. Resume playing.");
+        }
+        return;
+    }
+
     if (confirmingQuit) {
         e.preventDefault();
         if (e.code === 'KeyS') {
+            window.saveSlotSelection = true;
             confirmingQuit = false;
-            if (typeof window.saveGame === 'function') window.saveGame();
-            if (typeof window.stopAllCourseAudio === 'function') window.stopAllCourseAudio();
-            gameMode = 'clubhouse';
-            document.getElementById('dashboard-panel').style.display = 'none';
-            document.getElementById('swing-meter').style.display = 'none';
-            window.announce("Round saved.");
-            window.buildClubhouseMenu();
-            if (typeof window.triggerDoorTransition === 'function') window.triggerDoorTransition('vox');
+            window.announce("Select save slot: Press 1, 2, or 3.");
         } else if (e.code === 'KeyA') {
             confirmingQuit = false;
             window.clearSave(); // Wipe the save state
