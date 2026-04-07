@@ -1095,3 +1095,8 @@ Course Data Architecture: Core game data (clubs, wind, green contours) lives in 
   - **Hole 2:** Added `description` (heavy machinery winding path lore) and `landingZones` (`Safe Drive` at y:250 and `360y Target` at y:360).
   - **Hole 3:** Updated `description` to the "Free Chicken" strategy lore. Added `name: "Left Bunker"` and `name: "Right Bunker"` to the two green-side bunker hazards. Updated `Chicken Flock` hazard to include `distance: 220, offset: -15` coordinates.
 - **Headers bumped to v6.04.0:** `main_ag.js`, `physics_core.js`, `data_ag.js`, `ui_ag.js`.
+
+### v6.04.1 Hotfix (Auto-Focus Index Alignment)
+- **Root Cause:** The `window.autoSetFocus` function in `main_ag.js` was not updated during the v6.04.0 Focus Alphabetization refactor. All five of its hardcoded `focusIndex =` assignments still used the old pre-alphabetization indices (Standard=0, Touch=2, Recovery=5, Accuracy=4), causing the function to assign the wrong focus mode silently on every club swap, lie check, and putting transition.
+- **Fix (`main_ag.js`):** Updated all five assignments to match the new alphabetical mapping: Putting/short-game Touch guard `= 2` → `= 5`; Recovery `= 5` → `= 2`; Touch short-game branch `= 2` → `= 5`; Accuracy `= 4` → `= 0`; Standard fallback `= 0` → `= 4`. Function comment updated to `// v6.04.1 Fix`.
+- **Header bumped to v6.04.1:** `main_ag.js`.

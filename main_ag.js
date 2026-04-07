@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v6.04.0)
+// main_ag.js - Game State, Variables, and Swing Sequence (v6.04.1)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.tournamentGreens = false;
@@ -559,28 +559,28 @@ window.loadActivePlayer = function(index) {
     window.updateDashboard();
 };
 
-// Contextual Auto-Focus Logic
+// Contextual Auto-Focus Logic (v6.04.1 Fix)
 window.autoSetFocus = function(silent = false) {
-    if ((typeof isPutting !== 'undefined' && isPutting) || (club && club.name === "Putter")) { focusIndex = 2; return; }
+    if ((typeof isPutting !== 'undefined' && isPutting) || (club && club.name === "Putter")) { focusIndex = 5; return; } // Touch
 
     let oldIndex = focusIndex;
     let dist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 0;
 
     // 1. Lie overrides everything. If you are in trouble, you need Recovery.
-    if (currentLie === "Sand" || currentLie.includes("Rough")) focusIndex = 5; 
+    if (currentLie === "Sand" || currentLie.includes("Rough")) focusIndex = 2; // Recovery
     
     // 2. Power Focus (Tee and Fairway Bombs)
-    else if (currentLie === "Tee" && club.name === "Driver") focusIndex = 1; 
-    else if (currentLie === "Fairway" && club.name.includes("Wood")) focusIndex = 1;
+    else if (currentLie === "Tee" && club.name === "Driver") focusIndex = 1; // Power
+    else if (currentLie === "Fairway" && club.name.includes("Wood")) focusIndex = 1; // Power
     
     // 3. Touch Focus (Delicate short game < 50 yards)
-    else if (dist < 50 && (club.name === "Putter" || club.name === "9 Iron" || club.name.includes("Wedge"))) focusIndex = 2;
+    else if (dist < 50 && (club.name === "Putter" || club.name === "9 Iron" || club.name.includes("Wedge"))) focusIndex = 5; // Touch
     
     // 4. Accuracy Focus (Approach shots <= 150 yards)
-    else if (dist <= 150 && club.name !== "Driver" && !club.name.includes("Wood")) focusIndex = 4;
+    else if (dist <= 150 && club.name !== "Driver" && !club.name.includes("Wood")) focusIndex = 0; // Accuracy
     
     // 5. Baseline Standard
-    else focusIndex = 0; 
+    else focusIndex = 4; // Standard
 
     if (!silent && oldIndex !== focusIndex && typeof window.announce === 'function') {
         window.announce(`Auto-equipped ${focusModes[focusIndex].name} Focus.`);
