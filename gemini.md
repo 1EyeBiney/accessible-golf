@@ -1100,3 +1100,8 @@ Course Data Architecture: Core game data (clubs, wind, green contours) lives in 
 - **Root Cause:** The `window.autoSetFocus` function in `main_ag.js` was not updated during the v6.04.0 Focus Alphabetization refactor. All five of its hardcoded `focusIndex =` assignments still used the old pre-alphabetization indices (Standard=0, Touch=2, Recovery=5, Accuracy=4), causing the function to assign the wrong focus mode silently on every club swap, lie check, and putting transition.
 - **Fix (`main_ag.js`):** Updated all five assignments to match the new alphabetical mapping: Putting/short-game Touch guard `= 2` → `= 5`; Recovery `= 5` → `= 2`; Touch short-game branch `= 2` → `= 5`; Accuracy `= 4` → `= 0`; Standard fallback `= 0` → `= 4`. Function comment updated to `// v6.04.1 Fix`.
 - **Header bumped to v6.04.1:** `main_ag.js`.
+
+### v6.05.0 Engine Update (Auto-Focus Restoration & Alignment)
+- **Scope:** Clean alignment and promotion of the Auto-Focus logic to a stable named version after the v6.04.1 emergency hotfix.
+- **Fix (`main_ag.js`):** `window.autoSetFocus` internal comment updated from `// v6.04.1 Fix` to `// v6.05.0 Fix`, confirming the corrected index assignments (Accuracy=0, Power=1, Recovery=2, Touch=5, Standard=4) are canonical and intentional.
+- **Header bumped to v6.05.0:** `main_ag.js`.

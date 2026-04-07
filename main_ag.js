@@ -1,4 +1,4 @@
-// main_ag.js - Game State, Variables, and Swing Sequence (v6.04.1)
+// main_ag.js - Game State, Variables, and Swing Sequence (v6.05.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.tournamentGreens = false;
@@ -559,7 +559,7 @@ window.loadActivePlayer = function(index) {
     window.updateDashboard();
 };
 
-// Contextual Auto-Focus Logic (v6.04.1 Fix)
+// Contextual Auto-Focus Logic (v6.05.0 Fix)
 window.autoSetFocus = function(silent = false) {
     if ((typeof isPutting !== 'undefined' && isPutting) || (club && club.name === "Putter")) { focusIndex = 5; return; } // Touch
 
