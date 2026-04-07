@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v6.16.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v6.20.0)
 
 // v5.51.0 Swing Input Failsafe & Cooldown
 window.isSwingInitializing = false;
@@ -445,7 +445,7 @@ window.addEventListener('keydown', (e) => {
                 { name: "Mulligan Moe", isBot: true, skill: 1, iBias: 35, hBias: 0, focus: 1, ball: 1 },
                 { name: "Mendi Dart", isBot: true, skill: 2, iBias: 0, hBias: 0, focus: 5, ball: 0 },
                 { name: "Fallon the Blade", isBot: true, skill: 2, iBias: 0, hBias: 0, focus: 0, ball: 0 },
-                { name: "Beautiful Bill", isBot: true, skill: 1, iBias: 0, hBias: 0, focus: 0, ball: 0 }
+                { name: "Bill the Legend", isBot: true, skill: 1, iBias: 0, hBias: 0, focus: 0, ball: 0 }
             ];
             wizardSize = 4;
             clubhouseState = 'course_quick';

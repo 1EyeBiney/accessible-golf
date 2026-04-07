@@ -1186,6 +1186,17 @@ Course Data Architecture: Core game data (clubs, wind, green contours) lives in 
 ### v6.17.0 Engine Update (Custom Bot Voice Registries)
 - **Voice Registry Expansion (`audio_core.js`):** Three new characters added to `window.audioVoices`: `"Mendi Dart": "me"`, `"Fallon the Blade": "fb"`, `"Beautiful Bill": "bb"`. Their 2-letter prefixes wire their custom MP3 audio bags into the existing grab-bag commentary system with no changes to engine logic required. Header bumped to v6.17.0.
 
+### v6.20.0 Engine Update (Global Rename — Beautiful Bill → Bill the Legend)
+- **Global Rename:** "Beautiful Bill" renamed to **"Bill the Legend"** across all five files. Name string updated in roster UI, data presets, quick-load macro, God Mode physics trigger, God Mode watchdog (both name checks), and voice registry.
+- **Voice Prefix Updated (`audio_core.js`):** `"Beautiful Bill": "bb"` replaced with `"Bill the Legend": "bl"` in `window.audioVoices`. Header bumped to v6.20.0.
+- **Roster UI (`ui_ag.js`):** `roster_bot_amateur` entry text and `wizardRoster` name updated to `"Bill the Legend"`. Header bumped to v6.20.0.
+- **Data Presets (`data_ag.js`):** `"4 Bots - Foursome"` preset entry updated to `"Bill the Legend"`. Header bumped to v6.20.0.
+- **Quick Load Macro (`input_ag.js`):** `Shift+L` macro 4th bot updated to `"Bill the Legend"`. Header bumped to v6.20.0.
+- **God Mode Physics (`physics_core.js`):** Both `pName === "Beautiful Bill"` checks and both watchdog `p.name` checks updated to `"Bill the Legend"`. Header and `window.AG_VERSION` bumped to v6.20.0.
+
+### v6.19.0 Hotfix (Mendi Dart Audio Prefix Correction)
+- **Voice Registry Fix (`audio_core.js`):** Mendi Dart's audio prefix corrected from `"me"` to `"md"` in `window.audioVoices`. The `"me"` prefix was a typo that would have caused her commentary bag look-ups to fail at runtime. Header bumped to v6.19.0.
+
 ### v6.18.0 Engine Update (Beautiful Bill — Unbeatable God Mode Expansion)
 - **God Mode Expansion (`physics_core.js`):** The `v6.14.0 Beautiful Bill Phase 2` block is replaced with a fully upgraded `v6.18.0 Unbeatable God Mode`. Trigger hole drops from 16 to **14**, giving Bill 5 comeback holes instead of 3. Activation threshold widens to `billScore >= targetScore - 1` (triggers even when Bill leads by 1), vs. the old exact-tie condition. `window.billGodModeActive` flag is now explicitly set/cleared for use by the watchdog.
 - **Dispersion Nullifier (`physics_core.js`):** On God Mode activation, `windX` and `windY` are stashed in `window._tempWindX/Y` and zeroed out before shot physics run, ensuring zero lateral or carry dispersion from wind.

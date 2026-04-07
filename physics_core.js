@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v6.18.0)
-window.AG_VERSION = "v6.18.0";
+// physics_core.js - Math, Wind, and Shot Calculation (v6.20.0)
+window.AG_VERSION = "v6.20.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -681,7 +681,7 @@ function calculateShot(autoMiss = false) {
         }
 
         // v6.18.0 Beautiful Bill Phase 2 (Unbeatable God Mode)
-        if (pName === "Beautiful Bill" && typeof hole !== 'undefined' && hole >= 14) {
+        if (pName === "Bill the Legend" && typeof hole !== 'undefined' && hole >= 14) {
             let target = players.find(p => !p.isBot) || players.find(p => p.name === "Mulligan Moe");
             if (target) {
                 let getScore = (p) => p.strokes + p.roundData.reduce((sum, r) => sum + r.strokes, 0);
@@ -2306,7 +2306,7 @@ if (!window.billWatchdogActive) {
             
             // Safely restore wind when Bill's shot is over or God Mode is off
             if (typeof window._tempWindX !== 'undefined') {
-                if (p.name !== "Beautiful Bill" || !window.billGodModeActive || (typeof swingState !== 'undefined' && swingState === 0)) {
+                if (p.name !== "Bill the Legend" || !window.billGodModeActive || (typeof swingState !== 'undefined' && swingState === 0)) {
                     windX = window._tempWindX;
                     windY = window._tempWindY;
                     window._tempWindX = undefined;
@@ -2314,7 +2314,7 @@ if (!window.billWatchdogActive) {
                 }
             }
             
-            if (p.name === "Beautiful Bill" && window.billGodModeActive) {
+            if (p.name === "Bill the Legend" && window.billGodModeActive) {
                 window.activeCaptureRadius = 5000; // Giant 400-foot black hole cup
                 
                 // Zero out Putting AI variables

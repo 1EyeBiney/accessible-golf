@@ -1,4 +1,4 @@
-﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v6.16.0)
+﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v6.20.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -180,7 +180,7 @@ const rosterPresets = [
             { name: "Mulligan Moe",     skill: 1, iBias: 35,  hBias: 0,   focus: 1, ball: 1 },
             { name: "Mendi Dart",       skill: 2, iBias: 0,   hBias: 0,   focus: 5, ball: 0 },
             { name: "Fallon the Blade", skill: 2, iBias: 0,   hBias: 0,   focus: 0, ball: 0 },
-            { name: "Beautiful Bill",   skill: 1, iBias: 0,   hBias: 0,   focus: 0, ball: 0 }
+            { name: "Bill the Legend",  skill: 1, iBias: 0,   hBias: 0,   focus: 0, ball: 0 }
         ]
     },
     {

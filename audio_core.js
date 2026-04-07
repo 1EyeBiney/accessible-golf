@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v6.17.0)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v6.20.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -418,9 +418,9 @@ window.audioVoices = {
     "Dusty Bunkers": "db",
     "Fairway Fred": "ff",
     // v6.17.0 Character Voice Registry
-    "Mendi Dart": "me",
+    "Mendi Dart": "md",
     "Fallon the Blade": "fb",
-    "Beautiful Bill": "bb"
+    "Bill the Legend": "bl"
 };
 window.botAudioBags = {}; // Tracks the shuffled state for each character
 
