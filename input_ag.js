@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v6.09.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v6.10.0)
 
 // v5.51.0 Swing Input Failsafe & Cooldown
 window.isSwingInitializing = false;
@@ -37,6 +37,10 @@ window.copyToClipboard = function(text, successMsg) {
 };
 
 window.confirmingUnplayable = false;
+
+// v6.10.0 Global Initialization
+window.saveSlotConfirm = null;
+window.saveSlotSelection = false;
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'F5' || e.code === 'F6') {
@@ -512,8 +516,8 @@ window.addEventListener('keydown', (e) => {
     }
 
     // v4.13.0 Context-Sensitive Quit Confirmation
-    // v6.09.0 Save Slot Confirmation Flow
-    if (window.saveSlotConfirm !== null) {
+    // v6.10.0 Save Slot Confirmation Bugfix
+    if (window.saveSlotConfirm) {
         e.preventDefault();
         if (e.code === 'KeyY') {
             if (typeof window.saveGame === 'function') window.saveGame(window.saveSlotConfirm);

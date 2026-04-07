@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v6.03.0)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v6.11.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -733,8 +733,9 @@ window.playClubhouseMusic = function(room) {
     }
 };
 
+// v6.11.0 Instant TTS Door Transition
 window.triggerDoorTransition = function(targetRoom) {
-    window.isDoorTransitioning = true;
+    window.isDoorTransitioning = false; // Bypass the delay lock
     let door = new Audio('audio/clubhouse/clubhouse_door1.mp3');
     let vol = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
     door.volume = vol;
@@ -742,13 +743,11 @@ window.triggerDoorTransition = function(targetRoom) {
     
     if (targetRoom) window.playClubhouseMusic(targetRoom);
     
-    setTimeout(() => {
-        window.isDoorTransitioning = false;
-        if (window.deferredAnnounce) {
-            window.deferredAnnounce();
-            window.deferredAnnounce = null;
-        }
-    }, 4000); // 4000ms delay for TTS clarity
+    // Immediately fire any pending announcements without waiting
+    if (typeof window.deferredAnnounce === 'function') {
+        window.deferredAnnounce();
+        window.deferredAnnounce = null;
+    }
 };
 
 window.stopClubhouseMusic = function() {

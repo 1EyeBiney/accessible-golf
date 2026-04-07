@@ -1,4 +1,4 @@
-// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v6.09.0)
+// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v6.11.0)
 
 // v4.10.0 Scorecard System
 
@@ -253,16 +253,7 @@ window.buildClubhouseMenu = function() {
     clubhouseMenu = [];
     
     if (clubhouseState === 'root') {
-        if (typeof roundData !== 'undefined' && (roundData.length > 0 || strokes > 0)) {
-            clubhouseMenu.push({ text: "Resume Current Round", action: () => {
-                gameMode = 'course';
-                document.getElementById('dashboard-panel').style.display = 'block';
-                document.getElementById('swing-meter').style.display = 'block';
-                if (typeof window.loadActivePlayer === 'function') window.loadActivePlayer(currentPlayerIndex);
-                window.announce("Resuming round. Hole " + hole + ".");
-            }});
-        }
-        clubhouseMenu.push({ text: "Resume Session", action: () => { clubhouseState = 'resume'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(); } });
+        clubhouseMenu.push({ text: "Resume Round", action: () => { clubhouseState = 'resume'; clubhouseIndex = 0; window.buildClubhouseMenu(); window.announceClubhouse(); } });
         clubhouseMenu.push({ text: "Start New Game", action: () => {
             clubhouseState = 'course'; clubhouseIndex = 0;
             window.buildClubhouseMenu(); window.announceClubhouse(true);
@@ -564,7 +555,7 @@ window.announceClubhouse = function(isInit = true) {
         else if (clubhouseState === 'roster_bot_amateur') prefix = "Select Amateur Bot. ";
         else if (clubhouseState === 'roster_bot_tour') prefix = "Select Tour Pro Bot. ";
         else if (clubhouseState === 'settings') prefix = "Round Setup. ";
-        else if (clubhouseState === 'resume') prefix = "Resume Session. Select a save slot. ";
+        else if (clubhouseState === 'resume') prefix = "Resume Round. Select a save slot. ";
     }
     let msg = prefix + window.menuOptions[window.menuIndex].text;
     window.announce(msg);
