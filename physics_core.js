@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v6.21.2)
-window.AG_VERSION = "v6.21.2";
+// physics_core.js - Math, Wind, and Shot Calculation (v6.22.0)
+window.AG_VERSION = "v6.22.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -2060,7 +2060,11 @@ window.getCaddyAdvice = function() {
     
     if (typeof window.playGolfSound === 'function') window.playGolfSound('caddy_02');
     
-    return `[Oracle]: To hit ${targetPoint.label} (${targetDist}y), equip ${best.clubName}, ${best.stanceName} stance, aim ${aimStr}.`;
+    // v6.22.0 Oracle "Ralph" Override
+    let activePName = typeof players !== 'undefined' && players.length > 0 ? players[currentPlayerIndex].name : "";
+    let displayClub = (activePName === "Bill the Legend") ? "Ralph" : best.clubName;
+    
+    return `[Oracle]: To hit ${targetPoint.label} (${targetDist}y), equip ${displayClub}, ${best.stanceName} stance, aim ${aimStr}.`;
 };
 
 // v4.47.0 Silent Oracle for AI Brain

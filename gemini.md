@@ -1186,6 +1186,9 @@ Course Data Architecture: Core game data (clubs, wind, green contours) lives in 
 ### v6.17.0 Engine Update (Custom Bot Voice Registries)
 - **Voice Registry Expansion (`audio_core.js`):** Three new characters added to `window.audioVoices`: `"Mendi Dart": "me"`, `"Fallon the Blade": "fb"`, `"Beautiful Bill": "bb"`. Their 2-letter prefixes wire their custom MP3 audio bags into the existing grab-bag commentary system with no changes to engine logic required. Header bumped to v6.17.0.
 
+### v6.22.0 Hotfix (Bill the Legend — Oracle Caddy "Ralph" Override)
+- **Oracle Caddy Patch (`physics_core.js`):** Injected `displayClub` override at the return statement of `window.getCaddyAdvice`. When the active player is `"Bill the Legend"`, the Oracle announces `"Ralph"` instead of `best.clubName` in its tactical targeting readout. Header and `window.AG_VERSION` bumped to v6.22.0.
+
 ### v6.21.2 Hotfix (Bill the Legend — Post-Shot Telemetry Club Name Override)
 - **Telemetry Patch (`physics_core.js`):** Injected `let displayClub = (pName === "Bill the Legend") ? "Ralph" : club.name;` immediately before the telemetry assembly block in `calculateShot`. Both `shotBroadcast` (the Caddy narrative header) and `metrics` (the Telemetry Setup line) now reference `displayClub`, so "Ralph" appears in all post-shot readouts for Bill the Legend. Header and `window.AG_VERSION` bumped to v6.21.2.
 

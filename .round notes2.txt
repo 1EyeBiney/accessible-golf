@@ -1,9 +1,0 @@
-I have 4 new audio assets that are ambient music MP3s that should join the grab bag rotation for ambient music played in the clubhouse 
-These are located in  /audio/clubhouse/all_that_vox folder with the other songs for this grab bag.
-The new assets are named:
-champions_of_the_first_tee.mp3
-fairways_and_fringe.mp3
-open_faced_club_sandwish.mp3
-peaceful_back_nine.mp3
-
-use version 6.15 and add those in to the ambient music rotation please
