@@ -1,4 +1,4 @@
-﻿// main_ag.js - Game State, Variables, and Swing Sequence (v6.24.0)
+﻿// main_ag.js - Game State, Variables, and Swing Sequence (v6.25.0)
 
 let swingState = 0; // 0: Idle, 1: Back, 2: Power, 3: Down, 4: Impact, 5: Flight
 window.tournamentGreens = false;
@@ -7,7 +7,13 @@ let isPracticeSwing = false;
 window.swingControlMode = 'hold';
 let devPower = false, devHinge = false, devImpact = false;
 let pacingModeIndex = 0; // 0: Fast, 1: Medium, 2: Slow, 3: Manual
-let pacingModes = ["Fast", "Medium", "Slow", "Manual", "Simulate"];
+let pacingModes = ["Fast", "Medium", "Slow", "Manual", "Simulate", "Silent Sim"];
+// v6.25.0 Silent Sim: unlike "Simulate" (which is still fast but leaks
+// commentary/SFX because so many playback calls only ever checked isQuickSim,
+// a per-shot flag), Silent Sim is a persistent, whole-round mute. Every audio
+// leaf function (audio_core.js) and the bot commentary trigger
+// (physics_core.js) checks this instead of re-deriving pacing state.
+window.isSilentSim = false;
 window.waitingForBot = false;
 let stateTimeouts = [];
 let botThinkingInterval = null;
@@ -152,6 +158,7 @@ let wizardRough = 1;
 let wizardMulligans = 1; // 0: Off, 1: 3 Per Round, 2: Unlimited
 let wizardGimmes = 1; // 0: Off, 1: Manual Only, 2: Auto <3ft, 3: Auto <6ft
 let wizardMaxScore = 2; // 0: Off, 1: Double Par, 2: Snowman (8)
+let wizardSilentSim = false; // v6.25.0: all-bot pre-selection for Silent Sim pacing, so shot 1 doesn't force audio
 window.preShotState = null;
 let roughConditionIndex = 1; 
 const roughConditions = [
@@ -249,8 +256,9 @@ window.advanceTurn = function(isPuttingTransition = false) {
             if (hole >= window.currentCourse.holes.length) {
                 gameMode = 'post_round';
                 if (typeof window.stopAllCourseAudio === 'function') window.stopAllCourseAudio();
-                compMsg = "Round Complete! All players have finished. Press Shift + E to view telemetry.";
+                compMsg = "Round Complete! All players have finished. Press Enter or Shift + E for the final scorecard, or Escape to return to the Clubhouse.";
                 window.isQuickSim = false; // Safety stop
+                window.isSilentSim = false; // v6.25.0 Safety stop - don't leave a Silent Sim round muting the next session
             }
             window.announce(compMsg);
             window.setCaddyPanelText(compMsg);
@@ -358,7 +366,7 @@ window.advanceTurn = function(isPuttingTransition = false) {
 
         if (players[currentPlayerIndex].isBot) {
             window.waitingForBot = false;
-            let isSim = pacingModes[pacingModeIndex] === 'Simulate';
+            let isSim = pacingModes[pacingModeIndex] === 'Simulate' || pacingModes[pacingModeIndex] === 'Silent Sim';
 
             if (isSim) {
                 window.takeAITurn(true);
@@ -787,7 +795,7 @@ function loadHole(holeNumber) {
         }, 1000);
 
         if (players[currentPlayerIndex] && players[currentPlayerIndex].isBot) {
-            let isSim = pacingModes[pacingModeIndex] === 'Simulate';
+            let isSim = pacingModes[pacingModeIndex] === 'Simulate' || pacingModes[pacingModeIndex] === 'Silent Sim';
             if (isSim) {
                 stateTimeouts.push(setTimeout(() => { if (typeof window.takeAITurn === 'function') window.takeAITurn(true); }, 10));
             } else {

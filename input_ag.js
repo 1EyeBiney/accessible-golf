@@ -1,4 +1,4 @@
-// input_ag.js - Keyboard Controls and Event Listeners (v6.20.0)
+// input_ag.js - Keyboard Controls and Event Listeners (v6.25.0)
 
 // v5.51.0 Swing Input Failsafe & Cooldown
 window.isSwingInitializing = false;
@@ -285,7 +285,41 @@ window.addEventListener('keydown', (e) => {
             if (scRow > 0) { scRow--; window.announceScorecardCell(); }
             else { window.announce("Top edge."); }
         }
-        return; 
+        return;
+    }
+
+    // v6.25.0 Post-Round Interceptor. Previously nothing handled gameMode
+    // === 'post_round' at all: the v4.10.0 Next Hole Progression block below
+    // only fires while gameMode is still 'course', but advanceTurn()
+    // (main_ag.js) has already flipped gameMode to 'post_round' by the time
+    // any key can be pressed, so Enter fell through every remaining check and
+    // did nothing - the game's only real feedback was the one spoken
+    // announce at completion. This guarantees Enter/Shift+E reliably reach
+    // the scorecard and Escape is a clean, announced return to the
+    // Clubhouse, for every finished round (a human-watched one or an
+    // unattended Silent Sim).
+    if (gameMode === 'post_round') {
+        if (e.code === 'Enter') {
+            e.preventDefault();
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_03');
+            if (typeof window.renderScorecard === 'function') window.renderScorecard();
+            else window.announce("Round complete.");
+            return;
+        }
+        if (e.code === 'Escape') {
+            e.preventDefault();
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('menu_01');
+            gameMode = 'clubhouse'; clubhouseState = 'root'; clubhouseIndex = 0;
+            document.getElementById('dashboard-panel').style.display = 'none';
+            document.getElementById('swing-meter').style.display = 'none';
+            window.announce("Returning to the Clubhouse.");
+            if (typeof window.buildClubhouseMenu === 'function') window.buildClubhouseMenu();
+            if (typeof window.announceClubhouse === 'function') window.announceClubhouse(true);
+            return;
+        }
+        // Other keys (Shift+E full scorecard, plain KeyE quick score, Shift+N
+        // share sheet) already have their own gameMode-agnostic or
+        // post_round-aware handling further below - let them fall through.
     }
 
     // v4.14.0 Grid Target Navigation Interceptor
@@ -628,6 +662,7 @@ window.addEventListener('keydown', (e) => {
         if (e.code === 'KeyP') {
             e.preventDefault();
             pacingModeIndex = (pacingModeIndex + 1) % pacingModes.length;
+            window.isSilentSim = (pacingModes[pacingModeIndex] === 'Silent Sim'); // v6.25.0
             window.announce(`Game Pacing set to ${pacingModes[pacingModeIndex]}.`);
             document.getElementById('visual-output').innerText = `Pacing: ${pacingModes[pacingModeIndex]}`;
             if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_02');
@@ -1710,7 +1745,7 @@ window.getKeyDescription = function(code, shift, ctrl) {
         'Equal': gameMode === 'range' ? (shift ? "Holo Range: Raises Elevation/Height." : "Holo Range: Moves active object Further.") : "Unassigned key.",
         'Backspace': gameMode === 'range' ? "Holo Range: De-spawns the active object." : "Unassigned key.",
         'Delete': gameMode === 'range' ? "Holo Range: De-spawns the active object." : "Unassigned key.",
-        'Enter': ctrl ? "Fast-forwards through Clubhouse setup menus." : "Confirms selections and targets.",
+        'Enter': gameMode === 'post_round' ? "Opens the final scorecard." : (ctrl ? "Fast-forwards through Clubhouse setup menus." : "Confirms selections and targets."),
         'F1': "Toggles Dev Power.",
         'F2': "Toggles Dev Hinge.",
         'F3': "Toggles Dev Impact.",

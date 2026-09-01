@@ -1,4 +1,4 @@
-// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v6.20.0)
+// audio_core.js - Audio Engine, Announcer, and Environmental Audio (v6.25.0)
 
 let audioCtx = null;
 let powerOscillator, powerGain;
@@ -42,7 +42,7 @@ window.stopAllAudio = function() {
 };
 
 function playTone(freq, type, dur, vol) {
-    if (!audioCtx) return;
+    if (!audioCtx || window.isSilentSim) return; // v6.25.0 Silent Sim master mute
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     const boostedVol = Math.min(1, vol * AUDIO_GAIN_BOOST);
@@ -54,7 +54,7 @@ function playTone(freq, type, dur, vol) {
 }
 
 function playNoise(dur, vol, isRoll = false) {
-    if (!audioCtx) return;
+    if (!audioCtx || window.isSilentSim) return; // v6.25.0 Silent Sim master mute
     const bufferSize = audioCtx.sampleRate * dur;
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -78,7 +78,7 @@ function playNoise(dur, vol, isRoll = false) {
 }
 
 function playSweep(f1, f2, f3, dur, vol = 0.12, type = 'sawtooth') {
-    if (!audioCtx) return;
+    if (!audioCtx || window.isSilentSim) return; // v6.25.0 Silent Sim master mute
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     const boostedVol = Math.min(1, vol * AUDIO_GAIN_BOOST);
@@ -95,7 +95,7 @@ function playSweep(f1, f2, f3, dur, vol = 0.12, type = 'sawtooth') {
 }
 
 window.playPanTone = function(freq, type, dur, vol, pan = 0) {
-    if (!audioCtx) return;
+    if (!audioCtx || window.isSilentSim) return; // v6.25.0 Silent Sim master mute
     const osc = audioCtx.createOscillator();
     const panner = audioCtx.createStereoPanner();
     const gain = audioCtx.createGain();
@@ -113,7 +113,7 @@ window.playPanTone = function(freq, type, dur, vol, pan = 0) {
 };
 
 window.playEcho = function(type, f1, f2, dur, vol, delaySeconds = 0.12, feedbackGain = 0.35) {
-    if (!audioCtx) return;
+    if (!audioCtx || window.isSilentSim) return; // v6.25.0 Silent Sim master mute
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     const delay = audioCtx.createDelay();
@@ -177,7 +177,7 @@ function triggerMilestone(percent) {
 }
 
 window.playSplash = function(vol) {
-    if (!audioCtx) return;
+    if (!audioCtx || window.isSilentSim) return; // v6.25.0 Silent Sim master mute
     const boostedVol = Math.min(1, vol * AUDIO_GAIN_BOOST);
     
     // White noise splash
@@ -234,7 +234,7 @@ window.playSweep = playSweep;
 // --- AI CHARACTER AUDIO SIGNATURES ---
 
 window._createAudioSegment = function(startTime, duration, waveType, freqs, lfos, filters) {
-    if (!audioCtx) return;
+    if (!audioCtx || window.isSilentSim) return; // v6.25.0 Silent Sim master mute
     const osc = audioCtx.createOscillator();
     osc.type = waveType;
     osc.frequency.setValueAtTime(freqs[0].f, startTime);
@@ -277,7 +277,7 @@ window._createAudioSegment = function(startTime, duration, waveType, freqs, lfos
 };
 
 window.playBotRorySignature = function() {
-    if (typeof audioCtx === 'undefined' || !audioCtx) return;
+    if (typeof audioCtx === 'undefined' || !audioCtx || window.isSilentSim) return; // v6.25.0 Silent Sim master mute
     const t = audioCtx.currentTime;
     const notes = [293.66, 329.63, 369.99, 293.66, 392.00, 369.99, 329.63, 293.66]; 
     for (let i = 0; i < 16; i++) {
@@ -292,7 +292,7 @@ window.playBotRorySignature = function() {
 };
 
 window.playBotSeveSignature = function() {
-    if (typeof audioCtx === 'undefined' || !audioCtx) return;
+    if (typeof audioCtx === 'undefined' || !audioCtx || window.isSilentSim) return; // v6.25.0 Silent Sim master mute
     const t = audioCtx.currentTime;
     const notes = [659.25, 587.33, 523.25, 493.88, 440.00, 415.30, 349.23, 329.63]; 
     for (let i = 0; i < 8; i++) {
@@ -319,6 +319,7 @@ window.audioGoatInterrupts = [];
 for(let i=1; i<=3; i++) window.audioGoatInterrupts.push(new Audio(`audio/courses/pasture/goat_interrupt${i}.mp3`));
 
 window.playGoatInterrupt = function() {
+    if (window.isSilentSim) return; // v6.25.0 Silent Sim master mute
     let r = Math.floor(Math.random() * window.audioGoatInterrupts.length);
     if (window.audioGoatInterrupts[r]) {
         window.audioGoatInterrupts[r].currentTime = 0;
@@ -333,6 +334,7 @@ for (let i = 1; i <= 3; i++) {
 }
 
 window.playMarquisInterrupt = function() {
+    if (window.isSilentSim) return; // v6.25.0 Silent Sim master mute
     if (window.audioMarquisInterrupts.length > 0) {
         let idx = Math.floor(Math.random() * window.audioMarquisInterrupts.length);
         let clip = window.audioMarquisInterrupts[idx];
@@ -356,6 +358,7 @@ for (let i = 1; i <= 4; i++) {
 window.standardDuckGrabBag = [];
 
 window.triggerDuckEvent = function() {
+    if (window.isSilentSim) return; // v6.25.0 Silent Sim master mute
     // Determine which audio to play based on course context
     if (typeof window.currentCourse !== 'undefined' && window.currentCourse.name === "The Pasture" && typeof hole !== 'undefined' && hole === 7) {
         if (typeof window.audioPastureDucks !== 'undefined' && window.audioPastureDucks.length > 0) {
@@ -387,6 +390,7 @@ for(let i=1; i<=6; i++) {
 window.toiletGrabBag = [];
 
 window.triggerToiletEvent = function() {
+    if (window.isSilentSim) return; // v6.25.0 Silent Sim master mute
     if (window.toiletGrabBag.length === 0) {
         window.toiletGrabBag = [0, 1, 2, 3, 4, 5];
         window.toiletGrabBag.sort(() => Math.random() - 0.5);
@@ -427,6 +431,7 @@ window.botAudioBags = {}; // Tracks the shuffled state for each character
 // --- ENVIRONMENTAL AUDIO (v5.23.0) ---
 
 window.playEnvironment = function(musicSrc, ambientSrc) {
+    if (window.isSilentSim) return; // v6.25.0 Silent Sim master mute
     if (currentBgMusic) { currentBgMusic.pause(); currentBgMusic.src = ''; }
     if (currentBgAmbient) { currentBgAmbient.pause(); currentBgAmbient.src = ''; }
 
@@ -655,7 +660,7 @@ window.stopAllCourseAudio = function() {
 
 // v5.70.0 Universal Ambient Hot-Swap Controller
 window.hotSwapAmbient = function(targetAmbient) {
-    if (!targetAmbient) return;
+    if (!targetAmbient || window.isSilentSim) return; // v6.25.0 Silent Sim master mute
     
     // Find the active ambient object inside this module's scope
     let ambientObj = null;

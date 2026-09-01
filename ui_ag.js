@@ -1,4 +1,4 @@
-// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v6.21.0)
+// ui_ag.js - Dashboard, Scorecard, Clubhouse Menu, and Help UI (v6.25.0)
 
 // v4.10.0 Scorecard System
 
@@ -486,15 +486,36 @@ window.buildClubhouseMenu = function() {
             wizardMaxScore = (wizardMaxScore + 1) % 3; window.buildClubhouseMenu(); window.announceClubhouse(false);
         }});
 
+        // v6.25.0 Silent Sim pre-selection: only offered for an all-bot
+        // roster. Selecting it here (before Start Round!) is what lets the
+        // very first shot skip audio/delay too, instead of only kicking in
+        // once someone presses P mid-round.
+        const allBotsRoster = wizardRoster.slice(0, wizardSize).every(r => r && r.isBot);
+        if (allBotsRoster) {
+            clubhouseMenu.push({
+                text: `Pacing: ${wizardSilentSim ? "Silent Sim (instant, no audio)" : "Normal (pick pace with P once playing)"}`,
+                action: () => {
+                    wizardSilentSim = !wizardSilentSim; window.buildClubhouseMenu(); window.announceClubhouse(false);
+                }
+            });
+        }
+
         clubhouseMenu.push({ text: "Start Round!", action: () => {
-            if (typeof window.clearSave === 'function') window.clearSave(); 
-            
+            if (typeof window.clearSave === 'function') window.clearSave();
+
             currentCourseIndex = wizardCourse;
             windLevelIndex = wizardWind; generateWind();
             window.tournamentGreens = wizardTournamentGreens;
-            roughConditionIndex = wizardRough; 
-            pacingModeIndex = 0; // v4.90.0 Failsafe: Hardcode to Fast Pacing
-            
+            roughConditionIndex = wizardRough;
+            // v6.25.0: honor a pre-selected Silent Sim (all-bot only) so the
+            // first shot of the round is already instant and silent, instead
+            // of always forcing Fast pacing and only allowing the fast/quiet
+            // path to kick in after someone cycles pacing with P mid-round.
+            let allBotsAtStart = wizardRoster.slice(0, wizardSize).every(r => r && r.isBot);
+            let useSilentSim = wizardSilentSim && allBotsAtStart;
+            pacingModeIndex = useSilentSim ? pacingModes.indexOf("Silent Sim") : 0; // v4.90.0 Failsafe: Hardcode to Fast Pacing otherwise
+            window.isSilentSim = useSilentSim;
+
             players = [];
             activePlayerCount = wizardSize;
             for (let i = 0; i < wizardSize; i++) {

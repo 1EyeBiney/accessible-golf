@@ -1218,6 +1218,7 @@ function calculateShot(autoMiss = false) {
             else if (lateralX > 15) missileFile = 'missile_80r';
 
             let timeoutId = setTimeout(() => {
+                if (window.isSilentSim) return; // v6.25.0 Silent Sim master mute
                 if (typeof audioCtx !== 'undefined' && audioCtx) {
                     let audioEl = new Audio('audio/courses/pasture/' + missileFile + '.mp3');
                     audioEl.volume = typeof window.ambientVolumeLevels !== 'undefined' ? window.ambientVolumeLevels[window.ambientVolumeIndex] : 1.0;
@@ -1493,8 +1494,12 @@ function calculateShot(autoMiss = false) {
         const flushThresh = 90;
         let pName = typeof players !== 'undefined' && players.length > 0 ? players[currentPlayerIndex].name : "Player";
         let voicePrefix = typeof window.audioVoices !== 'undefined' ? window.audioVoices[pName] : null;
-        
-        if (voicePrefix) {
+
+        // v6.25.0: this branch was never gated by `quick` at all, so every
+        // bot shot in the old "Simulate" pacing mode fired a commentary clip
+        // with zero pacing between them - the "wall of sound" reported
+        // during 4-bot batch runs. Silent Sim mutes it here.
+        if (voicePrefix && !window.isSilentSim) {
             let isFlushed = accuracyScore >= flushThresh;
             
             // Initialize personal grab bags if they don't exist yet
@@ -1707,14 +1712,21 @@ function calculateShot(autoMiss = false) {
                         audioFile = `audio/test_far${variant}.mp3`;
                     }
 
-                    const proximityAudio = new Audio(audioFile);
-                    proximityAudio.volume = 0.8;
-                    proximityAudio.play().catch(e => console.log("Audio file not found:", audioFile));
+                    // v6.25.0: gated on isSilentSim specifically (not quick)
+                    // so existing "Simulate" pacing keeps playing this exactly
+                    // as before - only the new fully-silent mode mutes it.
+                    // (onloadedmetadata/caddyDelayMs must stay inside this
+                    // block - proximityAudio doesn't exist when muted.)
+                    if (!window.isSilentSim) {
+                        const proximityAudio = new Audio(audioFile);
+                        proximityAudio.volume = 0.8;
+                        proximityAudio.play().catch(e => console.log("Audio file not found:", audioFile));
 
-                    // Delay Caddy until 500ms after the MP3 ends
-                    proximityAudio.onloadedmetadata = () => {
-                        caddyDelayMs = (proximityAudio.duration * 1000) + 500;
-                    };
+                        // Delay Caddy until 500ms after the MP3 ends
+                        proximityAudio.onloadedmetadata = () => {
+                            caddyDelayMs = (proximityAudio.duration * 1000) + 500;
+                        };
+                    }
                 }
 
                 const landDir = landRelY < -1 ? "short" : landRelY > 1 ? "long" : "pin-high";
