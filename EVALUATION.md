@@ -109,12 +109,14 @@ Measured: ~27 seconds from ArrowDown to hearing the result on a well-struck
 drive (≈7s swing ceremony + flight/bounce/roll theatre + report). The ceremony
 IS the game — don't touch the default. But an opt-in Brisk mode (shorter roll
 theatrics, headline-first report) would serve experienced players and shorten
-a solo round meaningfully. Related: consider per-club tempo as a mechanic —
+a solo round meaningfully. 
+
+[save this for future]Related: consider per-club tempo as a mechanic —
 wedges swinging on a compressed timing cycle vs. the driver's full one — which
 is both realistic and adds a second timing skill to learn.
 
 ### 7. Fill the 80–90 accuracy dead zone
-
+[not now]
 Below 80 → duck; above 90 → celebration audio and voice lines. The most common
 band of outcomes (80–90) has no characterful feedback at all. A modest middle
 cue (or occasional caddy/bot one-liner) completes the reward gradient.
@@ -136,6 +138,7 @@ starts with five keys (ArrowDown, Space, PageUp/Down, W, C) and introduces one
 system per hole (stance → styles → targeting → hazards → the caddy), with
 everything else locked until introduced. The Smart Help and F12 Explore Mode
 are good reference tools; this is teaching, which is different.
+[for now, set up this caddy guided practiceround  as another course so I can practice but eventually it will be removed and put elsewhere as part of the new game process.]
 
 ### 10. Locked-conditions practice
 
