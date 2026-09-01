@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v6.24.0)
-window.AG_VERSION = "v6.24.0";
+// physics_core.js - Math, Wind, and Shot Calculation (v6.25.0)
+window.AG_VERSION = "v6.25.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
@@ -593,22 +593,31 @@ function calculateShot(autoMiss = false) {
             holeTelemetry.push(lastShotReport);
 
             stateTimeouts.push(setTimeout(() => {
-                window.announce(broadcast);
-                document.getElementById('visual-output').innerText = broadcast;
-            }, delayAnnounceMs));
+                if (!quick) {
+                    window.announce(broadcast);
+                    document.getElementById('visual-output').innerText = broadcast;
+                }
+            }, quick ? 0 : delayAnnounceMs));
 
+            // v6.25.0 Quick-Sim Bypass: this 3000ms pause (every putt, made or
+            // missed - not just hole completion) was previously unconditional
+            // and, at ~1.8 putts/hole across 4 bots over 18 holes, was a
+            // second major contributor to Simulate mode's real wall-clock cost
+            // alongside the playback-loop fix above.
             stateTimeouts.push(setTimeout(() => {
                 if (gameMode === 'putting') {
                     ballX = 0; ballY = 0; isHoleComplete = false;
                     swingState = 0; strokes = 0; puttState = 0; aimAngle = 0;
                     puttTargetDist = Math.round(calculateDistanceToPin());
-                    window.announce(`${broadcast} Resetting ball to ${puttTargetDist} yards.`);
-                    window.updateDashboard();
+                    if (!quick) {
+                        window.announce(`${broadcast} Resetting ball to ${puttTargetDist} yards.`);
+                        window.updateDashboard();
+                    }
                 } else if (gameMode === 'course') {
                     window.advanceTurn();
                 }
-                if (typeof window.saveGame === 'function') window.saveGame();
-            }, 3000 + delayAnnounceMs));
+                if (!quick && typeof window.saveGame === 'function') window.saveGame();
+            }, quick ? 0 : 3000 + delayAnnounceMs));
         }
 
         // v4.8.0 Putter Strike Sound
@@ -622,7 +631,17 @@ function calculateShot(autoMiss = false) {
             players[currentPlayerIndex].isChokedDown = false;
         }
 
-        playNextPuttStep(); // Trigger the suspense
+        // v6.25.0 Quick-Sim Putt Bypass: the physics (madeIt/lipOut/ballX/ballY)
+        // are already fully resolved above; only the step-by-step audio/timing
+        // playback is theatre. That playback was previously ungated by `quick`
+        // and could add 8-15+ real seconds per putt (100-1600ms per 1-yard
+        // step), which was the dominant cost in an 18-hole 4-bot Simulate
+        // round (~45s/hole measured, ~14 minutes total).
+        if (quick) {
+            finishPutt();
+        } else {
+            playNextPuttStep(); // Trigger the suspense
+        }
         return; // EXIT SHOT CALCULATION
     }
 
@@ -1702,10 +1721,13 @@ function calculateShot(autoMiss = false) {
                             }
                         }, quick ? 0 : (typeof isPutting !== 'undefined' && isPutting && club.name === "Putter" && strokes > 1 ? 1500 : 0)));
                         // Track the Auto-Save delay
+                        // v6.25.0: gated under quick-sim to avoid piling up
+                        // stray 2s timers and redundant localStorage writes
+                        // across a fast batch of simulated shots.
                         stateTimeouts.push(setTimeout(() => {
                             shotStyleIndex = 0; // v4.19.7 Reset style to Normal after shot completion
-                            if (typeof window.saveGame === 'function') window.saveGame();
-                        }, 2000));
+                            if (!quick && typeof window.saveGame === 'function') window.saveGame();
+                        }, quick ? 0 : 2000));
                     }
                 }
             }
