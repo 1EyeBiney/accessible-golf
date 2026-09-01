@@ -297,6 +297,38 @@ function calculateShot(autoMiss = false) {
         let hingeDiff = isBotTurn ? players[currentPlayerIndex].botHinge : (devHinge ? 0 : Math.round(hingeTimeDown - hingeTimeBack));
         if (isBotTurn) finalPower = players[currentPlayerIndex].botPower;
 
+        // v6.25.0 Skill-Tier Impact Floor (Putting). Matches the v5.1.8
+        // Forced Dispersion Ceiling magnitudes already used for full swings.
+        // Hinge/tempo is deliberately NOT touched here (see the fuller
+        // history in this comment's earlier drafts, kept short now): the
+        // real lever for bot putting quality turned out to be the executed
+        // aim/pace itself (see the v6.25.0 Skill-Scaled Putting Execution
+        // Error block in main_ag.js's takeAITurn), not the tempoBonus cup-
+        // size multiplier - getOracleBlueprint's putting search runs the
+        // SAME step-simulation physics that executes the putt, so a bot
+        // that took its exact aim/pace (zero noise) would hole most
+        // makeable putts regardless of cup size. A full hinge re-roll here
+        // was tried and measurably overcorrected when combined with that
+        // aim/pace noise (batch-sim went from -10 to +12..+50), so it was
+        // removed - the aim/pace noise alone is the cleaner, sufficient fix.
+        // v6.25.0 tuning note: 25ms for skill 2 (the original v5.1.8 value)
+        // left Mendi/Fallon consistently 5-13 strokes under the +2..+8 band
+        // even after the putting aim/pace fix was doubled - the underlying
+        // accuracy curve is forgiving enough that 25ms barely differs from
+        // no floor at all outside their sniper-clamped clubs/zones. Raised
+        // to 45ms so "amateur+" full-swing execution is meaningfully worse
+        // than a Tour Pro's - the sniper's advantage should come from
+        // targeting, not from being secretly accurate everywhere else too.
+        if (isBotTurn && players[currentPlayerIndex].isBot) {
+            let pFloor = players[currentPlayerIndex];
+            let signOf = (v) => v > 0 ? 1 : v < 0 ? -1 : (Math.random() < 0.5 ? -1 : 1);
+            if (pFloor.botSkill === 1 && Math.abs(impactDiff) < 40) {
+                impactDiff = signOf(impactDiff) * (40 + Math.random() * 20);
+            } else if (pFloor.botSkill === 2 && Math.abs(impactDiff) < 65) {
+                impactDiff = signOf(impactDiff) * (65 + Math.random() * 15);
+            }
+        }
+
         // v5.45.0 Tournament Greens Speed
         let effectiveStimp = (typeof window.tournamentGreens !== 'undefined' && window.tournamentGreens) ? 13 : 10;
         // v5.45.0 Bot Pace Scatter on Tournament Greens
@@ -700,6 +732,40 @@ function calculateShot(autoMiss = false) {
         if (pName === "Mendi Dart" && club && club.name === "Driver") {
             let yardPenaltyPercent = (20 / (club.distance || 260)) * 100;
             finalPower = Math.max(0, finalPower - yardPenaltyPercent);
+        }
+
+        // v6.25.0 Skill-Tier Impact Floor (Phase 2 of the overnight v6.25
+        // mission - see EVALUATION.md item 1 / MISSION_OVERNIGHT_v6.25.md).
+        // Runs LAST, after every personality clamp/bonus above (v6.12 Sniper
+        // Clamps, v6.14 Driver Nerf), so a sniper's near-perfect impactDiff
+        // clamp can never produce execution tighter than their skill tier
+        // allows. Sniper IDENTITY survives as a targeting/club-selection bias
+        // (Mendi still attacks the wedge zone, Fallon still reaches for her
+        // long irons - see the pName checks inside getOracleBlueprint);
+        // their EXECUTION now obeys the same amateur variance every other
+        // skill-1/2 bot faces. Floors match the existing v5.1.8 Forced
+        // Dispersion Ceiling in takeAITurn (main_ag.js). hingeDiff is
+        // deliberately left untouched here after tuning showed a hinge
+        // re-roll compounded with the putting-side aim/pace fix (see
+        // takeAITurn) into a severe overcorrection (bands blew out to
+        // +20..+50); the impact floor alone, plus the putting aim/pace fix,
+        // was sufficient.
+        // v6.25.0 tuning note: 25ms for skill 2 (the original v5.1.8 value)
+        // left Mendi/Fallon consistently 5-13 strokes under the +2..+8 band
+        // even after the putting aim/pace fix was doubled - the underlying
+        // accuracy curve is forgiving enough that 25ms barely differs from
+        // no floor at all outside their sniper-clamped clubs/zones. Raised
+        // to 45ms so "amateur+" full-swing execution is meaningfully worse
+        // than a Tour Pro's - the sniper's advantage should come from
+        // targeting, not from being secretly accurate everywhere else too.
+        if (isBotTurn && players[currentPlayerIndex].isBot) {
+            let pFloor = players[currentPlayerIndex];
+            let signOf = (v) => v > 0 ? 1 : v < 0 ? -1 : (Math.random() < 0.5 ? -1 : 1);
+            if (pFloor.botSkill === 1 && Math.abs(impactDiff) < 40) {
+                impactDiff = signOf(impactDiff) * (40 + Math.random() * 20);
+            } else if (pFloor.botSkill === 2 && Math.abs(impactDiff) < 65) {
+                impactDiff = signOf(impactDiff) * (65 + Math.random() * 15);
+            }
         }
 
         // v6.18.0 Beautiful Bill Phase 2 (Unbeatable God Mode)

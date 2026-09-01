@@ -30,6 +30,29 @@ the version that fixed them.
 5. **gemini.md's addenda occasionally describe injections that were later
    moved or superseded** (it is a change log, not a state description). Trust
    ARCHITECTURE.md, then the code. When a discrepancy matters, note it here.
+6. **Bill the Legend trends slightly light of his own mid-skill-1 pre-God-Mode
+   target** after the v6.25.0 bot-scoring-ladder fix. In the final 3-round
+   acceptance batch he shot +9/+6/+6 against a +10..+14 target (still inside
+   the broader +8..+16 skill-1 band in the first round). He's a zero-bias
+   "clean baseline amateur" (no `impactBias`/`hingeBias`), so unlike Mulligan
+   Moe he relies entirely on the generic skill-1 floor/putting-noise for his
+   variance — worth either a small personal bias (matching how every other
+   named bot is differentiated) or another look with a larger sample (10+
+   rounds; tonight's tuning worked in batches of 3, which carries real
+   sampling noise of its own — see the v6.25.0 changelog entry's tuning
+   journey for the full record of what was tried).
+7. **Local dev-server script caching can silently serve stale JS during rapid
+   iteration.** The `?v=` cache-busters only change once per release, so
+   editing `physics_core.js`/`main_ag.js` and reloading the same URL during
+   same-version testing can serve the browser's cached pre-edit copy with no
+   error or warning — this cost real time during v6.25.0's bot-tuning pass
+   (see its changelog entry). When iterating rapidly within one unreleased
+   version, append a throwaway suffix to the script `?v=` query strings
+   (bumped on every edit) rather than relying on the outer page URL's own
+   cache-buster, which does not affect sub-resource caching; verify with
+   `window.someFunction.toString().includes('expected new text')` before
+   trusting a test result. Revert to the clean version string before
+   committing.
 
 ## Done
 

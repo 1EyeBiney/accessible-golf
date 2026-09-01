@@ -411,15 +411,50 @@ window.takeAITurn = function(isSim = false) {
     if (isPutting) {
         // v5.37.0 AI Target Cursor & Zero-Power Fix
         let actualDist = typeof calculateDistanceToPin === 'function' ? calculateDistanceToPin() : 10;
-        aimAngle = blueprint.aimDeg !== null ? blueprint.aimDeg : 0;
-        let pace = blueprint.pace !== null ? blueprint.pace : actualDist;
-        
+        let rawAimDeg = blueprint.aimDeg !== null ? blueprint.aimDeg : 0;
+        let rawPace = blueprint.pace !== null ? blueprint.pace : actualDist;
+
+        // v6.25.0 Skill-Scaled Putting Execution Error (Phase 2 of the
+        // overnight v6.25 mission). getOracleBlueprint's putting branch is a
+        // brute-force search of the SAME step-simulation physics that will
+        // execute the putt, so a bot that took the Oracle's aim/pace exactly
+        // (as this function previously did, with zero noise) would hole an
+        // enormous fraction of makeable putts regardless of skill - the cup
+        // size (tempoBonus, see physics_core.js) barely matters when the
+        // Oracle already found a "dies at the cup" solution. Real noise on
+        // the executed aim/pace, scaled by skill, is what actually
+        // differentiates a beginner's read-and-stroke from a tour pro's.
+        // Skill 3 gets none (tour pros really do putt close to the Oracle
+        // line); skill 1/2 get meaningfully more than skill 3, in both
+        // degrees of aim and fractional pace.
+        // v6.25.0 tuning note: the first calibration (+/-4deg / +/-25% for
+        // skill 1) badly overcorrected once actually verified live (a
+        // caching issue had silently prevented earlier test runs from
+        // exercising this code at all - see PROGRESS notes in the changelog
+        // entry). Halving skill 1's noise landed it consistently in band
+        // across 3 batch-sim rounds (Bill: +11/+10/+11; Moe: +14/+15/+21,
+        // slightly hot but close, and Moe's own large personality bias
+        // predates all of tonight's changes). Skill 2 at the original
+        // calibration stayed consistently under band across 3 rounds
+        // (Mendi -11/-1/-10, Fallon -10/-8/-6) despite the impact-floor fix
+        // to their sniper clamps, so it was increased - not decreased.
+        let aimErrorDeg = 0, paceErrorFrac = 0;
+        if (p.botSkill === 1) {
+            aimErrorDeg = (Math.random() - 0.5) * 4;      // +/- 2 degrees
+            paceErrorFrac = (Math.random() - 0.5) * 0.26; // +/- 13% pace
+        } else if (p.botSkill === 2) {
+            aimErrorDeg = (Math.random() - 0.5) * 6;      // +/- 3 degrees
+            paceErrorFrac = (Math.random() - 0.5) * 0.40; // +/- 20% pace
+        }
+        aimAngle = rawAimDeg + aimErrorDeg;
+        let pace = rawPace * (1 + paceErrorFrac);
+
         // Dynamically adjust the cursor to the required pace instead of aiming at the hole
-        puttTargetDist = Math.max(1/3, Math.round(pace * 3) / 3); 
+        puttTargetDist = Math.max(1/3, Math.round(pace * 3) / 3);
         p.puttTargetDist = puttTargetDist;
-        
+
         // Take a smooth 100% swing at the newly adjusted target
-        p.botPower = 100; 
+        p.botPower = 100;
     } else {
         currentClubIndex = blueprint.clubIndex !== undefined && blueprint.clubIndex !== null ? blueprint.clubIndex : 0;
         if (typeof clubs !== 'undefined' && clubs[currentClubIndex]) { club = clubs[currentClubIndex]; }
