@@ -143,7 +143,7 @@ const helpMenuText = [
     { text: "Tab: Provides a quick summary of your hole, stroke, distance, and lie.", heading: false },
     { text: "C: Repeats the Caddy's last shot report.", heading: false },
     { text: "Shift + C: Copies your raw shot telemetry to your clipboard.", heading: false },
-    { text: "Shift + Semicolon: Reads your quick timing and spin diagnostics.", heading: false },
+    { text: "Shift + Semicolon: Reads your last swing's timing and spin diagnostics, plus your session averages and trend.", heading: false },
 
     { text: "Match Rules & Multiplayer: Heading Level 2.", heading: true },
     { text: "N: Swap control to the next player. Shift + N copies the Post-Round Narrative to clipboard.", heading: false },

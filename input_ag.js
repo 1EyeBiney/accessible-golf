@@ -969,6 +969,40 @@ window.addEventListener('keydown', (e) => {
             if (vis) vis.innerText = `Trn Greens: ${window.tournamentGreens ? "ON" : "OFF"}`;
             return;
         }
+        // v6.25.0 Session Timing Trends. Note: the help has documented
+        // Shift+Semicolon as "quick timing and spin diagnostics" for a long
+        // time, but no handler for it existed anywhere in this file - the
+        // binding was dead. This restores it (reading lastTimingReport,
+        // which physics_core/main_ag were already dutifully maintaining)
+        // and extends it with this session's aggregates.
+        if (e.code === 'Semicolon' && e.shiftKey) {
+            e.preventDefault();
+            let msg = typeof lastTimingReport !== 'undefined' ? lastTimingReport : "No swing data available.";
+            const s = window.sessionSwings || [];
+            if (s.length > 0) {
+                const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+                const fmtSigned = v => { let r = Math.round(v); return r === 0 ? "dead level" : `${Math.abs(r)}ms ${r < 0 ? 'early' : 'late'}`; };
+                const meanImp = mean(s.map(x => x.impact));
+                const meanHinge = mean(s.map(x => x.hinge));
+                let trend = "";
+                if (s.length >= 6) {
+                    const half = Math.floor(s.length / 2);
+                    const firstErr = mean(s.slice(0, half).map(x => Math.abs(x.impact)));
+                    const secondErr = mean(s.slice(half).map(x => Math.abs(x.impact)));
+                    const delta = firstErr - secondErr;
+                    trend = Math.abs(delta) < 5 ? " Impact precision is holding steady this session." :
+                        delta > 0 ? ` Impact precision is improving: average miss down ${Math.round(delta)}ms from the session's first half.` :
+                        ` Impact precision is slipping: average miss up ${Math.round(-delta)}ms from the session's first half.`;
+                }
+                msg += `\nSession: ${s.length} full swing${s.length === 1 ? '' : 's'}. Average impact ${fmtSigned(meanImp)}. Average hinge ${fmtSigned(meanHinge)}.${trend}`;
+            } else {
+                msg += "\nNo full swings recorded yet this session.";
+            }
+            window.announce(msg);
+            document.getElementById('visual-output').innerText = msg;
+            if (typeof window.playGolfSound === 'function') window.playGolfSound('ui_nav_05');
+            return;
+        }
         if (e.code === 'KeyC') {
             e.preventDefault();
             if (e.shiftKey) {
@@ -1808,7 +1842,7 @@ window.getKeyDescription = function(code, shift, ctrl) {
         'KeyA': shift ? "Cycles the Caddy skill level." : "Asks the Oracle Caddy for a strategic shot blueprint.",
         'KeyF': "Reads the fairway description.",
         'KeyH': "Opens the navigable Hazard and Tree list.",
-        'Semicolon': shift ? "Reads your quick timing and spin diagnostics." : "Toggles Tournament Greens mode (Stimp 13 ON / Stimp 10 OFF).",
+        'Semicolon': shift ? "Reads your last swing's timing diagnostics plus session averages and trend." : "Toggles Tournament Greens mode (Stimp 13 ON / Stimp 10 OFF).",
         'KeyC': shift ? "Copies the raw telemetry data to your clipboard." : "Announces your current club.",
         'KeyB': shift ? "Cycles the ambient background volume (0% to 100%)." : "Reads the green elevation and break when putting.",
         'KeyU': "Takes an unplayable lie penalty and drops the ball in the fairway.",

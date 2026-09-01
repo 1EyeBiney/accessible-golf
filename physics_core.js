@@ -1033,6 +1033,19 @@ function calculateShot(autoMiss = false) {
     // v6.07.0 Float sanitization
     lastTimingReport = `[${pName}] Timing Check. Power ${Math.round(finalPower)} percent. Hinge ${Math.abs(Math.round(hingeDiff))}ms ${hingeWord}. Impact ${Math.abs(Math.round(impactDiff))}ms ${impactWord}. Side Spin: ${Math.abs(Math.round(sideSpinRPM))} RPM ${sideSpinShape}. Backspin: ${Math.round(backspinRPM)} RPM, ${deltaStr}.\n[Oracle Says: ${advice}]`;
 
+    // v6.25.0 Session Timing Trends: record every HUMAN full swing's signed
+    // errors, in memory only (a "session" is this page load - deliberately
+    // no persistence). Bot swings are synthetic and putts use a different
+    // touch scale, so neither belongs in the human full-swing averages.
+    // Read back with Shift+Semicolon (input_ag.js).
+    {
+        let isBotSwing = typeof players !== 'undefined' && players.length > 0 && players[currentPlayerIndex] && players[currentPlayerIndex].isBot;
+        if (!isBotSwing) {
+            window.sessionSwings = window.sessionSwings || [];
+            window.sessionSwings.push({ impact: impactDiff, hinge: hingeDiff });
+        }
+    }
+
     let totalDistance = Math.round(potentialDist * dampening * hingeDistanceMod); // v4.88.0 hingeDistanceMod replaces hinge exponential
 
     let activeRollMod = currentStyle.rollMod;
