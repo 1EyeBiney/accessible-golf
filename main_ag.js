@@ -45,7 +45,9 @@ window.ambientVolumeIndex = 4; // Defaults to 100%
             }
             return combined.map(c => {
                 let id = c.name.toLowerCase().replace(/ /g, '_');
-                let desc = "An 18-hole championship layout.";
+                // v6.25.0: a course file may declare its own menuDesc
+                // (used by Caddy Academy, a 9-hole teaching course).
+                let desc = c.menuDesc || "An 18-hole championship layout.";
                 if (c.name.includes("Holo")) desc = "A pristine 18-hole digital championship layout. Fairways, bunkers, and perfect greens.";
                 if (c.name.includes("Pebble")) desc = "A stunning coastal links course. Narrow fairways, severe elevation changes, and tiny greens.";
                 if (c.name.includes("Andrews")) desc = "The birthplace of golf. Wide fairways, massive double greens, and treacherous pot bunkers.";
@@ -594,8 +596,12 @@ window.loadActivePlayer = function(index) {
     stanceAlignment = p.stanceAlignment;
     focusIndex = p.focusIndex;
 
-    currentClubIndex = p.currentClubIndex;
-    if (typeof clubs !== 'undefined') club = clubs[currentClubIndex];
+    // v6.25.0: guard against a bad saved index (old saves may carry the
+    // -1 the putter-equip bug wrote; see initPutting). Same guarded idiom
+    // takeAITurn already uses - keep the previous club rather than
+    // letting `club` become undefined.
+    currentClubIndex = (typeof p.currentClubIndex === 'number' && p.currentClubIndex >= 0) ? p.currentClubIndex : currentClubIndex;
+    if (typeof clubs !== 'undefined' && clubs[currentClubIndex]) club = clubs[currentClubIndex];
 
     // v4.46.0 Asymmetric Profiles
     difficultyIndex = p.difficultyIndex !== undefined ? p.difficultyIndex : 2;
@@ -614,8 +620,11 @@ window.loadActivePlayer = function(index) {
     if (distToPin <= greenSize) {
         isPutting = true;
         p.isPutting = true;
-        currentClubIndex = clubs.findIndex(c => c.name === "Putter");
-        if (currentClubIndex !== -1) club = clubs[currentClubIndex];
+        // v6.25.0: same -1 poisoning fix as initPutting (physics_core.js) -
+        // the bag has no "Putter", so never let the missed findIndex
+        // overwrite currentClubIndex.
+        let putterIdx = clubs.findIndex(c => c.name === "Putter");
+        if (putterIdx !== -1) { currentClubIndex = putterIdx; club = clubs[putterIdx]; }
     }
 
     window.updateDashboard();
@@ -727,6 +736,18 @@ function loadHole(holeNumber) {
         pinX = holeData.pinX;
         pinY = holeData.pinY;
         pinZ = holeData.pinZ || 0;
+
+        // v6.25.0 Data-driven per-hole wind lock. A hole may declare
+        // windLock: {x, y} to pin the wind for its entire duration
+        // (generateWind/driftWind in physics_core.js respect the same
+        // field, so drift can't undo it mid-hole). Holes without the
+        // field behave exactly as before. Currently used only by the
+        // Caddy Academy teaching course; harmless if that course is
+        // removed.
+        if (holeData.windLock) {
+            windX = holeData.windLock.x || 0;
+            windY = holeData.windLock.y || 0;
+        }
         
         ballX = 0; ballY = 0; strokes = 0; isHoleComplete = false;
         puttsThisHole = 0;

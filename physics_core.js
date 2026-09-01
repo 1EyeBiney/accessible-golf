@@ -93,8 +93,14 @@ window.initPutting = function() {
     if (gameMode === 'range') return;
     // v6.03.0 State Integrity Resets
     isPutting = true; swingState = 0; puttState = 0; stanceAlignment = 0; isChokedDown = false;
-    currentClubIndex = clubs.findIndex(c => c.name === "Putter");
-    if (currentClubIndex !== -1) club = clubs[currentClubIndex];
+    // v6.25.0: the bag has no club literally named "Putter", so this
+    // findIndex has always returned -1 - and assigning that -1 to
+    // currentClubIndex poisoned every later `clubs[currentClubIndex]`
+    // read (club became undefined after the next turn swap, crashing
+    // getSetupReport when e.g. the scorecard closed). Only commit the
+    // index when the putter actually exists.
+    let putterIdx = clubs.findIndex(c => c.name === "Putter");
+    if (putterIdx !== -1) { currentClubIndex = putterIdx; club = clubs[putterIdx]; }
     let rawDist = calculateDistanceToPin();
     let dist = Math.max(1/3, Math.round(rawDist * 3) / 3);
     puttTargetDist = dist; aimAngle = 0;
@@ -118,6 +124,17 @@ function calculateDistanceToTarget() {
 }
 
 function generateWind() {
+    // v6.25.0 Data-driven per-hole wind lock (see loadHole in main_ag.js).
+    // A hole declaring windLock: {x, y} keeps its wind pinned; regeneration
+    // is a no-op re-application of the locked values.
+    if (gameMode === 'course' && window.currentCourse) {
+        let wlHole = window.currentCourse.holes[(typeof hole !== 'undefined' ? hole : 1) - 1];
+        if (wlHole && wlHole.windLock) {
+            windX = wlHole.windLock.x || 0;
+            windY = wlHole.windLock.y || 0;
+            return;
+        }
+    }
     if (gameMode === 'course' && window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 6 && currentLie !== "Green" && currentLie !== "Hole") {
         let dx = ballX - 0; let dy = ballY - 395; let dist = Math.sqrt(dx*dx + dy*dy) || 1;
         windX = Math.round((dx / dist) * 15); windY = Math.round((dy / dist) * 15);
@@ -136,6 +153,16 @@ function generateWind() {
 }
 
 function driftWind() {
+    // v6.25.0 Data-driven per-hole wind lock (see generateWind above).
+    if (gameMode === 'course' && window.currentCourse) {
+        let wlHole = window.currentCourse.holes[(typeof hole !== 'undefined' ? hole : 1) - 1];
+        if (wlHole && wlHole.windLock) {
+            windX = wlHole.windLock.x || 0;
+            windY = wlHole.windLock.y || 0;
+            if (typeof window.updateDashboard === 'function') window.updateDashboard();
+            return;
+        }
+    }
     if (gameMode === 'course' && window.currentCourse && window.currentCourse.name === "The Pasture" && hole === 6 && currentLie !== "Green" && currentLie !== "Hole") {
         let dx = ballX - 0;
         let dy = ballY - 395; // Windmill parked 15 yards behind pin

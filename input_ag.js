@@ -611,6 +611,37 @@ window.addEventListener('keydown', (e) => {
         return;
     }
 
+    // ================================================================
+    // v6.25.0 CADDY ACADEMY KEY DEFLECTION - TEMPORARY BY DESIGN
+    // The Academy (courses/course_academy.js) teaches one system per
+    // hole; a key belonging to a lesson the player hasn't reached yet
+    // gets one gentle line instead of acting. This block is the ONLY
+    // Academy logic outside the course file itself - removing the
+    // Academy later means deleting this block, deleting
+    // courses/course_academy.js, and removing its script tag from
+    // index.html. Nothing else references it.
+    // Placement matters: AFTER the help/scorecard/clubhouse/save-flow
+    // interceptors above (so system menus always work), BEFORE every
+    // game key below. It only fires at swingState 0, so it can never
+    // interrupt the swing state machine mid-swing, and only on a course
+    // whose data declares academyLocks - every other course is
+    // untouched. Keys never listed in academyLocks are never deflected.
+    // It also never fires while putting: the green announces its own
+    // controls (and putting itself uses Shift+Z and Space), so deflecting
+    // there would fight the very flow the Academy is teaching.
+    // ================================================================
+    if (gameMode === 'course' && swingState === 0 && !isPutting && window.currentCourse && window.currentCourse.academyLocks) {
+        const academyKey = (e.shiftKey ? 'Shift+' : '') + e.code;
+        const lockedLesson = window.currentCourse.academyLocks.find(lock =>
+            hole < lock.fromHole && (lock.codes.includes(e.code) || lock.codes.includes(academyKey))
+        );
+        if (lockedLesson) {
+            e.preventDefault();
+            window.announce("The caddy will cover that on a later hole.");
+            return;
+        }
+    }
+
     if (swingState === 0 || isHoleComplete) {
         // v4.31.3 Ball Equipment Selection
         if (e.code === 'KeyY' && e.shiftKey) {
