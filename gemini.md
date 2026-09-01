@@ -1,3 +1,10 @@
+> **FROZEN ARCHIVE (2026-08-31).** This document is the historical record of the
+> Gemini development era, complete through v6.22.0, and receives no new entries.
+> Care of this project passed to Claude Code on this date. Current operational
+> rules: `CLAUDE.md`. Distilled engine reference: `ARCHITECTURE.md`. Ongoing
+> change log: `.changelog.md`. Where this archive and the code disagree, the
+> code is the authority.
+
 ### 3. Keybindings & Interactions
 - **ArrowDown:** Press to start Backswing. Release to lock `finalPower` and start Downswing. Press again at the bottom of the drop to strike.
 - **Spacebar:** Tap during backswing to set `hingeTimeBack`. Tap during downswing to set `hingeTimeDown`. (Emits 880Hz sine tick).

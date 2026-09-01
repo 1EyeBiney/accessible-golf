@@ -1,5 +1,5 @@
-// physics_core.js - Math, Wind, and Shot Calculation (v6.22.0)
-window.AG_VERSION = "v6.22.0";
+// physics_core.js - Math, Wind, and Shot Calculation (v6.24.0)
+window.AG_VERSION = "v6.24.0";
 
 const SHOT_RECOVERY_TIMEOUT_MS = 20000;
 
