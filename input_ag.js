@@ -1079,11 +1079,24 @@ window.addEventListener('keydown', (e) => {
             }
             if (e.code === 'Escape' || e.code === 'Enter') {
                 if (e.code === 'Escape' && typeof window.playGolfSound === 'function') window.playGolfSound('bunker_33');
-                viewingHazards = false; 
+                viewingHazards = false;
                 window.announce("Exited Obstacle List.");
                 document.getElementById('visual-output').innerText = getSetupReport();
             }
-            return; // Block swing/aim inputs while viewing hazards
+            // v6.25.0 Coarse Aim: aim adjustment now works inside the
+            // Obstacle List (previously blocked by the unconditional return
+            // below, so the clear-angle readouts could never be re-checked
+            // against a new aim without closing the menu). Plain arrows move
+            // 1 degree, Ctrl+Arrow 5 degrees, then the active obstacle is
+            // re-announced with its recomputed angles.
+            if ((e.code === 'ArrowLeft' || e.code === 'ArrowRight') && !e.shiftKey) {
+                let aimStep = e.ctrlKey ? 5 : 1;
+                aimAngle += e.code === 'ArrowLeft' ? -aimStep : aimStep;
+                aimAngle = Math.max(-90, Math.min(90, aimAngle));
+                window.announceHazard(allObstacles[hazardIndex]);
+                window.updateDashboard();
+            }
+            return; // Block swing/other inputs while viewing hazards
         }
     }
 
@@ -1363,7 +1376,9 @@ window.addEventListener('keydown', (e) => {
                 const stanceReport = getStanceReport();
                 document.getElementById('visual-output').innerText = stanceReport; window.announce(stanceReport);
             } else {
-                aimAngle += e.code === 'ArrowLeft' ? -1 : 1;
+                // v6.25.0 Coarse Aim: Ctrl+Arrow jumps 5 degrees per press
+                let aimStep = e.ctrlKey ? 5 : 1;
+                aimAngle += e.code === 'ArrowLeft' ? -aimStep : aimStep;
                 aimAngle = Math.max(-90, Math.min(90, aimAngle));
                 const aimReport = getAimReport();
                 document.getElementById('visual-output').innerText = aimReport; window.announce(aimReport);
@@ -1751,8 +1766,8 @@ window.getKeyDescription = function(code, shift, ctrl) {
         'ArrowDown': "Starts the backswing, locks power, and executes the strike.",
         'ArrowUp': shift ? "Reads the quick telemetry for your last shot." : "Aims your shot to the Left. Hold Shift for micro-adjustments.",
         'Space': "Sets hinge timing during the swing. Inside Scorecard, flips pages.",
-        'ArrowLeft': shift ? "Closes your stance to add draw spin." : "Aims 1 degree left.",
-        'ArrowRight': shift ? "Opens your stance to add fade spin." : "Aims 1 degree right.",
+        'ArrowLeft': shift ? "Closes your stance to add draw spin." : (ctrl ? "Aims 5 degrees left." : "Aims 1 degree left."),
+        'ArrowRight': shift ? "Opens your stance to add fade spin." : (ctrl ? "Aims 5 degrees right." : "Aims 1 degree right."),
         'Home': "Moves the ball forward in your stance, adding loft.",
         'End': "Moves the ball back in your stance, reducing loft.",
         'PageUp': "Equips the previous club.",

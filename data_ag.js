@@ -119,7 +119,7 @@ const helpMenuText = [
     { text: "Up Arrow: Initiates a practice swing to test your timing.", heading: false },
     { text: "Spacebar: Tap during the backswing and downswing to set your Hinge/Tempo timing. (Inside Scorecard: Flips pages).", heading: false },
     { text: "Page Up and Page Down: Cycle through your clubs.", heading: false },
-    { text: "Left and Right Arrows: Adjust your aim left or right by 1 degree.", heading: false },
+    { text: "Left and Right Arrows: Adjust your aim left or right by 1 degree. Hold Control for 5-degree jumps.", heading: false },
     { text: "Shift + Left or Right Arrow: Open or close your stance alignment to induce natural fades or draws.", heading: false },
     { text: "Home and End: Move the ball forward or backward in your stance to adjust trajectory and spin.", heading: false },
     { text: "S: Cycle forward through Swing Styles (Full, Pitch, Chip, Flop). Shift + S cycles backward.", heading: false },
