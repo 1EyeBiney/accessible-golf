@@ -1575,7 +1575,18 @@ function calculateShot(autoMiss = false) {
         }
 
         const shotDesc = flightPathNarrative ? `${contactLabel}. ${flightPathNarrative}.` : `${contactLabel}. ${shotShapeNarrative}.`;
-        const windDesc = `Wind pushed it ${Math.abs(windYEffect)} yds ${windYEffect > 0 ? 'long' : windYEffect < 0 ? 'short' : 'nowhere'}, and ${Math.abs(windXEffect)} yds ${windXEffect > 0 ? 'right' : windXEffect < 0 ? 'left' : 'nowhere'}.`;
+        // v6.25.0 Phase 3 - Omit-Defaults Report Polish (see EVALUATION.md
+        // item 5 / MISSION_OVERNIGHT_v6.25.md). Verbatim before this fix, on
+        // a calm day: "Wind pushed it 0 yds nowhere, and 0 yds nowhere." -
+        // applies the same omit-neutral-values principle the v4.64 pre-shot
+        // X report already uses. Rounded to whole yards before comparing to
+        // zero so a sub-1-yard wind effect (which would already round to 0
+        // yds in the displayed text) doesn't produce a clause that reads as
+        // "0 yds" anyway.
+        const windYRounded = Math.round(windYEffect);
+        const windXRounded = Math.round(windXEffect);
+        const windDesc = (windYRounded === 0 && windXRounded === 0) ? '' :
+            ` Wind pushed it ${Math.abs(windYRounded)} yds ${windYRounded > 0 ? 'long' : windYRounded < 0 ? 'short' : 'nowhere'}, and ${Math.abs(windXRounded)} yds ${windXRounded > 0 ? 'right' : windXRounded < 0 ? 'left' : 'nowhere'}.`;
 
         stateTimeouts.push(setTimeout(() => {
             let displayX = Math.round(ballX * 10) / 10;
@@ -1651,7 +1662,12 @@ function calculateShot(autoMiss = false) {
             // v6.21.2 Bill the Legend Telemetry Override
             let displayClub = (pName === "Bill the Legend") ? "Ralph" : club.name;
             // v6.07.0 Telemetry Float Sanitization
-            const shotBroadcast = `### ${pName}\n**Club:** ${displayClub}\n**Result:** ${roughDesc}${shotDesc} ${windDesc} Carries ${Math.round(carryDistance)}, rolls ${Math.round(rollDistance)} forward and ${kickDesc} for a total of ${Math.round(totalDistance)}. ${proximityDesc}`;
+            // v6.25.0 Phase 3 - headline first (result, total distance,
+            // finishing lie/proximity), anatomy (carry/roll/kick, wind)
+            // after. windDesc is '' on a calm shot (see above) so no
+            // "pushed it 0 yds nowhere" clause survives; it carries its own
+            // leading space when present.
+            const shotBroadcast = `### ${pName}\n**Club:** ${displayClub}\n**Result:** ${roughDesc}${shotDesc} Total of ${Math.round(totalDistance)} yards. ${proximityDesc} Carries ${Math.round(carryDistance)}, rolls ${Math.round(rollDistance)} forward and ${kickDesc}.${windDesc}`;
             let envMetrics = (typeof synthTreeActive !== 'undefined' && synthTreeActive) ? `* **Environment:** Synth Tree at ${synthTreeDist}y, X:${synthTreeX}, Height:${Math.round(synthTreeHeight)}ft\n` : "";
             const execMetrics = `* **Execution:** Power ${Math.round(finalPower)}%. Hinge Diff ${Math.round(hingeDiff)}ms. Impact Offset ${Math.round(impactDiff)}ms. Accuracy Score ${Math.round(accuracyScore)}%. Backspin: ${Math.round(backspinRPM)} RPM. Side Spin: ${Math.round(sideSpinRPM)} RPM (${sideSpinShape}).\n${treeCollisionReport}`;
             const metrics = `**Telemetry**\n* **Setup:** ${displayClub}${chokeStr} | Style: ${currentStyle.name} | Focus: ${focusModes[focusIndex].name} | Stance: ${stanceNames[stanceIndex]} / ${alignmentNames[stanceAlignment + 2]} | Aim: ${aimAngle}° | Wind: Y:${windY} X:${windX}\n${envMetrics}${execMetrics}`;
