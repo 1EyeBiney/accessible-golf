@@ -999,6 +999,13 @@ function calculateShot(autoMiss = false) {
         let energyScale = Math.max(0.1, Math.min(1.0, potentialDist / 50.0));
         backspinRPM = Math.round(backspinRPM * energyScale);
     }
+    // v6.25.0 Ball Identities (see ballTypes in main_ag.js). Spin is applied
+    // HERE, before any consumer - the telemetry baseline delta, the wind
+    // gyro stability, and the spin-based roll-out all see the ball's true
+    // spin. The other identity mods are applied adjacent to the variables
+    // they scale, further down this pipeline.
+    const ballIdent = (typeof ballTypes !== 'undefined' && ballTypes[activeBallIndex]) ? ballTypes[activeBallIndex] : {};
+    if (ballIdent.spinMod) backspinRPM = Math.round(backspinRPM * ballIdent.spinMod);
     // 2. Deterministic Side Spin (Impact directly drives curve)
     // Negative impact (early) = Hook (-). Positive impact (late) = Slice (+).
     let spinMultiplier = 15 * diffMod;
@@ -1047,9 +1054,14 @@ function calculateShot(autoMiss = false) {
     }
 
     let totalDistance = Math.round(potentialDist * dampening * hingeDistanceMod); // v4.88.0 hingeDistanceMod replaces hinge exponential
+    // v6.25.0 Ball Identities: carry/energy scaling, plus the Water
+    // Magnet's fresh random wander on every shot.
+    if (ballIdent.carryMod) totalDistance = Math.round(totalDistance * ballIdent.carryMod);
+    if (ballIdent.carryJitter) totalDistance = Math.round(totalDistance * (1 + ((Math.random() * 2 - 1) * ballIdent.carryJitter)));
 
     let activeRollMod = currentStyle.rollMod;
     if (focusIndex === 3) activeRollMod *= (1.0 - (0.5 * focusEffect)); // Positive halves roll, Negative adds 50% roll
+    if (ballIdent.rollMod) activeRollMod *= ballIdent.rollMod; // v6.25.0 Ball Identities
     if (shotStyleIndex > 0 && isStartingInRough) {
         if (impactDiff < -25) { 
             backspinRPM = Math.round(backspinRPM * 0.4);
@@ -1095,6 +1107,7 @@ function calculateShot(autoMiss = false) {
     let naturalLatScatter = isPutt ? 0 : ((Math.random() * 0.1) - 0.05) * club.maxDispersion * scatterMult;
 
     let physicsX = isPutt ? 0 : ((sideSpinRPM / 2400) * (club.maxDispersion * (typeof lieDispersionMod !== 'undefined' ? lieDispersionMod : 1) * pressureDispersion)) + naturalLatScatter;
+    if (ballIdent.lateralMod) physicsX *= ballIdent.lateralMod; // v6.25.0 Ball Identities: dispersion/forgiveness
     let lateralTotal = physicsX + windXEffect;
 
     const moveY = Math.cos(finalRad) * totalDistance - Math.sin(finalRad) * lateralTotal;

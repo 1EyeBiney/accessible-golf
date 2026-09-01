@@ -671,14 +671,21 @@ let chippingRange = 'short', confirmingGreen = false, confirmingPutting = false;
 let caddyLevel = 3; // 1: Rookie, 2: Veteran, 3: Tour Pro
 let currentClubIndex = 0;
 // v4.31.5 Knock-Off Ball Brands
+// v6.25.0 Ball Identities: each ball now carries mild REAL physics, applied
+// in calculateShot (physics_core.js) - carryMod scales total shot energy,
+// rollMod scales roll-out, spinMod scales backspin (which then genuinely
+// feeds the wind-gyro and roll math), lateralMod scales the side-spin
+// dispersion (below 1 = forgiving, above 1 = punishing), and carryJitter is
+// a fresh random +/- fraction every single shot. Absent fields mean 1.0 /
+// none. The `identity` line is spoken by the Shift+Y ball cycler.
 let activeBallIndex = 0;
 const ballTypes = [
-    { name: "Title-ish", flightWave: 'triangle', landWave: 'square', landFreq: 100 },
-    { name: "Rock-Flite", flightWave: 'sawtooth', landWave: 'sine', landFreq: 80 },
-    { name: "Semi-Pro V1", flightWave: 'sine', landWave: 'triangle', landFreq: 150 },
-    { name: "Marshmallow X", flightWave: 'triangle', landWave: 'sine', landFreq: 120 },
-    { name: "Velcro Tour", flightWave: 'triangle', landWave: 'square', landFreq: 250 },
-    { name: "The Water Magnet", flightWave: 'square', landWave: 'square', landFreq: 60 }
+    { name: "Title-ish", identity: "The trusted baseline. No surprises.", flightWave: 'triangle', landWave: 'square', landFreq: 100 },
+    { name: "Rock-Flite", identity: "Hard as a rock. Ten percent more roll, fifteen percent less spin.", rollMod: 1.10, spinMod: 0.85, flightWave: 'sawtooth', landWave: 'sine', landFreq: 80 },
+    { name: "Semi-Pro V1", identity: "Three percent more carry, but misses fly ten percent wider.", carryMod: 1.03, lateralMod: 1.10, flightWave: 'sine', landWave: 'triangle', landFreq: 150 },
+    { name: "Marshmallow X", identity: "Soft and forgiving. Misses fly fifteen percent straighter, at three percent less carry.", carryMod: 0.97, lateralMod: 0.85, flightWave: 'triangle', landWave: 'sine', landFreq: 120 },
+    { name: "Velcro Tour", identity: "Tour spin. Fifteen percent more backspin, ten percent less roll.", spinMod: 1.15, rollMod: 0.90, flightWave: 'triangle', landWave: 'square', landFreq: 250 },
+    { name: "The Water Magnet", identity: "Cursed. Carry wanders up to four percent, every single shot.", carryJitter: 0.04, flightWave: 'square', landWave: 'square', landFreq: 60 }
 ];
 let club = clubs[currentClubIndex]; // Pulls from data_ag.js
 let lastShotReport = "No caddy report available yet.";

@@ -648,7 +648,7 @@ window.addEventListener('keydown', (e) => {
             e.preventDefault();
             activeBallIndex = (activeBallIndex + 1) % ballTypes.length;
             let ball = ballTypes[activeBallIndex];
-            let msg = `Equipped Ball ${ball.name}`;
+            let msg = `Equipped Ball ${ball.name}.${ball.identity ? ' ' + ball.identity : ''}`; // v6.25.0 Ball Identities
             window.announce(msg);
             document.getElementById('visual-output').innerText = msg;
             
@@ -1829,7 +1829,7 @@ window.getKeyDescription = function(code, shift, ctrl) {
         'KeyM': shift ? "Takes a Snowman (Max score of 8) and ends the hole." : "Uses a Mulligan to erase the last shot.",
         'KeyN': shift ? "Copies the Post-Round Summary to your clipboard." : "Swaps control to the Next Player.",
         'KeyG': "Takes a Gimme and finishes the hole (Only available on the putting green).",
-        'KeyY': shift ? "Cycles equipped golf ball brand." : "Unassigned key.",
+        'KeyY': shift ? "Cycles equipped golf ball brand and announces its playing identity." : "Unassigned key.",
         'KeyX': "Announces the active club and expected 100 percent distance.",
         'KeyS': shift ? "Cycles swing styles backward." : "Cycles swing styles forward.",
         'KeyV': shift ? "Cycles the background music volume (0% to 40%)." : "Toggles choked down grip for increased control.",

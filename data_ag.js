@@ -158,7 +158,7 @@ const helpMenuText = [
     { text: "UI & System: Heading Level 2.", heading: true },
     { text: "Shift + E: Opens the full Grid Scorecard.", heading: false },
     { text: "E: Announces your quick score summary.", heading: false },
-    { text: "Shift + Y: Cycles through your equipped golf ball brand. (Y toggles Synth Tree on Range).", heading: false },
+    { text: "Shift + Y: Cycles through your equipped golf ball brand - each ball now has mild real physics, announced as you cycle. (Y toggles Synth Tree on Range).", heading: false },
     { text: "I: Cycles through global difficulty tiers. Shift + I cycles backward.", heading: false },
     { text: "Control + Enter: Fast-forwards through Clubhouse setup menus.", heading: false },
     { text: "Q: Opens the Quit and Save menu.", heading: false }
