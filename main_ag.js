@@ -213,10 +213,11 @@ window.resetRosterForHole = function() {
         players[i].ballX = 0; 
         players[i].ballY = 0;
         players[i].currentLie = "Tee";
+        players[i].lieTilt = 0; // v6.25.0 Uneven Lies - flat at the tee on every new hole
         players[i].isHoleComplete = false;
         players[i].isPutting = false;
     }
-    currentPlayerIndex = honorIndex; 
+    currentPlayerIndex = honorIndex;
 };
 
 window.advanceTurn = function(isPuttingTransition = false) {
@@ -533,6 +534,7 @@ window.saveActivePlayer = function() {
     p.ballX = ballX;
     p.ballY = ballY;
     p.currentLie = currentLie;
+    p.lieTilt = typeof lieTilt !== 'undefined' ? lieTilt : 0; // v6.25.0 Uneven Lies
     p.isHoleComplete = isHoleComplete;
     p.isPutting = isPutting;
     p.puttTargetDist = typeof puttTargetDist !== 'undefined' ? puttTargetDist : 0;
@@ -569,7 +571,8 @@ window.loadActivePlayer = function(index) {
     currentHoleStats = p.currentHoleStats || { fir: null, gir: false }; // v4.85.0
     ballX = p.ballX;
     ballY = p.ballY;
-    ballZ = 0; targetZ = 0; lieTilt = 0; landingSlope = 0;
+    ballZ = 0; targetZ = 0; landingSlope = 0;
+    lieTilt = typeof p.lieTilt !== 'undefined' ? p.lieTilt : 0; // v6.25.0 Uneven Lies - restored per-player, not reset
     currentLie = p.currentLie;
     isHoleComplete = p.isHoleComplete;
 

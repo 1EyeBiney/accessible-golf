@@ -1499,8 +1499,13 @@ window.addEventListener('keydown', (e) => {
                     activeTargetType = 'zone';
                     targetZoneIndex = 0;
                     const z = landingZones[targetZoneIndex];
-                    targetX = z.x; targetY = z.y; 
-                    targetZ = z.z || 0; lieTilt = z.tilt || 0; landingSlope = z.slope || 0;
+                    targetX = z.x; targetY = z.y;
+                    // v6.25.0 Uneven Lies: lieTilt is no longer set from the
+                    // TARGET being aimed at - it comes from the ball's own
+                    // resting lie (see physics_collisions.js's
+                    // resolveHazardLie). landingSlope (green contour
+                    // targeting) is unrelated and stays.
+                    targetZ = z.z || 0; landingSlope = z.slope || 0;
                 } else {
                     window.announce("No landing zones defined for this hole.");
                     return;
@@ -1510,12 +1515,12 @@ window.addEventListener('keydown', (e) => {
                 if (targetZoneIndex >= landingZones.length) {
                     activeTargetType = 'pin';
                     const holeData = window.currentCourse ? window.currentCourse.holes[hole - 1] : null;
-                    targetX = holeData.pinX; targetY = holeData.pinY; 
-                    targetZ = holeData.pinZ || 0; lieTilt = 0; landingSlope = 0;
+                    targetX = holeData.pinX; targetY = holeData.pinY;
+                    targetZ = holeData.pinZ || 0; landingSlope = 0;
                 } else {
                     const z = landingZones[targetZoneIndex];
                     targetX = z.x; targetY = z.y;
-                    targetZ = z.z || 0; lieTilt = z.tilt || 0; landingSlope = z.slope || 0;
+                    targetZ = z.z || 0; landingSlope = z.slope || 0;
                 }
             }
 

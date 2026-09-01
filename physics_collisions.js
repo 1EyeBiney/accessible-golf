@@ -757,5 +757,21 @@ window.resolveHazardLie = function(ctx) {
         }
     }
 
-    return { currentLie, inWater, rollStopTriggered, ballX, ballY, rollDistance, totalDistance, strokes, flightPathNarrative };
+    // v6.25.0 Uneven Lies From Ball Position (Phase 4a of the overnight
+    // v6.25 mission - see EVALUATION.md item 3). Previously `lieTilt` was
+    // only ever set by cycling the Z-key TARGET onto a landing zone that
+    // happened to declare a `tilt` field, and reset to 0 the moment the pin
+    // was targeted instead - the ball's actual resting position never
+    // produced an uneven lie. Derived here, at the authoritative point the
+    // shot's final lie is known, from the hole's own `fairwayTilt` (a
+    // single mild value per hole, populated honestly on only the handful of
+    // holes whose lore/description actually describes a sloped fairway -
+    // see course data comments). Only applies off the tee/green, where a
+    // real stance would actually be affected by ground slope.
+    let lieTilt = 0;
+    if (holeData.fairwayTilt && currentLie !== "Green" && currentLie !== "Tee" && currentLie !== "Hole" && !inWater) {
+        lieTilt = holeData.fairwayTilt;
+    }
+
+    return { currentLie, inWater, rollStopTriggered, ballX, ballY, rollDistance, totalDistance, strokes, flightPathNarrative, lieTilt };
 };

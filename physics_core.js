@@ -202,6 +202,11 @@ function getSetupReport() {
     let gripReport = typeof isChokedDown !== 'undefined' && isChokedDown ? "Choked down. " : "";
 
     let focusName = typeof focusModes !== 'undefined' ? focusModes[focusIndex].name : "";
+    // v6.25.0 Uneven Lies - announced with the setup report whenever it's
+    // non-flat, so a player knows before swinging (not just from the
+    // resulting hook/slice on the shot itself).
+    let tiltReport = (typeof lieTilt !== 'undefined' && lieTilt !== 0) ?
+        (lieTilt > 0 ? " Ball above your feet." : " Ball below your feet.") : "";
     if (gameMode === 'course' && currentLie === 'Sand') {
         const minTotal = Math.round(baseTotal * 0.60);
         const maxTotal = Math.round(baseTotal * 0.80);
@@ -209,7 +214,7 @@ function getSetupReport() {
     } else if ((gameMode === 'course' && currentLie === 'Light Rough') || (gameMode === 'range' && rangeLie === 'Rough')) {
         const minTotal = Math.round(baseTotal * 0.85);
         const maxTotal = Math.round(baseTotal * 0.95);
-        return `${displayClub}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. In the rough. Style: ${style.name}. Focus: ${focusName}.`;
+        return `${displayClub}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. In the rough.${tiltReport} Style: ${style.name}. Focus: ${focusName}.`;
     } else if (gameMode === 'course' && (currentLie === 'Mud' || currentLie === 'Manure')) {
         const minTotal = Math.round(baseTotal * 0.50);
         const maxTotal = Math.round(baseTotal * 0.70);
@@ -219,7 +224,7 @@ function getSetupReport() {
         const maxTotal = Math.round(baseTotal * 1.00);
         return `${displayClub}. ${gripReport}100% power hits ${minTotal} to ${maxTotal} yards. Hard, packed dirt. Style: ${style.name}. Focus: ${focusName}.`;
     } else {
-        return `${displayClub}. ${gripReport}100% power hits ${Math.round(baseTotal)} yards. Style: ${style.name}. Focus: ${focusName}.`;
+        return `${displayClub}. ${gripReport}100% power hits ${Math.round(baseTotal)} yards.${tiltReport} Style: ${style.name}. Focus: ${focusName}.`;
     }
 }
 
@@ -1068,6 +1073,23 @@ function calculateShot(autoMiss = false) {
     let rollDistance = Math.round(totalDistance * club.rollPct * activeRollMod * spinRollMod);
     let lateralKickX = 0, lateralKickY = 0;
     // v4.81.0 Dynamic 3D Green Topography Engine
+    // v6.25.0 Phase 4b (see EVALUATION.md item 4 / MISSION_OVERNIGHT_v6.25.md):
+    // this used to sample ONE contour zone at the landing point and apply
+    // its slope for the entire roll-out, so a ball landing on the front
+    // tier of a multi-tier green never felt a second tier it then rolled
+    // into. Now samples the zone at the ESTIMATED landing point and, using
+    // that zone's own roll estimate, the zone at the estimated FINAL
+    // resting point too - if the roll actually crosses into a different
+    // tier, the two zones' slopes are blended (equally weighted) before
+    // being applied once. This is deliberately a two-sample blend, not a
+    // full per-yard step simulation like putting's gravity engine uses -
+    // rewriting the entire roll/landing trigonometry cascade that
+    // proximity reporting and telemetry both depend on carries real risk
+    // of subtly breaking scoring this late in the session with less time
+    // left to verify; this keeps the exact same downstream formula
+    // (kickMagnitude / landingSlope-based roll multiplier) and only changes
+    // what slope value feeds it, so everything downstream is unaffected in
+    // shape, only in the (now more honest) input.
     {
         let _approxCarry = Math.max(0, totalDistance - rollDistance);
         let topoLandX = (ballX - moveX) + (_approxCarry * Math.sin(finalRad));
@@ -1078,8 +1100,29 @@ function calculateShot(autoMiss = false) {
             const holeData = window.currentCourse.holes[hole - 1];
             if (distToPinAtLand <= (holeData.greenRadius || 20) && holeData.greenType && typeof window.greenDictionary !== 'undefined') {
                 let activeContours = window.greenDictionary[holeData.greenType] || [];
-                let zone = activeContours.find(z => distToPinAtLand <= z.startY && distToPinAtLand > z.endY);
-                if (zone) {
+                let landZone = activeContours.find(z => distToPinAtLand <= z.startY && distToPinAtLand > z.endY);
+                if (landZone) {
+                    // First pass: estimate the resting point using only the
+                    // landing zone, exactly as before.
+                    let relSlopeY1 = (landZone.slopeY * Math.cos(finalRad)) + (landZone.slopeX * Math.sin(finalRad));
+                    let relSlopeX1 = -((landZone.slopeX * Math.cos(finalRad)) - (landZone.slopeY * Math.sin(finalRad)));
+                    let estSlopeDeg = relSlopeY1 * 40;
+                    let estRoll = rollDistance * (1 - (estSlopeDeg * 0.05));
+                    let estKickMag = relSlopeX1 * rollDistance * 0.85;
+                    let perpRad = finalRad + (Math.PI / 2);
+                    let estFinalX = topoLandX + (Math.sin(finalRad) * estRoll) + (estKickMag * Math.sin(perpRad));
+                    let estFinalY = topoLandY + (Math.cos(finalRad) * estRoll) + (estKickMag * Math.cos(perpRad));
+                    let distToPinAtRest = Math.sqrt(Math.pow(pinX - estFinalX, 2) + Math.pow(pinY - estFinalY, 2));
+
+                    let restZone = activeContours.find(z => distToPinAtRest <= z.startY && distToPinAtRest > z.endY);
+                    // Blend only if the roll genuinely crosses into a
+                    // different tier - a same-zone landing/rest is
+                    // unaffected (identical to the original single-sample
+                    // behavior).
+                    let zone = (restZone && restZone !== landZone) ?
+                        { slopeX: (landZone.slopeX + restZone.slopeX) / 2, slopeY: (landZone.slopeY + restZone.slopeY) / 2 } :
+                        landZone;
+
                     let globalSlopeY = zone.slopeY;
                     let globalSlopeX = zone.slopeX;
 
@@ -1091,7 +1134,6 @@ function calculateShot(autoMiss = false) {
 
                     // Calculate lateral kick (drags the ball sideways during roll)
                     let kickMagnitude = relSlopeX * rollDistance * 0.85;
-                    let perpRad = finalRad + (Math.PI / 2);
                     lateralKickX = kickMagnitude * Math.sin(perpRad);
                     lateralKickY = kickMagnitude * Math.cos(perpRad);
                 }
@@ -1101,9 +1143,24 @@ function calculateShot(autoMiss = false) {
     ballX += lateralKickX;
     ballY += lateralKickY;
     // v4.80.0 Slope Roll Math
+    // v6.25.0 Phase 4b: a steep enough uphill/backboard slope could drive
+    // this multiplier negative (e.g. 25 degrees -> 1 - 1.25 = -0.25),
+    // physically nonsensical as a distance and liable to corrupt
+    // carryDistance below it. Floored at -30% of the computed roll (the
+    // ball checks up and creeps backward a little, never further). The
+    // narration itself is appended later, after `flightPathNarrative` is
+    // actually declared (below) - referencing it here crashed every shot
+    // with "Cannot access 'flightPathNarrative' before initialization",
+    // the exact TDZ bug class CLAUDE.md warns about.
+    let _backboardCapped = false;
     if (typeof landingSlope !== 'undefined' && landingSlope !== 0) {
+        const preSlopeRoll = rollDistance;
         // 5% change in roll distance per degree of slope
         rollDistance *= (1 - (landingSlope * 0.05));
+        if (rollDistance < preSlopeRoll * -0.3) {
+            rollDistance = preSlopeRoll * -0.3;
+            _backboardCapped = true;
+        }
     }
     let carryDistance = Math.max(0, totalDistance - rollDistance);
 
@@ -1136,6 +1193,9 @@ function calculateShot(autoMiss = false) {
     const startY = ballY - moveY;
 
     let flightPathNarrative = "";
+    // v6.25.0 Phase 4b: the backboard-cap flag is set above (before this
+    // declaration existed to safely reference); apply the narration now.
+    if (_backboardCapped) flightPathNarrative = "Caught the slope and spun back.";
 
     // v5.84.3 The Acorn Dome Interceptor (Relocated for true physics alteration)
     window.skipDuckEvent = false;
@@ -1342,6 +1402,13 @@ function calculateShot(autoMiss = false) {
     totalDistance = hazardResult.totalDistance;
     strokes = hazardResult.strokes;
     flightPathNarrative = hazardResult.flightPathNarrative;
+    // v6.25.0 Uneven Lies From Ball Position - see physics_collisions.js's
+    // resolveHazardLie for the full rationale. This is the ball's lie for
+    // its NEXT shot (from wherever it just came to rest), separate from the
+    // sideSpinRPM effect this same lieTilt already had on the shot just
+    // played, via the Z-target vestige - the update below simply changes
+    // WHERE the value comes from.
+    if (typeof hazardResult.lieTilt !== 'undefined') lieTilt = hazardResult.lieTilt;
     // v4.36.1 Linear Touch Magnetism (Approach/Hole-Out Logic)
     let isHoleOut = false;
     if ((gameMode === 'course' || gameMode === 'chipping') && currentLie === "Green" && club.name !== "Putter") {
