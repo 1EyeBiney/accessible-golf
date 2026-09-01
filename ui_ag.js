@@ -486,6 +486,11 @@ window.buildClubhouseMenu = function() {
             wizardMaxScore = (wizardMaxScore + 1) % 3; window.buildClubhouseMenu(); window.announceClubhouse(false);
         }});
 
+        // v6.25.0 Brisk Mode (also toggled in-round with R)
+        clubhouseMenu.push({ text: `Brisk Mode: ${window.briskMode ? "ON (short pauses, headline reports)" : "OFF (full pacing and reports)"}`, action: () => {
+            window.briskMode = !window.briskMode; window.buildClubhouseMenu(); window.announceClubhouse(false);
+        }});
+
         // v6.25.0 Silent Sim pre-selection: only offered for an all-bot
         // roster. Selecting it here (before Start Round!) is what lets the
         // very first shot skip audio/delay too, instead of only kicking in

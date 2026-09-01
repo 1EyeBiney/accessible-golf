@@ -1,4 +1,4 @@
-﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v6.20.0)
+﻿// data_ag.js - Course Data, Clubs, and Shot Styles (v6.25.0)
 
 const windLevels = [
     { name: "Calm", min: 0, max: 4, variance: 1 },
@@ -152,6 +152,7 @@ const helpMenuText = [
     { text: "G: Take a Gimme to add 1 stroke and finish the hole. Only available on the green.", heading: false },
     { text: "U: Take an Unplayable Lie penalty. Adds 1 stroke and drops the ball in the fairway.", heading: false },
     { text: "P: Cycles through Bot Pacing modes. Inside Scorecard: Swaps players.", heading: false },
+    { text: "R: Toggles Brisk Mode for shorter pauses and headline-only shot reports. (On the Holo Range: Randomizes the target instead).", heading: false },
     
     { text: "UI & System: Heading Level 2.", heading: true },
     { text: "Shift + E: Opens the full Grid Scorecard.", heading: false },

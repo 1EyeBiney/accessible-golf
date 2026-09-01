@@ -14,6 +14,10 @@ let pacingModes = ["Fast", "Medium", "Slow", "Manual", "Simulate", "Silent Sim"]
 // leaf function (audio_core.js) and the bot commentary trigger
 // (physics_core.js) checks this instead of re-deriving pacing state.
 window.isSilentSim = false;
+// v6.25.0 Brisk Mode (opt-in): halves post-landing roll/bounce/pause theatre
+// and speaks only the headline sentence of the shot report (full anatomy
+// stays on KeyC). Toggled with KeyR on the course or in Clubhouse settings.
+window.briskMode = false;
 window.waitingForBot = false;
 let stateTimeouts = [];
 let botThinkingInterval = null;

@@ -1590,13 +1590,19 @@ function calculateShot(autoMiss = false) {
     let shotDurationMs = quick ? 5 : hangTimeSecs * 1000; // v4.86.0 Simulate Bypass
     stateTimeouts.push(setTimeout(() => {
         try {
+        // v6.25.0 Brisk Mode (opt-in, KeyR / Clubhouse settings): halves the
+        // roll/bounce/caddy-pause theatre AFTER the ball lands. Flight time
+        // itself is untouched (the 3D flight audio runs on hangTimeSecs and
+        // would land its thud late if the wait shrank under it), and quick
+        // sim already collapses everything to ~0 so the factor stays 1 there.
+        const briskFactor = (!quick && window.briskMode) ? 0.5 : 1;
         const loftPenalty = dynamicLoft >= 50 ? 2 : dynamicLoft >= 38 ? 1 : 0;
         const baseBounceCount = rollDistance <= 0 ? 1 : Math.min(6, 1 + Math.floor(rollDistance / 7));
         const bounceCount = Math.max(1, baseBounceCount - loftPenalty);
         const bounceDurationMs = 0.12 * 1000;
         const bounceOffsets = [];
         // v4.31.3 Stretched Max Bounce Gap to 600ms
-        let bounceGapMs = Math.min(600, 250 + (rollDistance * 4));
+        let bounceGapMs = Math.min(600, 250 + (rollDistance * 4)) * briskFactor;
         let bounceElapsedMs = 0, bounceSequenceMs = 0;
 
         for (let bounceIndex = 0; bounceIndex < bounceCount; bounceIndex++) {
@@ -1616,6 +1622,13 @@ function calculateShot(autoMiss = false) {
             rollTimeSecs = Math.max(3.0, Math.min(6.0, Math.abs(rollDistance) / 3));
             caddyDelayMs = 1000;
         }
+
+        // v6.25.0 Brisk Mode: shorten the roll and the caddy pause together
+        // so the roll audio (playPannedGreenRoll runs on rollTimeSecs) still
+        // matches the wait exactly. Applied before the water/mud branch can
+        // zero rollTimeSecs, which is fine - 0 * 0.5 is still 0.
+        rollTimeSecs *= briskFactor;
+        caddyDelayMs *= briskFactor;
 
         if (isWater || isMud) {
             rollTimeSecs = 0;
@@ -1773,7 +1786,14 @@ function calculateShot(autoMiss = false) {
             // after. windDesc is '' on a calm shot (see above) so no
             // "pushed it 0 yds nowhere" clause survives; it carries its own
             // leading space when present.
-            const shotBroadcast = `### ${pName}\n**Club:** ${displayClub}\n**Result:** ${roughDesc}${shotDesc} Total of ${Math.round(totalDistance)} yards. ${proximityDesc} Carries ${Math.round(carryDistance)}, rolls ${Math.round(rollDistance)} forward and ${kickDesc}.${windDesc}`;
+            // v6.25.0 Brisk Mode: the anatomy clause is built separately so
+            // the spoken announce can drop it (headline only) while
+            // lastShotReport/KeyC always keeps the full text.
+            const shotAnatomy = ` Carries ${Math.round(carryDistance)}, rolls ${Math.round(rollDistance)} forward and ${kickDesc}.${windDesc}`;
+            const shotBroadcast = `### ${pName}\n**Club:** ${displayClub}\n**Result:** ${roughDesc}${shotDesc} Total of ${Math.round(totalDistance)} yards. ${proximityDesc}${shotAnatomy}`;
+            // Strips the anatomy from a message about to be spoken when
+            // Brisk Mode is on; identity otherwise.
+            const briskSpoken = (msg) => (window.briskMode && shotAnatomy) ? msg.replace(shotAnatomy, '') : msg;
             let envMetrics = (typeof synthTreeActive !== 'undefined' && synthTreeActive) ? `* **Environment:** Synth Tree at ${synthTreeDist}y, X:${synthTreeX}, Height:${Math.round(synthTreeHeight)}ft\n` : "";
             const execMetrics = `* **Execution:** Power ${Math.round(finalPower)}%. Hinge Diff ${Math.round(hingeDiff)}ms. Impact Offset ${Math.round(impactDiff)}ms. Accuracy Score ${Math.round(accuracyScore)}%. Backspin: ${Math.round(backspinRPM)} RPM. Side Spin: ${Math.round(sideSpinRPM)} RPM (${sideSpinShape}).\n${treeCollisionReport}`;
             const metrics = `**Telemetry**\n* **Setup:** ${displayClub}${chokeStr} | Style: ${currentStyle.name} | Focus: ${focusModes[focusIndex].name} | Stance: ${stanceNames[stanceIndex]} / ${alignmentNames[stanceAlignment + 2]} | Aim: ${aimAngle}° | Wind: Y:${windY} X:${windX}\n${envMetrics}${execMetrics}`;
@@ -1784,7 +1804,7 @@ function calculateShot(autoMiss = false) {
                 pinY = chippingRange === 'short' ? Math.floor(Math.random() * 16) + 5 : Math.floor(Math.random() * 61) + 20;
                 let newTarget = calculateDistanceToPin();
                 const chippingMsg = `Chipping Green. ${shotBroadcast} Shot finished ${finalProximity} yards from the pin. New target: ${newTarget} yards.`;
-                window.announce(chippingMsg);
+                window.announce(briskSpoken(chippingMsg));
                 lastShotReport = chippingMsg + "\n\nTelemetry:\n" + metrics;
                 holeTelemetry.push(lastShotReport);
                 window.setCaddyPanelText(lastShotReport);
@@ -1803,7 +1823,7 @@ function calculateShot(autoMiss = false) {
                     holeTelemetry.push(lastShotReport);
 
                     stateTimeouts.push(setTimeout(() => {
-                        if (!quick) window.announce(completionMessage);
+                        if (!quick) window.announce(briskSpoken(completionMessage));
                         if (!quick) window.setCaddyPanelText(lastShotReport);
                     }, delayAnnounceMs));
 
@@ -1821,8 +1841,8 @@ function calculateShot(autoMiss = false) {
                         lastShotReport = rangeMsg + "\n\nTelemetry:\n" + metrics;
                         holeTelemetry.push(lastShotReport);
                         
-                        ballX = 0; ballY = 0; 
-                        window.announce(rangeMsg);
+                        ballX = 0; ballY = 0;
+                        window.announce(briskSpoken(rangeMsg));
                         window.setCaddyPanelText(lastShotReport);
 
                         if (gameMode === 'course') window.updateTargetZone();
@@ -1879,7 +1899,7 @@ function calculateShot(autoMiss = false) {
                                             // Suppress
                                         } else {
                                             window.setCaddyPanelText(lastShotReport);
-                                            window.announce(broadcast);
+                                            window.announce(briskSpoken(broadcast));
                                         }
                                     });
                                 } else {
@@ -1887,7 +1907,7 @@ function calculateShot(autoMiss = false) {
                                         // Suppress
                                     } else {
                                         window.setCaddyPanelText(lastShotReport);
-                                        window.announce(broadcast);
+                                        window.announce(briskSpoken(broadcast));
                                     }
                                 }
                             }, delayAnnounceMs));
@@ -1897,7 +1917,7 @@ function calculateShot(autoMiss = false) {
                                 stateTimeouts.push(setTimeout(() => {
                                     window.initPutting();
                                     window.advanceTurn(true);
-                                }, quick ? 0 : 3500 + delayAnnounceMs));
+                                }, quick ? 0 : (3500 * briskFactor) + delayAnnounceMs));
                             } else {
                                 if (gameMode === 'course') window.updateTargetZone();
                                 driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0; isPutting = false; isChokedDown = false;
@@ -1905,7 +1925,7 @@ function calculateShot(autoMiss = false) {
                                 // v4.45.1 ARIA Interruption Fix (Wait 4 seconds before advancing turn)
                                 stateTimeouts.push(setTimeout(() => {
                                     window.advanceTurn();
-                                }, quick ? 0 : 4000 + delayAnnounceMs));
+                                }, quick ? 0 : (4000 * briskFactor) + delayAnnounceMs));
                             }
                         }, quick ? 0 : (typeof isPutting !== 'undefined' && isPutting && club.name === "Putter" && strokes > 1 ? 1500 : 0)));
                         // Track the Auto-Save delay

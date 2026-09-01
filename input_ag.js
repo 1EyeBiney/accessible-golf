@@ -700,6 +700,20 @@ window.addEventListener('keydown', (e) => {
             return;
         }
 
+        // v6.25.0 Brisk Mode Toggle (R is only otherwise bound on the Holo
+        // Range, whose own interceptor handles and returns it first).
+        if (e.code === 'KeyR' && !e.shiftKey && gameMode !== 'range') {
+            e.preventDefault();
+            window.briskMode = !window.briskMode;
+            let msg = window.briskMode ?
+                "Brisk Mode on. Shorter pauses, headline-only shot reports. Press C for the full report after any shot." :
+                "Brisk Mode off. Full pacing and full shot reports restored.";
+            window.announce(msg);
+            document.getElementById('visual-output').innerText = msg;
+            if (typeof window.playGolfSound === 'function') window.playGolfSound(window.briskMode ? 'ui_nav_09' : 'ui_nav_10');
+            return;
+        }
+
         // v5.1.0 Next Player
         if (e.code === 'KeyN') {
             e.preventDefault();
@@ -1769,7 +1783,7 @@ window.getKeyDescription = function(code, shift, ctrl) {
         'KeyE': shift ? "Opens the full scorecard." : "Announces your quick score summary.",
         'KeyP': "Cycles through the Multiplayer Game Pacing modes. Inside Scorecard, swaps players.",
         'KeyQ': "Opens the Quit and Save menu.",
-        'KeyR': gameMode === 'range' ? "Practice Facility: Randomizes target distance and elevation." : "Unassigned key.",
+        'KeyR': gameMode === 'range' ? "Practice Facility: Randomizes target distance and elevation." : "Toggles Brisk Mode: shorter pauses and headline-only shot reports.",
         'BracketLeft': gameMode === 'range' ? "Holo Range: Moves active object Left." : "Unassigned key.",
         'BracketRight': gameMode === 'range' ? "Holo Range: Moves active object Right." : "Unassigned key.",
         'Minus': gameMode === 'range' ? (shift ? "Holo Range: Lowers Elevation/Height." : "Holo Range: Moves active object Closer.") : "Unassigned key.",
