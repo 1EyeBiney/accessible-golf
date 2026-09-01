@@ -54,6 +54,37 @@ the version that fixed them.
    trusting a test result. Revert to the clean version string before
    committing.
 
+8. **Skill-1 scoring floor doesn't bound a hot putting day.** In the final
+   v6.25.0 verification sims (3 rounds, Holodeck, calm, Silent Sim),
+   Mulligan Moe shot +12 / **-2** / +13 against his +8..+16 band. The -2
+   round is a putting-luck outlier: his forced impact floor bounds the long
+   game, but his putting aim/pace noise is a fresh random roll per putt, so
+   a round where everything drops can still beat the band. Mendi and Fallon
+   also each grazed 1 stroke under their +2 floor once (+1). Fine for casual
+   play; if tournament mode needs guaranteed spreads, consider a per-round
+   make-rate governor (e.g. cap made putts beyond N feet per round by
+   skill) rather than more per-putt noise.
+9. **`shotStyles` has 7 styles but the help text names 4.** data_ag.js
+   defines Full, Pitch, Half Pitch, Chip, Short Chip, Bump & Run, and Flop;
+   helpMenuText's S entry says "(Full, Pitch, Chip, Flop)" and the Caddy
+   Academy hole-6 lesson repeats that short list. Not wrong, just
+   undersold — worth one wording pass.
+10. **`windOverride: "Gusty"` in course_pasture.js hole data is dead** —
+   nothing has ever consumed it (Pasture's wind specials are hardcoded by
+   course name + hole in generateWind/driftWind). The v6.25.0 `windLock`
+   field is the first live data-driven wind mechanism; the dead field could
+   be removed or migrated in a cleanup pass.
+11. **Silent Sim leaks exactly one UI click** — the menu-select sound of the
+   "Start Round!" press itself, fired by the generic clubhouse handler one
+   tick before the round's Silent Sim flag arms. Cosmetic; fix would be
+   suppressing the select sound when the chosen action is a Silent Sim
+   round start.
+12. **There is no club named "Putter" in the bag** — the putter auto-equip
+   findIndex has missed forever (v6.25.0 fixed the -1 poisoning it caused;
+   see the Phase 5 changelog entry). Putting works fine without it, but
+   deciding whether the bag should actually contain a Putter entry (dashboard
+   shows the last fairway club while putting today) is an open design call.
+
 ## Done
 
 - **v6.24.0: `main_ag.js` was UTF-16 LE encoded** — invisible to grep and every
