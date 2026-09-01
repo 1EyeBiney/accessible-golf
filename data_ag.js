@@ -153,6 +153,7 @@ const helpMenuText = [
     { text: "U: Take an Unplayable Lie penalty. Adds 1 stroke and drops the ball in the fairway.", heading: false },
     { text: "P: Cycles through Bot Pacing modes. Inside Scorecard: Swaps players.", heading: false },
     { text: "R: Toggles Brisk Mode for shorter pauses and headline-only shot reports. (On the Holo Range: Randomizes the target instead).", heading: false },
+    { text: "Shift + R: On the Holo Range, toggles Locked Conditions - freezes wind and keeps your aim and stance between shots for grooving.", heading: false },
     
     { text: "UI & System: Heading Level 2.", heading: true },
     { text: "Shift + E: Opens the full Grid Scorecard.", heading: false },

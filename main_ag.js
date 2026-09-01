@@ -18,6 +18,10 @@ window.isSilentSim = false;
 // and speaks only the headline sentence of the shot report (full anatomy
 // stays on KeyC). Toggled with KeyR on the course or in Clubhouse settings.
 window.briskMode = false;
+// v6.25.0 Locked Conditions practice (Shift+R, Holo Range only): freezes
+// wind drift and preserves aim/stance between shots for grooving one swing.
+// Cleared by loadHole and by exiting the practice area.
+window.lockedPractice = false;
 window.waitingForBot = false;
 let stateTimeouts = [];
 let botThinkingInterval = null;
@@ -686,6 +690,7 @@ function loadHole(holeNumber) {
     try {
         stateTimeouts.forEach(clearTimeout);
         stateTimeouts = [];
+        window.lockedPractice = false; // v6.25.0 - the lock is a per-range-session convenience, never carried into a hole
 
         // v5.100.0 Practice Sandbox Isolation
         if ((gameMode === 'range' || gameMode === 'putting') && (!window.currentCourse || !window.currentCourse.name.includes("Simulator"))) {

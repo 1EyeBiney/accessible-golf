@@ -1846,7 +1846,12 @@ function calculateShot(autoMiss = false) {
                         window.setCaddyPanelText(lastShotReport);
 
                         if (gameMode === 'course') window.updateTargetZone();
-                        driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0; swingState = 0;
+                        // v6.25.0 Locked Conditions practice (Shift+R on the
+                        // range): hold wind and setup steady between shots.
+                        if (!window.lockedPractice) {
+                            driftWind(); aimAngle = 0; stanceIndex = 2; stanceAlignment = 0;
+                        }
+                        swingState = 0;
                         window.updateDashboard();
                     } else {
                         let penaltyStr = ".";

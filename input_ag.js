@@ -783,6 +783,7 @@ window.addEventListener('keydown', (e) => {
                 document.getElementById('visual-output').innerText = msg;
             } else {
                 gameMode = 'clubhouse'; clubhouseState = 'practice'; clubhouseIndex = 0;
+                window.lockedPractice = false; // v6.25.0
                 document.getElementById('dashboard-panel').style.display = 'none';
                 document.getElementById('swing-meter').style.display = 'none';
                 window.announce("Exited practice area.");
@@ -846,6 +847,22 @@ window.addEventListener('keydown', (e) => {
                 }
                 return warns.length > 0 ? ` Warning: Close proximity to ${warns.join(" and ")}.` : "";
             };
+
+            // v6.25.0 Locked Conditions Practice (Shift+R, range only):
+            // freezes wind drift and keeps your aim, stance, and alignment
+            // between shots so you can groove the identical swing. Lie and
+            // target already only change when YOU change them (L / R).
+            if (e.code === 'KeyR' && e.shiftKey) {
+                e.preventDefault();
+                window.lockedPractice = !window.lockedPractice;
+                let msg = window.lockedPractice ?
+                    "Conditions locked. Wind is frozen and your aim and stance will hold between shots. Press Shift R again to unlock." :
+                    "Conditions unlocked. Wind drifts and your setup resets after each shot as normal.";
+                window.announce(msg);
+                document.getElementById('visual-output').innerText = msg;
+                if (typeof window.playGolfSound === 'function') window.playGolfSound(window.lockedPractice ? 'menu_05' : 'menu_06');
+                return;
+            }
 
             // v5.3.0 Target Randomizer
             if (e.code === 'KeyR' && !e.shiftKey) {
@@ -1798,7 +1815,7 @@ window.getKeyDescription = function(code, shift, ctrl) {
         'KeyE': shift ? "Opens the full scorecard." : "Announces your quick score summary.",
         'KeyP': "Cycles through the Multiplayer Game Pacing modes. Inside Scorecard, swaps players.",
         'KeyQ': "Opens the Quit and Save menu.",
-        'KeyR': gameMode === 'range' ? "Practice Facility: Randomizes target distance and elevation." : "Toggles Brisk Mode: shorter pauses and headline-only shot reports.",
+        'KeyR': gameMode === 'range' ? (shift ? "Toggles Locked Conditions: freezes wind and setup between shots." : "Practice Facility: Randomizes target distance and elevation.") : "Toggles Brisk Mode: shorter pauses and headline-only shot reports.",
         'BracketLeft': gameMode === 'range' ? "Holo Range: Moves active object Left." : "Unassigned key.",
         'BracketRight': gameMode === 'range' ? "Holo Range: Moves active object Right." : "Unassigned key.",
         'Minus': gameMode === 'range' ? (shift ? "Holo Range: Lowers Elevation/Height." : "Holo Range: Moves active object Closer.") : "Unassigned key.",
